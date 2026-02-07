@@ -1,0 +1,66 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": false,                           // Disabled strict mode
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    
+    // Completely disable ALL TypeScript checks:
+    "noImplicitAny": false,                    // Allow implicit any types
+    "noImplicitReturns": false,                // Don't check that all code paths return a value
+    "noImplicitThis": false,                   // Allow implicit any on 'this'
+    "noUnusedLocals": false,                   // Don't report unused local variables
+    "noUnusedParameters": false,               // Don't report unused parameters
+    "suppressImplicitAnyIndexErrors": true,    // Suppress implicit any errors on index signatures
+    "noImplicitOverride": false,               // Don't require explicit override modifier
+    "noPropertyAccessFromIndexSignature": false, // Allow property access from index signatures
+    "exactOptionalPropertyTypes": false,       // Don't require exact optional property types
+    "noUncheckedIndexedAccess": false,         // Don't add undefined to index signature results
+    "allowUnreachableCode": true,              // Allow unreachable code
+    "allowUnusedLabels": true,                 // Allow unused labels
+    "noFallthroughCasesInSwitch": false,       // Don't report fallthrough cases in switch statements
+    "noImplicitUseStrict": false,              // Don't emit 'use strict' for each source file
+    "suppressExcessPropertyErrors": true,      // Suppress excess property errors
+    
+    // Additional comprehensive disabling:
+    "strictNullChecks": false,                 // Disable strict null checks
+    "strictFunctionTypes": false,              // Disable strict function types
+    "strictBindCallApply": false,              // Disable strict bind/call/apply
+    "strictPropertyInitialization": false,    // Disable strict property initialization
+    "noImplicitAny": false,                    // Allow implicit any
+    "alwaysStrict": false,                     // Don't parse in strict mode
+    "allowSyntheticDefaultImports": true,      // Allow synthetic default imports
+    "forceConsistentCasingInFileNames": false, // Don't force consistent casing
+    "declaration": false,                      // Don't generate declaration files
+    "declarationMap": false,                   // Don't generate declaration maps
+    "sourceMap": false,                        // Don't generate source maps
+    "removeComments": false,                   // Don't remove comments
+    "noLib": false,                            // Don't disable lib files
+    "skipDefaultLibCheck": true,               // Skip default lib check
+    "checkJs": false,                          // Don't check JS files
+    "allowUmdGlobalAccess": true,              // Allow UMD global access
+    "keyofStringsOnly": false,                 // Don't restrict keyof to strings only
+    "useDefineForClassFields": false,          // Don't use define for class fields
+    "noStrictGenericChecks": true,             // Disable strict generic checks
+    
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}

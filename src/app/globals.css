@@ -1,0 +1,2002 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* Prevent FOUC by hiding content until theme is ready - Mobile Safe */
+html:not(.theme-ready) {
+  visibility: hidden;
+}
+
+html.theme-ready {
+  visibility: visible;
+}
+
+/* Mobile failsafe - ensure content is always visible after 15 seconds */
+@media (max-width: 768px) {
+  html {
+    animation: mobile-failsafe-show 15s forwards;
+  }
+}
+
+@keyframes mobile-failsafe-show {
+
+  0%,
+  99% {
+    visibility: inherit;
+  }
+
+  100% {
+    visibility: visible !important;
+  }
+}
+
+@supports (-webkit-touch-callout: none) {
+
+  /* Force immediate CSS variable application on iOS */
+  html {
+    /* Mobile safety timeout */
+    animation: ios-safety-timeout 12s forwards;
+  }
+
+  @keyframes ios-safety-timeout {
+
+    0%,
+    95% {
+      visibility: inherit;
+    }
+
+    100% {
+      visibility: visible !important;
+    }
+  }
+
+  /* Ensure sidebar has immediate background color on iOS */
+  [data-sidebar="sidebar"] {
+    background-color: var(--sidebar, var(--sidebar-fallback-light)) !important;
+  }
+
+  /* Dark mode fallback for iOS */
+  .dark [data-sidebar="sidebar"] {
+    background-color: var(--sidebar, var(--sidebar-fallback-dark)) !important;
+  }
+
+  /* Mobile sidebar specific iOS fixes */
+  [data-mobile="true"][data-sidebar="sidebar"] {
+    background-color: var(--sidebar, var(--sidebar-fallback-light)) !important;
+  }
+
+  .dark [data-mobile="true"][data-sidebar="sidebar"] {
+    background-color: var(--sidebar, var(--sidebar-fallback-dark)) !important;
+  }
+
+  /* Use immediate sidebar color if available (iOS specific) - Mobile specific */
+  [data-mobile="true"][data-sidebar="sidebar"] {
+    background-color: var(--sidebar, var(--sidebar-immediate, var(--sidebar-fallback-light))) !important;
+  }
+
+  .dark [data-mobile="true"][data-sidebar="sidebar"] {
+    background-color: var(--sidebar, var(--sidebar-immediate, var(--sidebar-fallback-dark))) !important;
+  }
+}
+
+/* Disable OS-level theme adaptations and force consistent appearance */
+@media (prefers-color-scheme: dark) {
+
+  /* Override dark mode preference - force light theme unless explicitly set */
+  html:not(.dark) {
+    color-scheme: light !important;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+
+  /* Ensure light mode stays light */
+  html:not(.dark) {
+    color-scheme: light !important;
+  }
+}
+
+/* Disable high contrast mode adaptations */
+@media (prefers-contrast: high) {
+  * {
+    forced-color-adjust: none !important;
+  }
+}
+
+/* Disable reduced motion adaptations */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Override browser-level theme detection */
+html {
+  color-scheme: light !important;
+}
+
+html.dark {
+  color-scheme: dark !important;
+}
+
+/* Prevent automatic color inversion on iOS/Safari */
+html,
+body {
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Disable automatic dark mode detection in WebKit browsers */
+@supports (-webkit-appearance: none) {
+  html {
+    color-scheme: light !important;
+    -webkit-color-scheme: light !important;
+  }
+
+  html.dark {
+    color-scheme: dark !important;
+    -webkit-color-scheme: dark !important;
+  }
+}
+
+/* Universal sidebar immediate background fallbacks (all platforms) */
+[data-sidebar="sidebar"] {
+  background-color: var(--sidebar, var(--sidebar-immediate, var(--sidebar-fallback-light))) !important;
+}
+
+.dark [data-sidebar="sidebar"] {
+  background-color: var(--sidebar, var(--sidebar-immediate, var(--sidebar-fallback-dark))) !important;
+}
+
+/* Explicit mobile attribute support across platforms */
+[data-mobile="true"][data-sidebar="sidebar"] {
+  background-color: var(--sidebar, var(--sidebar-immediate, var(--sidebar-fallback-light))) !important;
+}
+
+.dark [data-mobile="true"][data-sidebar="sidebar"] {
+  background-color: var(--sidebar, var(--sidebar-immediate, var(--sidebar-fallback-dark))) !important;
+}
+
+@layer base {
+  :root {
+    /* --- Seed Colors: Light Theme --- */
+    --light-background: hsl(18 35% 99%);
+    --light-foreground: hsl(230 25% 12%);
+    --light-card: hsl(0 0% 100%);
+    --light-card-foreground: hsl(230 25% 15%);
+    --light-popover: hsl(0 0% 100%);
+    --light-popover-foreground: hsl(230 25% 12%);
+    --light-primary: hsl(354 62% 66%);
+    --light-primary-foreground: hsl(0 0% 100%);
+    --light-secondary: hsl(230 15% 96%);
+    --light-secondary-foreground: hsl(230 20% 30%);
+    --light-muted: hsl(230 15% 96%);
+    --light-muted-foreground: hsl(230 12% 42%);
+    --light-accent: hsl(355 45% 95%);
+    --light-accent-foreground: hsl(354 50% 35%);
+    --light-destructive: hsl(5 65% 55%);
+    --light-destructive-foreground: hsl(0 0% 100%);
+    --light-border: hsl(230 15% 92%);
+    --light-input: hsl(230 15% 92%);
+
+    /* Semantic Colors (Light) */
+    --light-success: hsl(142 76% 36%);
+    --light-success-foreground: hsl(0 0% 100%);
+    --light-warning: hsl(38 92% 50%);
+    --light-warning-foreground: hsl(0 0% 100%);
+    --light-info: hsl(199 89% 48%);
+    --light-info-foreground: hsl(0 0% 100%);
+
+    /* --- Foundation --- */
+    --background: var(--light-background);
+    --foreground: var(--light-foreground);
+
+    /* --- Surfaces --- */
+    --card: var(--light-card);
+    --card-foreground: var(--light-card-foreground);
+    --popover: var(--light-popover);
+    --popover-foreground: var(--light-popover-foreground);
+
+    /* --- Brand --- */
+    --primary: var(--light-primary);
+    --primary-foreground: var(--light-primary-foreground);
+
+    /* --- Interaction & Muted --- */
+    --secondary: var(--light-secondary);
+    --secondary-foreground: var(--light-secondary-foreground);
+    --muted: var(--light-muted);
+    --muted-foreground: var(--light-muted-foreground);
+    --accent: var(--light-accent);
+    --accent-foreground: var(--light-accent-foreground);
+
+    /* --- Feedback --- */
+    --destructive: var(--light-destructive);
+    --destructive-foreground: var(--light-destructive-foreground);
+    --success: var(--light-success);
+    --success-foreground: var(--light-success-foreground);
+    --warning: var(--light-warning);
+    --warning-foreground: var(--light-warning-foreground);
+    --info: var(--light-info);
+    --info-foreground: var(--light-info-foreground);
+
+    --border: var(--light-border);
+    --input: var(--light-input);
+    --ring: hsla(354, 62%, 66%, 0.4);
+
+    /* --- Charts --- */
+    --chart-1: hsl(162 35% 52%);
+    --chart-2: var(--primary);
+    --chart-3: hsl(215 25% 65%);
+    --chart-4: hsl(38 55% 68%);
+    --chart-5: hsl(265 20% 70%);
+
+    /* --- Sidebar --- */
+    --sidebar: hsl(20 15% 97.5%);
+    --sidebar-foreground: hsl(230 20% 25%);
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--primary-foreground);
+    --sidebar-accent: hsl(355 35% 92%);
+    --sidebar-accent-foreground: hsl(354 45% 30%);
+    --sidebar-border: hsl(230 10% 93%);
+    --sidebar-ring: var(--primary);
+
+    /* Global sidebar fallback colors */
+    --sidebar-fallback-light: var(--light-background);
+    --sidebar-fallback-dark: hsl(230 20% 7%);
+
+    /* --- Gradients --- */
+    --gradient-left: var(--primary);
+    --gradient-center: hsl(354 55% 75%);
+    --gradient-right: hsl(38 55% 68%);
+    --primary-gradient: linear-gradient(135deg, var(--gradient-left), var(--gradient-center), var(--gradient-right));
+    --hero-gradient-text: linear-gradient(135deg, var(--gradient-left), var(--gradient-center), var(--gradient-right));
+
+    /* Header scroll animation variables */
+    --scroll-progress: 0;
+
+    /* --- Typography & Radius --- */
+    --font-sans: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+    --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+    --font-mono: monospace;
+    --radius: 1rem;
+
+    /* Shadows */
+    --shadow-color: hsl(0 0% 0%);
+    --shadow-2xs: 0px 1px 3px 0px var(--shadow-color, 0.09);
+    --shadow-xs: 0px 1px 3px 0px var(--shadow-color, 0.09);
+    --shadow-sm: 0px 1px 3px 0px var(--shadow-color, 0.17), 0px 1px 2px -1px var(--shadow-color, 0.17);
+    --shadow: 0px 1px 3px 0px var(--shadow-color, 0.17), 0px 1px 2px -1px var(--shadow-color, 0.17);
+    --shadow-md: 0px 1px 3px 0px var(--shadow-color, 0.17), 0px 2px 4px -1px var(--shadow-color, 0.17);
+    --shadow-lg: 0px 1px 3px 0px var(--shadow-color, 0.17), 0px 4px 6px -1px var(--shadow-color, 0.17);
+    --shadow-xl: 0px 1px 3px 0px var(--shadow-color, 0.17), 0px 8px 10px -1px var(--shadow-color, 0.17);
+    --shadow-2xl: 0px 1px 3px 0px var(--shadow-color, 0.43);
+    --tracking-normal: 0.025em;
+    --spacing: 0.25rem;
+  }
+
+  .dark {
+    /* --- Seed Colors: Dark Theme --- */
+    --dark-background: hsl(230 20% 7%);
+    --dark-foreground: hsl(230 15% 92%);
+    --dark-card: hsl(230 20% 9%);
+    --dark-card-foreground: hsl(230 15% 92%);
+    --dark-popover: hsl(230 20% 9%);
+    --dark-popover-foreground: hsl(230 15% 92%);
+    --dark-primary: hsl(354 55% 72%);
+    --dark-primary-foreground: hsl(354 25% 10%);
+    --dark-secondary: hsl(230 15% 13%);
+    --dark-secondary-foreground: hsl(230 10% 95%);
+    --dark-muted: hsl(230 15% 13%);
+    --dark-muted-foreground: hsl(230 10% 60%);
+    --dark-accent: hsl(354 25% 18%);
+    --dark-accent-foreground: hsl(354 20% 90%);
+    --dark-destructive: hsl(5 65% 55%);
+    --dark-destructive-foreground: hsl(0 0% 100%);
+    --dark-border: hsl(230 15% 16%);
+    --dark-input: hsl(230 15% 16%);
+
+    /* Semantic Colors (Dark) */
+    --dark-success: hsl(142 71% 45%);
+    --dark-success-foreground: hsl(142 71% 95%);
+    --dark-warning: hsl(38 92% 50%);
+    --dark-warning-foreground: hsl(38 92% 5%);
+    --dark-info: hsl(199 89% 48%);
+    --dark-info-foreground: hsl(199 89% 95%);
+
+    --background: var(--dark-background);
+    --foreground: var(--dark-foreground);
+    --card: var(--dark-card);
+    --card-foreground: var(--dark-card-foreground);
+    --popover: var(--dark-popover);
+    --popover-foreground: var(--dark-popover-foreground);
+    --primary: var(--dark-primary);
+    --primary-foreground: var(--dark-primary-foreground);
+    --secondary: var(--dark-secondary);
+    --secondary-foreground: var(--dark-secondary-foreground);
+    --muted: var(--dark-muted);
+    --muted-foreground: var(--dark-muted-foreground);
+    --accent: var(--dark-accent);
+    --accent-foreground: var(--dark-accent-foreground);
+
+    --destructive: var(--dark-destructive);
+    --destructive-foreground: var(--dark-destructive-foreground);
+    --success: var(--dark-success);
+    --success-foreground: var(--dark-success-foreground);
+    --warning: var(--dark-warning);
+    --warning-foreground: var(--dark-warning-foreground);
+    --info: var(--dark-info);
+    --info-foreground: var(--dark-info-foreground);
+
+    --border: var(--dark-border);
+    --input: var(--dark-input);
+    --ring: hsla(354, 55%, 72%, 0.4);
+
+    /* --- Charts --- */
+    --chart-1: hsl(162 35% 52%);
+    --chart-2: var(--primary);
+    --chart-3: hsl(215 25% 65%);
+    --chart-4: hsl(38 55% 68%);
+    --chart-5: hsl(265 20% 70%);
+
+    /* --- Sidebar --- */
+    --sidebar: var(--dark-background);
+    --sidebar-foreground: hsl(230 10% 70%);
+    --sidebar-accent: var(--dark-accent);
+    --sidebar-accent-foreground: var(--dark-accent-foreground);
+    --sidebar-border: var(--dark-border);
+
+    --sidebar-fallback-dark: var(--dark-background);
+
+    /* --- Gradients --- */
+    --gradient-left: var(--primary);
+    --gradient-center: hsl(354 55% 75%);
+    --gradient-right: hsl(38 55% 68%);
+    --primary-gradient: linear-gradient(135deg, var(--gradient-left), var(--gradient-center), var(--gradient-right));
+    --hero-gradient-text: linear-gradient(135deg, var(--gradient-left), var(--gradient-center), var(--gradient-right));
+  }
+
+  /* Quiz session specific badge styling */
+  .quiz-session-badge {
+    --primary: var(--gradient-left) !important;
+  }
+
+  @theme inline {
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-success: var(--success);
+    --color-success-foreground: var(--success-foreground);
+    --color-warning: var(--warning);
+    --color-warning-foreground: var(--warning-foreground);
+    --color-info: var(--info);
+    --color-info-foreground: var(--info-foreground);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
+
+    --font-sans: var(--font-sans);
+    --font-mono: var(--font-mono);
+    --font-serif: var(--font-serif);
+
+    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) + 4px);
+
+    --shadow-2xs: var(--shadow-2xs);
+    --shadow-xs: var(--shadow-xs);
+    --shadow-sm: var(--shadow-sm);
+    --shadow: var(--shadow);
+    --shadow-md: var(--shadow-md);
+    --shadow-lg: var(--shadow-lg);
+    --shadow-xl: var(--shadow-xl);
+    --shadow-2xl: var(--shadow-2xl);
+
+    --tracking-tighter: calc(var(--tracking-normal) - 0.05em);
+    --tracking-tight: calc(var(--tracking-normal) - 0.025em);
+    --tracking-normal: var(--tracking-normal);
+    --tracking-wide: calc(var(--tracking-normal) + 0.025em);
+    --tracking-wider: calc(var(--tracking-normal) + 0.05em);
+    --tracking-widest: calc(var(--tracking-normal) + 0.1em);
+  }
+
+  html {
+    background-color: var(--background);
+  }
+
+  html:not(.dark) {
+    background-color: var(--light-background);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: var(--tracking-normal);
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  html:not(.dark) body {
+    background-color: var(--light-background);
+  }
+
+  /* Headings: Slightly tighter for a "Premium" look */
+  h1,
+  h2,
+  h3,
+  .text-heading {
+    letter-spacing: -0.015em;
+    font-weight: 600;
+    line-height: 1.25;
+  }
+
+  /* Body Text: Looser for maximum legibility */
+  p,
+  .text-body {
+    letter-spacing: 0.01em;
+    line-height: 1.625;
+  }
+
+  /* UI Labels (Stats, Buttons): Precise and clear */
+  .text-ui,
+  button,
+  label {
+    letter-spacing: 0.02em;
+    font-weight: 500;
+    font-size: 0.875rem;
+  }
+
+  /* Heading Primary - Uses primary color for text gradient */
+  .text-heading-primary {
+    background: linear-gradient(to right, var(--primary), var(--primary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .card {
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    box-shadow: 0 10px 25px -10px hsla(354, 20%, 15%, 0.05);
+    /* This can stay as it's a specific tinted shadow, but ideally would use a variable if we had one for tinted shadows */
+    border-radius: var(--radius);
+  }
+
+  /* Markdown Note Editor Content Styles */
+  .mdx-note-editor-content,
+  .mdx-note-editor-content p,
+  .mdx-note-editor-content div {
+    color: var(--foreground);
+  }
+
+  .dark .mdx-note-editor-content,
+  .dark .mdx-note-editor-content p,
+  .dark .mdx-note-editor-content div {
+    color: var(--foreground);
+  }
+
+  /* MDX Editor Sticky Toolbar Styles */
+  .mdx-editor-sticky-toolbar {
+    --mdx-toolbar-height: auto;
+  }
+
+  .mdx-editor-sticky-toolbar .mdx-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: inherit;
+  }
+
+  .mdx-toolbar-compact {
+    min-height: 32px;
+  }
+
+  .mdx-toolbar-compact .mdx-toolbar-button {
+    padding: 2px 6px;
+    min-width: 24px;
+    height: 24px;
+  }
+
+  .mdx-toolbar-compact select {
+    padding: 2px 6px;
+    height: 24px;
+    font-size: 0.75rem;
+  }
+
+  /* MDX Editor Flex Grow Styles */
+  .mdx-editor-flex-grow {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: inherit;
+  }
+
+  .mdx-editor-flex-grow .mdx-editor__editor {
+    flex: 1;
+    min-height: 0;
+  }
+}
+
+/* Custom Scrollbar Styles */
+/* Webkit browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--muted);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--muted-foreground) 0.3, transparent);
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--muted-foreground) 0.5, transparent);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: color-mix(in srgb, var(--primary) 0.6, transparent);
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--muted);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--muted-foreground) 0.3, transparent) var(--muted);
+}
+
+/* Invisible scrollbar for sidebar */
+.invisible-scrollbar {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  /* Enable smooth scrolling and touch scrolling */
+  -webkit-overflow-scrolling: touch !important;
+  scroll-behavior: smooth !important;
+  /* Ensure touch events work properly */
+  touch-action: pan-y !important;
+}
+
+.invisible-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Enhanced scrollbar for specific containers */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--primary) 0.4, transparent) var(--muted);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--muted);
+  border-radius: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg,
+      color-mix(in srgb, var(--primary) 0.4, transparent),
+      color-mix(in srgb, var(--primary) 0.6, transparent));
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  transition: all 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg,
+      color-mix(in srgb, var(--primary) 0.6, transparent),
+      color-mix(in srgb, var(--primary) 0.8, transparent));
+  transform: scale(1.1);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(135deg,
+      color-mix(in srgb, var(--primary) 0.8, transparent),
+      var(--primary));
+}
+
+/* Thin scrollbar for compact areas */
+.thin-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--muted-foreground) 0.2, transparent);
+  border-radius: 2px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--muted-foreground) 0.4, transparent);
+}
+
+/* Quiz Questions Sidebar Scrollbar */
+.quiz-questions-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--muted-foreground) 0.3, transparent) color-mix(in srgb, var(--muted) 0.5, transparent);
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.quiz-questions-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.quiz-questions-scrollbar::-webkit-scrollbar-track {
+  background: color-mix(in srgb, var(--muted) 0.3, transparent);
+  border-radius: 3px;
+  margin: 4px 0;
+}
+
+.quiz-questions-scrollbar::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--muted-foreground) 0.4, transparent);
+  border-radius: 3px;
+  transition: all 0.2s ease;
+}
+
+.quiz-questions-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--primary) 0.6, transparent);
+  transform: scaleX(1.2);
+}
+
+.quiz-questions-scrollbar::-webkit-scrollbar-thumb:active {
+  background: color-mix(in srgb, var(--primary) 0.8, transparent);
+}
+
+/* Mobile optimization for quiz questions scrollbar */
+@media (max-width: 1024px) {
+  .quiz-questions-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .quiz-questions-scrollbar::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--muted-foreground) 0.5, transparent);
+  }
+}
+
+/* Quiz Layout Specific Styles */
+.quiz-sidebar-container {
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+}
+
+.quiz-questions-container {
+  max-height: calc(100vh - 120px);
+  /* Account for header and padding */
+  min-height: 200px;
+  /* Minimum height to show at least a few questions */
+}
+
+/* Ensure sidebar doesn't affect main page scrolling */
+@media (min-width: 1024px) {
+  .quiz-sidebar-container {
+    height: calc(100vh - 56px);
+    /* Account for header height */
+    max-height: calc(100vh - 56px);
+  }
+
+  .quiz-questions-container {
+    max-height: calc(100vh - 176px);
+    /* Header + padding + title */
+  }
+}
+
+/* Mobile sidebar height optimization */
+@media (max-width: 1023px) {
+  .quiz-sidebar-container {
+    height: 100vh;
+    max-height: 100vh;
+  }
+
+  .quiz-questions-container {
+    max-height: calc(100vh - 140px);
+    /* More space for mobile header */
+  }
+}
+
+/* Specific sidebar scrollbar hiding */
+[data-sidebar="sidebar"] {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+[data-sidebar="sidebar"]::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+[data-sidebar="content"] {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+[data-sidebar="content"]::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+[data-slot="sidebar-inner"] {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+[data-slot="sidebar-inner"]::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Modern sidebar specific */
+.modern-sidebar-nav {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.modern-sidebar-nav::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Force hide scrollbars with maximum specificity */
+html body .invisible-scrollbar,
+html body [data-sidebar="sidebar"],
+html body [data-sidebar="content"],
+html body [data-slot="sidebar-inner"],
+html body .modern-sidebar-nav {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  /* Enable touch scrolling on mobile */
+  -webkit-overflow-scrolling: touch !important;
+  scroll-behavior: smooth !important;
+  touch-action: pan-y !important;
+}
+
+html body .invisible-scrollbar::-webkit-scrollbar,
+html body [data-sidebar="sidebar"]::-webkit-scrollbar,
+html body [data-sidebar="content"]::-webkit-scrollbar,
+html body [data-slot="sidebar-inner"]::-webkit-scrollbar,
+html body .modern-sidebar-nav::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+/* Additional fallback for any overflow containers in sidebar */
+[data-sidebar] * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+[data-sidebar] *::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Ultimate fallback - hide all webkit scrollbars in sidebar areas */
+.invisible-scrollbar::-webkit-scrollbar,
+.invisible-scrollbar *::-webkit-scrollbar,
+.modern-sidebar-nav::-webkit-scrollbar,
+.modern-sidebar-nav *::-webkit-scrollbar {
+  display: none !important;
+  width: 0px !important;
+  height: 0px !important;
+  background: transparent !important;
+  -webkit-appearance: none !important;
+}
+
+/* Ensure no scrollbar track or thumb is visible */
+.invisible-scrollbar::-webkit-scrollbar-track,
+.invisible-scrollbar::-webkit-scrollbar-thumb,
+.invisible-scrollbar::-webkit-scrollbar-corner,
+.modern-sidebar-nav::-webkit-scrollbar-track,
+.modern-sidebar-nav::-webkit-scrollbar-thumb,
+.modern-sidebar-nav::-webkit-scrollbar-corner {
+  display: none !important;
+  background: transparent !important;
+  width: 0px !important;
+  height: 0px !important;
+}
+
+/* Mobile touch scrolling optimization and safety measures */
+@media (max-width: 768px) {
+
+  .invisible-scrollbar,
+  [data-sidebar="sidebar"],
+  [data-sidebar="content"],
+  [data-slot="sidebar-inner"],
+  .modern-sidebar-nav {
+    /* Enhanced touch scrolling for mobile */
+    -webkit-overflow-scrolling: touch !important;
+    scroll-behavior: smooth !important;
+    touch-action: pan-y !important;
+    /* Ensure momentum scrolling works */
+    overflow-scrolling: touch !important;
+    /* Prevent scroll chaining */
+    overscroll-behavior: contain !important;
+  }
+
+  /* Mobile safety measures - prevent complete page disappearance */
+  body {
+    min-height: 100vh !important;
+    position: relative !important;
+  }
+
+  /* Ensure main content is always accessible */
+  main,
+  [role="main"],
+  .main-content {
+    min-height: 50vh !important;
+    position: relative !important;
+  }
+
+  /* Emergency visibility for critical elements */
+  nav,
+  header,
+  main,
+  footer {
+    animation: mobile-element-safety 20s forwards;
+  }
+
+  @keyframes mobile-element-safety {
+
+    0%,
+    90% {
+      visibility: inherit;
+    }
+
+    100% {
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+  }
+
+  /* Ensure mobile sidebar containers are properly scrollable */
+  [data-mobile="true"] {
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-y !important;
+    overscroll-behavior: contain !important;
+  }
+
+  /* Quiz interface mobile optimizations - More aggressive with improved readability */
+  .quiz-question-container {
+    padding: 0.125rem !important;
+    padding-top: 0.0625rem !important;
+    padding-bottom: 0.0625rem !important;
+  }
+
+  .quiz-option-card {
+    padding: 0.25rem !important;
+    margin-bottom: 0.125rem !important;
+  }
+
+  .quiz-option-text {
+    font-size: 1rem !important;
+    line-height: 1.15 !important;
+    font-weight: 600 !important;
+  }
+
+  .quiz-question-text {
+    font-size: 1.25rem !important;
+    line-height: 1.2 !important;
+    font-weight: 700 !important;
+  }
+}
+
+/* Tablet optimizations - More aggressive with improved readability */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .quiz-question-container {
+    padding: 0.25rem !important;
+    padding-top: 0.125rem !important;
+    padding-bottom: 0.125rem !important;
+  }
+
+  .quiz-option-card {
+    padding: 0.375rem !important;
+  }
+
+  .quiz-option-text {
+    font-size: 1.125rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .quiz-question-text {
+    font-size: 1.375rem !important;
+    line-height: 1.2 !important;
+  }
+}
+
+/* Desktop optimizations - More aggressive with improved readability */
+@media (min-width: 1024px) {
+  .quiz-question-container {
+    padding: 0.5rem !important;
+  }
+
+  .quiz-option-card {
+    padding: 0.5rem !important;
+  }
+
+  .quiz-option-text {
+    font-size: 1.25rem !important;
+    line-height: 1.25 !important;
+  }
+
+  .quiz-question-text {
+    font-size: 1.5rem !important;
+    line-height: 1.2 !important;
+  }
+}
+
+/* Large desktop optimizations - Enhanced readability */
+@media (min-width: 1280px) {
+  .quiz-option-text {
+    font-size: 1.5rem !important;
+    line-height: 1.3 !important;
+  }
+
+  .quiz-question-text {
+    font-size: 2rem !important;
+    line-height: 1.25 !important;
+  }
+
+  /* Compact mode overrides for large desktop */
+  .quiz-compact-mode .quiz-option-text {
+    font-size: 1.25rem !important;
+  }
+
+  .quiz-compact-mode .quiz-question-text {
+    font-size: 1.625rem !important;
+  }
+
+  .quiz-ultra-compact-mode .quiz-option-text {
+    font-size: 1.125rem !important;
+  }
+
+  .quiz-ultra-compact-mode .quiz-question-text {
+    font-size: 1.5rem !important;
+  }
+}
+
+/* Quiz-specific responsive utilities - NO SCROLLING */
+.quiz-options-container {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Handle long text gracefully */
+.quiz-option-text {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  line-height: 1.3 !important;
+}
+
+.quiz-question-text {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  line-height: 1.25 !important;
+}
+
+/* Compact mode for 3+ options - More aggressive with improved readability */
+.quiz-compact-mode .quiz-option-card {
+  padding: 0.25rem !important;
+  margin-bottom: 0.125rem !important;
+}
+
+.quiz-compact-mode .quiz-option-text {
+  font-size: 0.875rem !important;
+  line-height: 1.15 !important;
+}
+
+.quiz-compact-mode .quiz-question-text {
+  font-size: 1.125rem !important;
+  line-height: 1.15 !important;
+}
+
+/* Ultra compact mode for 4+ options - More aggressive with improved readability */
+.quiz-ultra-compact-mode .quiz-option-card {
+  padding: 0.125rem !important;
+  margin-bottom: 0.0625rem !important;
+}
+
+.quiz-ultra-compact-mode .quiz-option-text {
+  font-size: 0.75rem !important;
+  line-height: 1.1 !important;
+}
+
+.quiz-ultra-compact-mode .quiz-question-text {
+  font-size: 1rem !important;
+  line-height: 1.1 !important;
+}
+
+@media (min-width: 768px) {
+  .quiz-compact-mode .quiz-option-text {
+    font-size: 1rem !important;
+  }
+
+  .quiz-compact-mode .quiz-question-text {
+    font-size: 1.25rem !important;
+  }
+
+  .quiz-ultra-compact-mode .quiz-option-text {
+    font-size: 0.875rem !important;
+  }
+
+  .quiz-ultra-compact-mode .quiz-question-text {
+    font-size: 1.125rem !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .quiz-compact-mode .quiz-option-text {
+    font-size: 1.125rem !important;
+  }
+
+  .quiz-compact-mode .quiz-question-text {
+    font-size: 1.375rem !important;
+  }
+
+  .quiz-ultra-compact-mode .quiz-option-text {
+    font-size: 1rem !important;
+  }
+
+  .quiz-ultra-compact-mode .quiz-question-text {
+    font-size: 1.25rem !important;
+  }
+}
+
+/* Viewport fitting utilities */
+.quiz-viewport-fit {
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
+.quiz-no-scroll {
+  overflow: hidden !important;
+  max-height: 100%;
+}
+
+/* Ensure options container distributes space evenly */
+.quiz-options-distributed>* {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Mobile viewport adjustments - Enhanced readability */
+@media (max-width: 767px) {
+  .quiz-question-container {
+    padding: 0.125rem !important;
+  }
+
+  .quiz-ultra-compact-mode .quiz-option-card {
+    padding: 0.125rem !important;
+  }
+
+  .quiz-ultra-compact-mode .quiz-option-text {
+    font-size: 0.75rem !important;
+    line-height: 1.05 !important;
+  }
+
+  .quiz-ultra-compact-mode .quiz-question-text {
+    font-size: 1rem !important;
+    line-height: 1.05 !important;
+  }
+}
+
+/* Additional space optimization rules - Optimized visual hierarchy */
+.quiz-space-optimized {
+  gap: 0rem !important;
+}
+
+.quiz-space-optimized .quiz-option-card {
+  margin-bottom: 0.0625rem !important;
+}
+
+/* Question to answer spacing optimization */
+.quiz-space-optimized>.border-primary\/20+div {
+  margin-top: 0.125rem !important;
+}
+
+/* Force minimal spacing for all quiz cards */
+.quiz-option-card {
+  margin-bottom: 0.125rem !important;
+}
+
+.quiz-compact-mode .quiz-option-card,
+.quiz-ultra-compact-mode .quiz-option-card {
+  margin-bottom: 0.0625rem !important;
+}
+
+/* Override default Card component padding for quiz interface */
+.quiz-space-optimized .quiz-option-card .card-content,
+.quiz-space-optimized .quiz-option-card [data-card-content] {
+  padding: 0.25rem !important;
+}
+
+.quiz-compact-mode .quiz-option-card .card-content,
+.quiz-compact-mode .quiz-option-card [data-card-content] {
+  padding: 0.25rem !important;
+}
+
+.quiz-ultra-compact-mode .quiz-option-card .card-content,
+.quiz-ultra-compact-mode .quiz-option-card [data-card-content] {
+  padding: 0.125rem !important;
+}
+
+/* Override Card default padding for question container */
+.quiz-question-container {
+  padding-top: 0.25rem !important;
+  padding-bottom: 0.25rem !important;
+}
+
+/* Override Card default padding for quiz question cards to near zero */
+.quiz-space-optimized [data-slot="card"] {
+  padding: 0.125rem !important;
+}
+
+@media (min-width: 640px) {
+  .quiz-space-optimized [data-slot="card"] {
+    padding: 0.125rem !important;
+  }
+}
+
+.quiz-compact-mode .quiz-question-container {
+  padding-top: 0.125rem !important;
+  padding-bottom: 0.125rem !important;
+}
+
+.quiz-ultra-compact-mode .quiz-question-container {
+  padding-top: 0.0625rem !important;
+  padding-bottom: 0.0625rem !important;
+}
+
+/* Ensure text doesn't overflow and maintains readability */
+.quiz-option-text,
+.quiz-question-text {
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+/* Prevent excessive line spacing in compact modes */
+.quiz-compact-mode p,
+.quiz-ultra-compact-mode p {
+  margin-bottom: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* Force minimal spacing for all quiz text elements */
+.quiz-question-text,
+.quiz-option-text {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Ensure minimal spacing between question elements */
+.quiz-space-optimized>* {
+  margin-bottom: 0.125rem !important;
+}
+
+.quiz-compact-mode>*,
+.quiz-ultra-compact-mode>* {
+  margin-bottom: 0.0625rem !important;
+}
+
+/* Visual hierarchy spacing - responsive */
+@media (max-width: 767px) {
+
+  /* Mobile: Tighter spacing */
+  .quiz-space-optimized {
+    gap: 0rem !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+
+  /* Tablet: Slightly more breathing room */
+  .quiz-space-optimized {
+    gap: 0rem !important;
+  }
+}
+
+@media (min-width: 1024px) {
+
+  /* Desktop: Maintain minimal spacing */
+  .quiz-space-optimized {
+    gap: 0rem !important;
+  }
+}
+
+/* Optimize button and prefix sizes in compact modes */
+.quiz-ultra-compact-mode .quiz-option-prefix {
+  min-width: 1rem !important;
+  min-height: 1rem !important;
+  font-size: 0.625rem !important;
+}
+
+.quiz-compact-mode .quiz-option-prefix {
+  min-width: 1.25rem !important;
+  min-height: 1.25rem !important;
+  font-size: 0.75rem !important;
+}
+
+/* Question layout visual hierarchy */
+.quiz-question-metadata {
+  margin-bottom: 0.5rem !important;
+}
+
+@media (max-width: 767px) {
+  .quiz-question-metadata {
+    margin-bottom: 0.375rem !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .quiz-question-metadata {
+    margin-bottom: 0.5rem !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .quiz-question-metadata {
+    margin-bottom: 0.625rem !important;
+  }
+}
+
+/* Question text to answer spacing */
+.quiz-question-text {
+  margin-bottom: 0 !important;
+}
+
+/* Fix for iOS Safari */
+.invisible-scrollbar {
+  -webkit-transform: translateZ(0) !important;
+  transform: translateZ(0) !important;
+}
+
+/* Quiz Image Gallery Optimizations */
+.quiz-question-images,
+.quiz-explanation-images,
+.quiz-hint-images,
+.explanation-image-gallery {
+  /* Optimize image loading performance */
+  contain: layout style paint;
+}
+
+/* Responsive image sizing for quiz components */
+.quiz-question-images img,
+.quiz-explanation-images img,
+.quiz-hint-images img,
+.explanation-image-gallery img {
+  /* Prevent layout shift during image loading */
+  aspect-ratio: auto;
+  object-fit: contain;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+/* Mobile optimizations for quiz images */
+@media (max-width: 767px) {
+  .quiz-question-images {
+    /* Tighter spacing on mobile */
+    gap: 0.5rem !important;
+  }
+
+  .quiz-question-images .grid {
+    /* Force single column on mobile for better readability */
+    grid-template-columns: 1fr !important;
+  }
+
+  .explanation-image-gallery {
+    /* Compact explanation images on mobile */
+    gap: 0.375rem !important;
+  }
+}
+
+/* Tablet optimizations for quiz images */
+@media (min-width: 768px) and (max-width: 1023px) {
+
+  .quiz-question-images,
+  .quiz-explanation-images {
+    /* Balanced grid on tablet */
+    gap: 0.75rem !important;
+  }
+}
+
+/* Desktop optimizations for quiz images */
+@media (min-width: 1024px) {
+
+  .quiz-question-images,
+  .quiz-explanation-images,
+  .quiz-hint-images {
+    /* Generous spacing on desktop */
+    gap: 1rem !important;
+  }
+}
+
+/* Image loading states */
+.quiz-image-loading {
+  background: linear-gradient(90deg, var(--muted) 25%, color-mix(in srgb, var(--muted-foreground) 0.1, transparent) 50%, var(--muted) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Image zoom modal optimizations */
+.image-modal-backdrop {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* Full-screen image viewer optimizations */
+.full-screen-image-viewer {
+  /* Force full-screen positioning */
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  /* Fallback then dvh for mobile browsers */
+  height: 100vh !important;
+  height: 100dvh !important;
+  z-index: 99999 !important;
+
+  /* Override any container constraints */
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+
+  /* Hardware acceleration for smooth animations */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: transform, opacity;
+
+  /* Prevent text selection during interactions */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+
+  /* Optimize for touch devices */
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+
+  /* Ensure it's completely isolated from parent containers */
+  contain: layout style paint;
+  isolation: isolate;
+}
+
+
+/* Smooth zoom transitions */
+.full-screen-image-viewer img {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+/* Prevent image dragging */
+.full-screen-image-viewer img {
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+}
+
+/* Mobile touch optimizations */
+@media (max-width: 768px) {
+  .full-screen-image-viewer {
+    /* Prevent bounce scrolling on iOS */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: none;
+
+    /* Optimize touch interactions */
+    touch-action: pan-x pan-y;
+  }
+}
+
+/* Prevent image distortion in compact modes */
+.quiz-ultra-compact-mode .quiz-question-images img,
+.quiz-compact-mode .quiz-question-images img {
+  max-height: 8rem !important;
+  width: auto !important;
+}
+
+/* Ensure images don't break layout in explanation */
+.explanation-image-gallery img {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+/* Header smooth shrink animation */
+.header-shrink-container {
+  transition: padding 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.header-shrink-element {
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Smooth scroll behavior for better UX */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Ensure smooth transitions for dynamic CSS properties */
+* {
+  transition-property: padding, margin, width, height, font-size, gap;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Force light mode for homepage */
+.force-light-mode {
+  color-scheme: light !important;
+}
+
+.force-light-mode * {
+  color-scheme: light !important;
+}
+
+/* Override dark mode styles for homepage - Aged Paper & Rose */
+.force-light-mode {
+  /* --- Foundation --- */
+  --background: var(--light-background) !important;
+  --foreground: var(--light-foreground) !important;
+
+  /* --- Surfaces --- */
+  --card: var(--light-card) !important;
+  --card-foreground: var(--light-card-foreground) !important;
+  --popover: var(--light-popover) !important;
+  --popover-foreground: var(--light-popover-foreground) !important;
+
+  /* --- Brand --- */
+  --primary: var(--light-primary) !important;
+  --primary-foreground: var(--light-primary-foreground) !important;
+
+  /* --- Interaction & Muted Elements --- */
+  --secondary: var(--light-secondary) !important;
+  --secondary-foreground: var(--light-secondary-foreground) !important;
+  --muted: var(--light-muted) !important;
+  --muted-foreground: var(--light-muted-foreground) !important;
+  --accent: var(--light-accent) !important;
+  --accent-foreground: var(--light-accent-foreground) !important;
+
+  /* --- Feedback & Borders --- */
+  --destructive: var(--light-destructive) !important;
+  --destructive-foreground: var(--light-destructive-foreground) !important;
+  --success: var(--light-success) !important;
+  --success-foreground: var(--light-success-foreground) !important;
+  --warning: var(--light-warning) !important;
+  --warning-foreground: var(--light-warning-foreground) !important;
+  --info: var(--light-info) !important;
+  --info-foreground: var(--light-info-foreground) !important;
+
+  --border: var(--light-border) !important;
+  --input: var(--light-input) !important;
+  --ring: hsla(354, 62%, 66%, 0.4) !important;
+
+  /* --- Sidebar --- */
+  --sidebar: hsl(20 15% 97.5%) !important;
+  --sidebar-foreground: hsl(230 20% 25%) !important;
+  --sidebar-primary: var(--light-primary) !important;
+  --sidebar-primary-foreground: var(--light-primary-foreground) !important;
+  --sidebar-accent: hsl(355 35% 92%) !important;
+  --sidebar-accent-foreground: hsl(354 45% 30%) !important;
+  --sidebar-border: hsl(230 10% 93%) !important;
+  --sidebar-ring: var(--light-primary) !important;
+
+  /* --- Gradients: Rose Theme --- */
+  --gradient-left: var(--light-primary) !important;
+  --gradient-center: hsl(354 55% 75%) !important;
+  --gradient-right: hsl(38 55% 68%) !important;
+
+  /* Override font to use Poppins */
+  --font-sans: 'Poppins', ui-sans-serif, system-ui, sans-serif !important;
+  font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif !important;
+}
+
+.force-light-mode * {
+  font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif !important;
+}
+
+/* Hero gradient text utilities */
+.text-hero-gradient {
+  background: var(--hero-gradient-text);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
+.text-hero-gradient-dark {
+  background: var(--hero-gradient-text);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Practice History gradient text */
+.practice-history-gradient-text {
+  background: linear-gradient(135deg, var(--gradient-left), var(--gradient-center), var(--gradient-right));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Question label gradient text */
+.text-question-gradient {
+  background: linear-gradient(135deg, var(--gradient-left), var(--gradient-center), var(--gradient-right));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Arial font is now applied globally via --font-sans variable */
+
+/* Enhanced sidebar logo styling */
+.sidebar-logo-container {
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-logo-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.sidebar-logo-container:hover::before {
+  opacity: 1;
+}
+
+/* Collapsed sidebar logo enhancements */
+[data-state="collapsed"] .sidebar-logo-container {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-state="collapsed"] .sidebar-logo-container:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* Mobile-specific improvements */
+@media (max-width: 767px) {
+
+  /* Improve touch targets on mobile */
+  .touch-target {
+    min-height: 44px !important;
+    min-width: 44px !important;
+  }
+
+  /* Better text readability on mobile */
+  body {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /* Improve card spacing on mobile */
+  .mobile-card-spacing {
+    padding: 1rem !important;
+    gap: 1rem !important;
+  }
+
+  /* Better button spacing on mobile */
+  .mobile-button-group {
+    gap: 0.5rem !important;
+  }
+
+  /* Improve form input sizing on mobile */
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+    /* Prevents zoom on iOS */
+  }
+
+  /* Better scroll behavior on mobile */
+  .mobile-scroll-container {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* Improve text truncation on mobile */
+  .mobile-text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+
+  /* Better spacing for mobile cards */
+  .mobile-card-content {
+    padding: 1rem !important;
+  }
+
+  /* Improve mobile grid layouts */
+  .mobile-responsive-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+}
+
+/* Hide browser password visibility toggle */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none !important;
+}
+
+/* Hide WebKit password visibility toggle */
+input[type="password"]::-webkit-credentials-auto-fill-button,
+input[type="password"]::-webkit-credentials-auto-fill-button:hover,
+input[type="password"]::-webkit-credentials-auto-fill-button:active {
+  display: none !important;
+  -webkit-appearance: none !important;
+  -webkit-user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
+
+/* Hide Firefox password visibility toggle */
+input[type="password"]::-moz-textfield-decoration-container {
+  display: none !important;
+}
+
+/* Additional WebKit password field styling */
+input[type="password"] {
+  -webkit-text-security: disc !important;
+}
+
+/* Ensure custom password toggle works properly */
+.password-input-container {
+  position: relative;
+}
+
+.password-input-container input[type="password"],
+.password-input-container input[type="text"] {
+  padding-right: 3rem !important;
+  /* Make room for custom toggle */
+}
+
+/* Tablet-specific improvements */
+@media (min-width: 768px) and (max-width: 1023px) {
+
+  /* Better tablet spacing */
+  .tablet-card-spacing {
+    padding: 1.5rem !important;
+    gap: 1.5rem !important;
+  }
+
+  /* Improve tablet grid layouts */
+  .tablet-responsive-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 1.5rem !important;
+  }
+
+  /* Better tablet typography */
+  .tablet-text-sizing {
+    font-size: 0.95rem !important;
+    line-height: 1.5 !important;
+  }
+}
+
+/* ===== MDXEditor Note Editor Styles ===== */
+.mdx-note-editor-wrapper {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--card);
+}
+
+.mdx-note-editor-wrapper [class*="_editorRoot_"] {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+}
+
+/* Toolbar styling */
+.mdx-note-editor-wrapper [class*="_toolbarRoot_"] {
+  background: var(--muted) !important;
+  border-bottom: 1px solid var(--primary) !important;
+  padding: 0.25rem !important;
+  gap: 0.125rem !important;
+}
+
+.mdx-note-editor-wrapper [class*="_toolbarRoot_"] button,
+.mdx-note-editor-wrapper [class*="_toolbarToggleItem_"],
+.mdx-note-editor-wrapper [class*="_toolbarButton_"] {
+  color: var(--primary) !important;
+  border-radius: calc(var(--radius) - 4px) !important;
+  padding: 0.375rem !important;
+  border: 1px solid var(--primary) !important;
+}
+
+/* SVG icons in toolbar */
+.mdx-note-editor-wrapper [class*="_toolbarRoot_"] svg,
+.mdx-note-editor-wrapper [class*="_toolbarToggleItem_"] svg,
+.mdx-note-editor-wrapper [class*="_toolbarButton_"] svg {
+  color: var(--primary) !important;
+  stroke: var(--primary) !important;
+  fill: currentColor !important;
+}
+
+.mdx-note-editor-wrapper [class*="_toolbarRoot_"] button:hover,
+.mdx-note-editor-wrapper [class*="_toolbarToggleItem_"]:hover,
+.mdx-note-editor-wrapper [class*="_toolbarButton_"]:hover {
+  background: var(--accent) !important;
+}
+
+.mdx-note-editor-wrapper [class*="_toolbarRoot_"] button[data-state="on"],
+.mdx-note-editor-wrapper [class*="_toolbarToggleItem_"][data-state="on"],
+.mdx-note-editor-wrapper [class*="_toolbarButton_"][data-state="on"] {
+  background: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+}
+
+.mdx-note-editor-wrapper [class*="_toolbarRoot_"] button[data-state="on"] svg,
+.mdx-note-editor-wrapper [class*="_toolbarToggleItem_"][data-state="on"] svg,
+.mdx-note-editor-wrapper [class*="_toolbarButton_"][data-state="on"] svg {
+  color: var(--primary-foreground) !important;
+  stroke: var(--primary-foreground) !important;
+}
+
+/* Select/dropdown in toolbar */
+.mdx-note-editor-wrapper [class*="_selectTrigger_"],
+.mdx-note-editor-wrapper [class*="_selectContainer_"] select,
+.mdx-note-editor-wrapper select {
+  color: var(--primary) !important;
+  border: 1px solid var(--primary) !important;
+  background: var(--muted) !important;
+}
+
+/* Content area styling */
+.mdx-note-editor-content {
+  min-height: 100px;
+  height: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 0.75rem;
+  outline: none;
+  line-height: 1.625;
+  background: var(--card);
+  color: var(--foreground);
+}
+
+.dark .mdx-note-editor-content {
+  background: var(--card);
+  color: var(--foreground);
+}
+
+.mdx-note-editor-content:focus {
+  outline: none;
+}
+
+/* Highlighted text styling */
+.mdx-note-editor-content mark {
+  background: var(--yellow-200);
+  color: var(--foreground);
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.125rem;
+}
+
+.dark .mdx-note-editor-content mark {
+  background: var(--yellow-900);
+  color: var(--foreground);
+}
+
+/* Typography in editor & shared rich text display */
+.mdx-note-editor-content h1,
+.rich-text h1 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0.5rem 0;
+}
+
+.mdx-note-editor-content h2,
+.rich-text h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0.5rem 0;
+}
+
+.mdx-note-editor-content h3,
+.rich-text h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0.5rem 0;
+}
+
+.mdx-note-editor-content p,
+.rich-text p {
+  margin: 0.25rem 0;
+}
+
+.mdx-note-editor-content ul,
+.rich-text ul,
+.mdx-note-editor-content ol,
+.rich-text ol {
+  padding-left: 1.5rem;
+  margin: 0.25rem 0;
+  list-style-type: disc;
+}
+
+.mdx-note-editor-content ol,
+.rich-text ol {
+  list-style-type: decimal;
+}
+
+.mdx-note-editor-content blockquote,
+.rich-text blockquote {
+  border-left: 3px solid var(--primary);
+  padding-left: 0.75rem;
+  margin: 0.5rem 0;
+  color: var(--muted-foreground);
+}
+
+.mdx-note-editor-content a,
+.rich-text a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.mdx-note-editor-content code,
+.rich-text code {
+  background: var(--muted);
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+
+/* Table styling */
+.mdx-note-editor-content table,
+.rich-text table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.5rem 0;
+}
+
+.mdx-note-editor-content th,
+.rich-text th,
+.mdx-note-editor-content td,
+.rich-text td {
+  border: 1px solid var(--border);
+  padding: 0.375rem 0.5rem;
+  text-align: left;
+}
+
+.mdx-note-editor-content th,
+.rich-text th {
+  background: var(--muted);
+  font-weight: 600;
+}
+
+/* Dark mode adjustments */
+.dark .mdx-note-editor-wrapper {
+  background: var(--card) !important;
+}
+
+.dark .mdx-note-editor-wrapper [class*="_toolbarRoot_"] {
+  background: var(--secondary) !important;
+}
+
+/* Dark mode toolbar buttons */
+.dark .mdx-note-editor-wrapper [class*="_toolbarRoot_"] button,
+.dark .mdx-note-editor-wrapper [class*="_toolbarToggleItem_"],
+.dark .mdx-note-editor-wrapper [class*="_toolbarButton_"] {
+  color: var(--primary) !important;
+  border-color: var(--primary) !important;
+}
+
+/* Dark mode SVG icons */
+.dark .mdx-note-editor-wrapper [class*="_toolbarRoot_"] svg,
+.dark .mdx-note-editor-wrapper [class*="_toolbarToggleItem_"] svg,
+.dark .mdx-note-editor-wrapper [class*="_toolbarButton_"] svg {
+  color: var(--primary) !important;
+  stroke: var(--primary) !important;
+}
+
+/* Dark mode active state */
+.dark .mdx-note-editor-wrapper [class*="_toolbarRoot_"] button[data-state="on"],
+.dark .mdx-note-editor-wrapper [class*="_toolbarToggleItem_"][data-state="on"],
+.dark .mdx-note-editor-wrapper [class*="_toolbarButton_"][data-state="on"] {
+  background: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+}
+
+.dark .mdx-note-editor-wrapper [class*="_toolbarRoot_"] button[data-state="on"] svg,
+.dark .mdx-note-editor-wrapper [class*="_toolbarToggleItem_"][data-state="on"] svg,
+.dark .mdx-note-editor-wrapper [class*="_toolbarButton_"][data-state="on"] svg {
+  color: var(--primary-foreground) !important;
+  stroke: var(--primary-foreground) !important;
+}
+
+/* Fix select/dropdown styling in dark mode */
+.dark .mdx-note-editor-wrapper [class*="_selectTrigger_"],
+.dark .mdx-note-editor-wrapper [class*="_selectContainer_"] select,
+.dark .mdx-note-editor-wrapper select {
+  background: var(--secondary) !important;
+  color: var(--primary) !important;
+  border-color: var(--primary) !important;
+}
+
+.dark .mdx-note-editor-wrapper [class*="_selectContent_"],
+.dark .mdx-note-editor-wrapper [class*="_selectDropdown_"] {
+  background: var(--popover) !important;
+  color: var(--popover-foreground) !important;
+  border-color: var(--border) !important;
+}
