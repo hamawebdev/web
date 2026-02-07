@@ -1,4 +1,5 @@
 version: '3.8'
+
 services:
   med-adn:
     build:
@@ -6,22 +7,26 @@ services:
       dockerfile: Dockerfile
       target: prod
       args:
+        # These CAN keep the https:// because they are internal code variables
         NEXT_PUBLIC_API_URL: https://med-adn.com/api/v1
         NEXT_PUBLIC_APP_URL: https://med-adn.com
         NEXT_PUBLIC_APP_NAME: med-adn
     container_name: med-adn-production
     expose:
       - 3000
+    environment:
+      - NODE_ENV=production
     networks:
       - dokploy-network
+    
     deploy:
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.med-adn-router.rule=Host(`med-adn.com`)"
-        - "traefik.http.routers.med-adn-router.entrypoints=websecure"
-        - "traefik.http.routers.med-adn-router.tls=true"
-        - "traefik.http.routers.med-adn-router.tls.certresolver=letsencrypt"
-        - "traefik.http.services.med-adn-service.loadbalancer.server.port=3000"
+        # REMOVE https:// from the line below
+        - "traefik.http.routers.med-adn.rule=Host(`med-adn.com`) || Host(`www.med-adn.com`)"
+        - "traefik.http.routers.med-adn.entrypoints=websecure"
+        - "traefik.http.routers.med-adn.tls.certresolver=letsencrypt"
+        - "traefik.http.services.med-adn.loadbalancer.server.port=3000"
         - "traefik.docker.network=dokploy-network"
 
 networks:
