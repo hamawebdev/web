@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: runner
+      target: prod
     container_name: medspace-production
     ports:
       - "3000:3000"

@@ -3,6 +3,8 @@ import type { NextConfig } from "next";
 const isProduction = process.env.NODE_ENV === 'production';
 
 const nextConfig: NextConfig = {
+  output: "standalone",
+
 
   // TypeScript: allow builds to complete even with type errors
   typescript: {
