@@ -57,6 +57,8 @@ RUN npm run build
 FROM node:24-bookworm-slim AS prod
 WORKDIR /app
 
+ENV HOSTNAME="0.0.0.0"
+
 # Non-root user
 RUN addgroup --system --gid 1001 nodejs \
     && adduser --system --uid 1001 nextjs
