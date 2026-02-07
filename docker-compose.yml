@@ -7,18 +7,11 @@ services:
       dockerfile: Dockerfile
       target: prod
       args:
-        # These are critical for Next.js to work in the browser
         NEXT_PUBLIC_API_URL: https://med-adn.com/api/v1
         NEXT_PUBLIC_APP_URL: https://med-adn.com
         NEXT_PUBLIC_APP_NAME: med-adn
     container_name: med-adn-production
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.med-adn-production.rule=Host(`med-adn.com`) || Host(`www.med-adn.com`)"
-      - "traefik.http.routers.med-adn-production.tls.certresolver=letsencrypt"
-      - "traefik.http.services.med-adn-production.loadbalancer.server.port=3000"
-      - "traefik.docker.network=dokploy-network"
-    # Tells Dokploy to listen internally on 3000
+    # REMOVED: Manual Traefik labels (Dokploy will inject these automatically)
     expose:
       - 3000
     environment:
@@ -32,19 +25,12 @@ services:
       - logs:/app/logs
     restart: unless-stopped
 
-    # Use a simpler healthcheck or remove if you don't have /api/health
-    healthcheck:
-      test: [ "CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000/api/health', (res) => { if (res.statusCode === 200) { process.exit(0) } else { process.exit(1) } })" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
+    # REMOVED: Healthcheck (Add it back only once the site is loading)
+    
     networks:
       - dokploy-network
 
 networks:
-  # This is the "bridge" that lets Dokploy see your app
   dokploy-network:
     external: true
 
