@@ -12,6 +12,13 @@ services:
         NEXT_PUBLIC_APP_URL: https://med-adn.com
         NEXT_PUBLIC_APP_NAME: med-adn
     container_name: med-adn-production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.med-adn-production.rule=Host(`med-adn.com`)"
+      - "traefik.http.routers.med-adn-production.entrypoints=websecure"
+      - "traefik.http.routers.med-adn-production.tls.certresolver=letsencrypt"
+      - "traefik.http.services.med-adn-production.loadbalancer.server.port=3000"
+      - "traefik.docker.network=dokploy-network"
     # Tells Dokploy to listen internally on 3000
     expose:
       - 3000
@@ -28,7 +35,7 @@ services:
 
     # Use a simpler healthcheck or remove if you don't have /api/health
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (res) => { if (res.statusCode === 200) { process.exit(0) } else { process.exit(1) } })" ]
       interval: 30s
       timeout: 10s
       retries: 3
