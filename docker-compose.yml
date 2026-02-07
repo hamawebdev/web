@@ -15,16 +15,17 @@ services:
       - 3000
     environment:
       - NODE_ENV=production
-    restart: unless-stopped
     networks:
       - dokploy-network
-    
-    # CRITICAL: In Swarm mode, labels MUST be under deploy
     deploy:
+      restart_policy:
+        condition: on-failure
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.med-adn.rule=Host(`med-adn.com`)"
+        # Match this exactly to your domain
+        - "traefik.http.routers.med-adn.rule=Host(`med-adn.com`) || Host(`www.med-adn.com`)"
         - "traefik.http.routers.med-adn.entrypoints=websecure"
+        - "traefik.http.routers.med-adn.tls=true"
         - "traefik.http.routers.med-adn.tls.certresolver=letsencrypt"
         - "traefik.http.services.med-adn.loadbalancer.server.port=3000"
         - "traefik.docker.network=dokploy-network"
@@ -32,9 +33,3 @@ services:
 networks:
   dokploy-network:
     external: true
-
-volumes:
-  uploads:
-    driver: local
-  logs:
-    driver: local
