@@ -1,5 +1,4 @@
 version: '3.8'
-
 services:
   med-adn:
     build:
@@ -13,21 +12,16 @@ services:
     container_name: med-adn-production
     expose:
       - 3000
-    environment:
-      - NODE_ENV=production
     networks:
       - dokploy-network
     deploy:
-      restart_policy:
-        condition: on-failure
       labels:
         - "traefik.enable=true"
-        # Match this exactly to your domain
-        - "traefik.http.routers.med-adn.rule=Host(`med-adn.com`) || Host(`www.med-adn.com`)"
-        - "traefik.http.routers.med-adn.entrypoints=websecure"
-        - "traefik.http.routers.med-adn.tls=true"
-        - "traefik.http.routers.med-adn.tls.certresolver=letsencrypt"
-        - "traefik.http.services.med-adn.loadbalancer.server.port=3000"
+        - "traefik.http.routers.med-adn-router.rule=Host(`med-adn.com`)"
+        - "traefik.http.routers.med-adn-router.entrypoints=websecure"
+        - "traefik.http.routers.med-adn-router.tls=true"
+        - "traefik.http.routers.med-adn-router.tls.certresolver=letsencrypt"
+        - "traefik.http.services.med-adn-service.loadbalancer.server.port=3000"
         - "traefik.docker.network=dokploy-network"
 
 networks:
