@@ -1,5 +1,4 @@
 version: '3.8'
-
 services:
   med-adn:
     build:
@@ -11,29 +10,14 @@ services:
         NEXT_PUBLIC_APP_URL: https://med-adn.com
         NEXT_PUBLIC_APP_NAME: med-adn
     container_name: med-adn-production
-    # REMOVED: Manual Traefik labels (Dokploy will inject these automatically)
     expose:
       - 3000
     environment:
       - NODE_ENV=production
-      - NEXT_TELEMETRY_DISABLED=1
-      - NEXT_PUBLIC_DISABLE_CREDENTIALS=true
-      - NEXT_PUBLIC_APP_NAME=med-adn
-      - NEXT_PUBLIC_APP_VERSION=1.0.0
-    volumes:
-      - uploads:/app/uploads
-      - logs:/app/logs
     restart: unless-stopped
-
-    # REMOVED: Healthcheck (Add it back only once the site is loading)
-    
     networks:
       - dokploy-network
 
 networks:
   dokploy-network:
     external: true
-
-volumes:
-  uploads:
-  logs:
