@@ -1,77 +1,47 @@
-# -----------------------------
-# DEV STAGE
-# -----------------------------
-FROM node:24-bookworm-slim AS dev
+# Stage 1: Install dependencies
+FROM node:22-slim AS deps
 WORKDIR /app
-
-# Install dependencies
-RUN apt-get update && apt-get install -y bash curl \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Install Turbo, npm, tsx globally
-RUN npm install -g turbo npm tsx
-
-# Copy package files and install dependencies
 COPY package*.json ./
-RUN npm install
+# Use clean install for production reliability
+RUN npm ci 
 
-# Copy all source code
+# Stage 2: Build the application
+FROM node:22-slim AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Dev command
-CMD ["npm", "run", "dev"]
-
-# -----------------------------
-# BUILDER STAGE
-# -----------------------------
-FROM node:24-bookworm-slim AS builder
-WORKDIR /app
-
-# Accept build args
+# Crucial: Define build-time variables so Next.js can bake them into the JS
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_APP_URL
 ARG NEXT_PUBLIC_APP_NAME
 
-# Set ENV vars for build
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 ENV NEXT_PUBLIC_APP_NAME=$NEXT_PUBLIC_APP_NAME
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Install global tools
-RUN npm install -g turbo npm
-
-# Copy package files and install all dependencies
-COPY package*.json ./
-RUN npm install
-
-# Copy source files
-COPY . .
-
-# Build the app
 RUN npm run build
 
-# -----------------------------
-# PRODUCTION STAGE
-# -----------------------------
-FROM node:24-bookworm-slim AS prod
+# Stage 3: Production runner
+FROM node:22-slim AS prod
 WORKDIR /app
 
+ENV NODE_ENV=production
+ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Non-root user
-RUN addgroup --system --gid 1001 nodejs \
-    && adduser --system --uid 1001 nextjs
+# Security: Run as non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
 
-# Copy built app from builder stage
+# Only copy the essential files for the standalone server
+COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 USER nextjs
 
-# Expose the port
 EXPOSE 3000
 
-# Start the production server using the standalone server
 CMD ["node", "server.js"]
