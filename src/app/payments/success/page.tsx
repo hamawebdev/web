@@ -52,7 +52,7 @@ export default function PaymentSuccessPage() {
             console.error('❌ PaymentSuccess: Token refresh failed:', error);
 
             // Default user-facing message per requirements
-            let errorMessage = 'Impossible d'actualiser la session.Veuillez réessayer.';
+            let errorMessage = "Impossible d'actualiser la session. Veuillez réessayer.";
 
             // Increment retry counter (manual retries only)
             setRetryCount(prev => prev + 1);

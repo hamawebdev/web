@@ -38,7 +38,7 @@ export default function PaymentFailurePage() {
                         </CardTitle>
 
                         <CardDescription className="text-sm sm:text-base md:text-lg lg:text-xl text-muted-foreground text-center max-w-md mx-auto">
-                            Une erreur s'est produite lors du traitement de votre paiement. Votre compte n'a pas été débité.
+                            {"Une erreur s'est produite lors du traitement de votre paiement. Votre compte n'a pas été débité."}
                         </CardDescription>
                     </CardHeader>
 
