@@ -37,3 +37,6 @@ Component requirements:
 - Visualize these counts using a circular chart (donut or radial chart).
 - Display the final score as “X / 20” using the `totalScore20` value.
 
+
+fSijfoNbd9rHJd3ZttCR
+postgresql://admin:fSijfoNbd9rHJd3ZttCR@medadn-db-fur34v:5432/myadndb

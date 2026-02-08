@@ -1,72 +1,103 @@
 // @ts-nocheck
 import type { Metadata } from "next";
 import { ThemeProvider } from "@/components/theme-provider";
-  import { Providers } from "@/components/providers";
-  import Script from "next/script";
-  import { FrontextInit } from "@/components/frontext-init";
-  import { MobileSafetyGuard } from "@/components/mobile-safety-guard";
-  import { Poppins } from "next/font/google";
-  import "./globals.css";
+import { Providers } from "@/components/providers";
+import Script from "next/script";
+import { FrontextInit } from "@/components/frontext-init";
+import { MobileSafetyGuard } from "@/components/mobile-safety-guard";
+import { Poppins } from "next/font/google";
+import "./globals.css";
 
-  const poppins = Poppins({
-    subsets: ["latin"],
-    weight: ["300", "400", "500", "600", "700", "800", "900"],
-    variable: "--font-poppins",
-    display: "swap",
-  });
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800", "900"],
+  variable: "--font-poppins",
+  display: "swap",
+});
 
-  export const metadata: Metadata = {
-    title: "Med-ADN - Trusted Medical Education Platform",
-    description: "Comprehensive medical learning platform designed by healthcare professionals with evidence-based content, detailed analytics, and collaborative study tools for medical students.",
-    keywords: "medical education, medical students, USMLE, MCAT, medical learning platform, evidence-based learning, medical questions bank",
-    authors: [{ name: "Med-ADN Team" }],
-    creator: "Med-ADN",
-    metadataBase: new URL("https://med-adn.com"),
-    openGraph: {
-      title: "Med-ADN - Trusted Medical Education Platform",
-      description: "Comprehensive medical learning platform designed by healthcare professionals with evidence-based content and collaborative study tools.",
-      url: "https://med-adn.com",
-      siteName: "Med-ADN",
-      images: [
-        {
-          url: "/og-image.jpg",
-          width: 1200,
-          height: 630,
-          alt: "Med-ADN - Medical Education Platform",
-        },
-      ],
-      locale: "en_US",
-      type: "website",
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: "Med-ADN - Trusted Medical Education Platform",
-      description: "Comprehensive medical learning platform designed by healthcare professionals with evidence-based content and collaborative study tools.",
-      images: ["/og-image.jpg"],
-    },
-    robots: {
+export const metadata: Metadata = {
+  title: {
+    default: "Med-ADN - The Largest Medical App in Algeria",
+    template: "%s | Med-ADN"
+  },
+  description: "Join the largest medical community in Algeria with over 150k+ questions and 12k+ resources. Trusted by students from 10+ universities for residency exam preparation (Résidanat) and medical studies.",
+  keywords: [
+    "medical education algeria",
+    "résidanat algerie",
+    "medical students algeria",
+    "qcm médecine",
+    "faculté de médecine algerie",
+    "residency exam preparation",
+    "150k questions",
+    "medical resources",
+    "med-adn",
+    "medical learning platform"
+  ],
+  authors: [{ name: "Med-ADN Team" }],
+  creator: "Med-ADN",
+  publisher: "Med-ADN",
+  metadataBase: new URL("https://med-adn.com"),
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "Med-ADN - The #1 Medical Learning Platform in Algeria",
+    description: "Access 150k+ questions and 12k+ resources. The trusted choice for medical students across 10+ Algerian universities for Résidanat and daily studies.",
+    url: "https://med-adn.com",
+    siteName: "Med-ADN",
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Med-ADN - Ace Your Medical Exams in Algeria",
+    description: "Join thousands of students using Med-ADN. 150k+ QCMs, 12k+ resources, and comprehensive tools for medical success.",
+    creator: "@medadn",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
       index: true,
       follow: true,
-      googleBot: {
-        index: true,
-        follow: true,
-        "max-video-preview": -1,
-        "max-image-preview": "large",
-        "max-snippet": -1,
-      },
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
     },
-  };
+  },
+  verification: {
+    google: "google-site-verification-code", // Placeholder, user might need to provide this
+  },
+  category: "education",
+  manifest: "/site.webmanifest",
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png" },
+    ],
+    other: [
+      {
+        rel: "mask-icon",
+        url: "/safari-pinned-tab.svg", // Assuming this might exist or user adds it later, otherwise standard icon
+      },
+    ],
+  },
+};
 
-  export default function RootLayout({
-    children,
-  }: Readonly<{
-    children: React.ReactNode;
-  }>) {
-    return (
-      <html lang="en" suppressHydrationWarning>
-        <body className={`${poppins.variable} font-sans antialiased min-h-screen min-h-[100dvh]`}>
-          <Script id="theme-init" strategy="beforeInteractive">
-            {`(function() {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${poppins.variable} font-sans antialiased min-h-screen min-h-[100dvh]`}>
+        <Script id="theme-init" strategy="beforeInteractive">
+          {`(function() {
               try {
                 var storageKey = 'theme';
                 var stored = localStorage.getItem(storageKey);
@@ -141,22 +172,22 @@ import { ThemeProvider } from "@/components/theme-provider";
                 }, 5000);
               }
             })();`}
-          </Script>
-          <Providers>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
-              enableSystem={true}
-              disableTransitionOnChange={true}
-              storageKey="theme"
-            >
-              <FrontextInit/>
-              {children}
-     
-              <MobileSafetyGuard />
-            </ThemeProvider>
-          </Providers>
-        </body>
+        </Script>
+        <Providers>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem={true}
+            disableTransitionOnChange={true}
+            storageKey="theme"
+          >
+            <FrontextInit />
+            {children}
+
+            <MobileSafetyGuard />
+          </ThemeProvider>
+        </Providers>
+      </body>
     </html>
   );
 }

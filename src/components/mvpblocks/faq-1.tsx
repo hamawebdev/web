@@ -11,39 +11,21 @@ import {
 const items = [
   {
     id: '1',
-    title: "How does MedADN personalize my learning experience?",
+    title: "What are the available payment methods to purchase a Med-Adn subscription?",
     content:
-      "Our platform analyzes your performance patterns, learning speed, and gaps to create a personalized study plan. It adapts based on your progress and focuses on areas where you need the most improvement.",
+      "The Med-Adn platform offers the following 3 payment methods:\n• Payment by CCP (postal checking account)\n• Payment via the BaridiMob application\n• Purchase of an activation card from our points of sale",
   },
   {
     id: '2',
-    title: "What makes MedADN different from other medical platforms?",
+    title: "How to get the latest updates on Med-Adn?",
     content:
-      "MedADN combines evidence-based medical education with expert-curated content. Our materials are developed by healthcare professionals, our analytics provide deep insights, and our collaborative features connect you with your peers.",
+      "Our team works daily to update the content of our Med-Adn platform throughout the academic year:\n• The course list will be updated according to the new official program.\n• Current year exam questions will be added, corrected, commented on, and organized by course, year, and exam period.\n• Don't worry! All updates will be automatically and freely included in your subscription.",
   },
   {
     id: '3',
-    title: "Can I access MedADN on mobile devices?",
+    title: "What is the content of the Med-Adn platform?",
     content:
-      "Yes! MedADN is fully optimized for mobile devices. You can study on the go, access your progress anywhere, and sync your data across all your devices seamlessly.",
-  },
-  {
-    id: '4',
-    title: "Do you offer support for medical licensing exams?",
-    content:
-      "Absolutely! We have specialized modules for regional and national medical exams. Our exam prep tools include practice tests, performance analytics, and expert tips.",
-  },
-  {
-    id: '5',
-    title: "Is there a free trial available?",
-    content:
-      "Yes, we offer a trial period for all new users. This gives you full access to explore our platform, try different features, and see how MedADN can enhance your medical education.",
-  },
-  {
-    id: '6',
-    title: "How often is the content updated?",
-    content:
-      "Our content is continuously updated by our team of healthcare professionals and educators. We ensure that all information reflects the latest medical research and clinical guidelines.",
+      "Med-Adn is an exercise and training platform aligned with the Algerian Faculty of Medicine program.\n\nIt includes all questions from externship exams (MCQs, QROCs, Clinical Cases) and residency exams (since 2002) as well as other international sources.\n\nEverything is organized by course, modules, as well as midterm exams (EMDs) and exam questions to give students the freedom to choose the revision method that suits them best.\n\nCourse titles are organized in the same way as the official faculty program, and questions are displayed in reverse chronological order. For each question, the exact date and exam period from which it was taken are indicated.",
   },
 ];
 

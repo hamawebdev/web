@@ -11,6 +11,7 @@ import Globe3D from '@/components/mvpblocks/3dglobe';
 import { Feature } from "@/components/ui/feature-with-advantages";
 import Faq1 from '@/components/mvpblocks/faq-1';
 import CTA2 from '@/components/mvpblocks/cta';
+import { JsonLd } from '@/components/json-ld';
 
 export default function Home() {
   const { isAuthenticated, user, initializeAuth, loading } = useAuth();
@@ -58,6 +59,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen relative overflow-hidden force-light-mode">
+      <JsonLd />
       <Header />
       <div>
         <Globe3D />

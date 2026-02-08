@@ -1,27 +1,27 @@
-Quelles sont les modalités de paiement disponibles pour acheter un abonnement QUIZY ?
+What are the available payment methods to purchase a Med-Adn subscription?
 
-La plateforme QUIZY dispose des 3 modalités de paiement suivantes :
-Paiement par CCP
-Paiement par l'application BaridiMob
-Achat d'une carte d'activation de chez nos points de vente
-
-
-
-Comment avoir les dernières mises à jour sur QUIZY ?
-
-Notre équipe travaille quotidiennement afin de mettre à jour le contenu de notre plateforme QUIZY, et ce au fur et à mesure de l'avancement de l'année universitaire :
-La liste de cours sera actualisée conformément au nouveau programme officiel.
-Les sujets d'examen de l'année en cours seront rajoutés, corrigés, commentés et classés par cours, par année et par période d'examen.
-Pas d'inquiétude ! Toutes les mises à jour effectuées seront automatiquement et gratuitement incluses dans votre abonnement.
+The Med-Adn platform offers the following 3 payment methods:
+Payment by CCP (postal checking account)
+Payment via the BaridiMob application
+Purchase of an activation card from our points of sale
 
 
-Quel est le contenu de la plateforme QUIZY ?
+
+How to get the latest updates on Med-Adn?
+
+Our team works daily to update the content of our Med-Adn platform throughout the academic year:
+The course list will be updated according to the new official program.
+Current year exam questions will be added, corrected, commented on, and organized by course, year, and exam period.
+Don't worry! All updates will be automatically and freely included in your subscription.
 
 
-Quizy est une plateforme d’exercice et d’entrainement conforme au programme de la faculté de médecine d’Alger, 
 
-Elle regroupe toutes les questions tirées des examens d’externat (QCMs, QROCs, Cas cliniques) et des sujets de résidanat (depuis 2002) ainsi que d’autres sources étrangères.
+What is the content of the Med-Adn platform?
 
-Le tout est organisé à la fois par cours, par modules mais également par EMDs et sujets d’examens ; et cela pour garantir à l’étudiant la liberté de choisir la méthode de révision qui lui convient le mieux.
+Med-Adn is an exercise and training platform aligned with the Algerian Faculty of Medicine program.
 
-Les intitulés des cours sont organisés de la même manière que le programme officiel de la faculté, et les questions défilent par ordre chronologique décroissant. Pour chaque question sont indiquées la date la période précise de l’examen duquel elle est tirée.
+It includes all questions from externship exams (MCQs, QROCs, Clinical Cases) and residency exams (since 2002) as well as other international sources.
+
+Everything is organized by course, modules, as well as midterm exams (EMDs) and exam questions to give students the freedom to choose the revision method that suits them best.
+
+Course titles are organized in the same way as the official faculty program, and questions are displayed in reverse chronological order. For each question, the exact date and exam period from which it was taken are indicated.
