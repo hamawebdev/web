@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { loginSchema, type LoginFormData } from '@/lib/validations';
 import { AuthAPI } from '@/lib/auth-api';
+import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
 
 export default function LoginForm1() {
@@ -16,6 +17,7 @@ export default function LoginForm1() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { login: authLogin } = useAuth();
 
   // Handle URL messages
   useEffect(() => {
@@ -55,32 +57,24 @@ export default function LoginForm1() {
     setSuccessMessage(null);
 
     try {
-      const response = await AuthAPI.login(data as any);
-
-      if (response.user) {
-        toast.success('Connexion réussie !');
-        reset();
-        const redirectPath = AuthAPI.getRedirectPath(response.user.role);
-        router.push(redirectPath);
-        return;
-      } else {
-        setError('Échec de la connexion : Aucune donnée utilisateur reçue');
-      }
+      // Use the useAuth hook's login which properly sets cachedAuthResult
+      // and auth state before redirecting
+      await authLogin(data as any);
+      reset();
     } catch (err: any) {
-      if (err.message.includes('Cannot connect to API server')) {
+      if (err.message?.includes('Cannot connect to API server')) {
         const errorMessage = 'Le serveur backend ne fonctionne pas. Veuillez vérifier la configuration API.';
         setError(errorMessage);
-        toast.error(errorMessage);
         return;
       }
 
       const errorMessage = err.message || 'Échec de la connexion';
       setError(errorMessage);
-      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
+
 
   return (
     <main className="bg-background flex min-h-screen w-full flex-col items-center justify-center sm:px-4">

@@ -13,6 +13,8 @@ import Faq1 from '@/components/mvpblocks/faq-1';
 import CTA2 from '@/components/mvpblocks/cta';
 import { JsonLd } from '@/components/json-ld';
 
+import LandingStats from '@/components/mvpblocks/landing-stats';
+
 export default function Home() {
   const { isAuthenticated, user, initializeAuth, loading } = useAuth();
   const router = useRouter();
@@ -63,6 +65,7 @@ export default function Home() {
       <Header />
       <div>
         <Globe3D />
+        <LandingStats />
 
         <Feature />
 

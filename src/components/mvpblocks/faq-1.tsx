@@ -50,7 +50,7 @@ export default function Faq1() {
       <div className="container mx-auto max-w-6xl px-4 md:px-6">
         <div className="mb-12 text-center">
           <motion.h2
-            className="mb-4 text-4xl font-bold tracking-tight md:text-5xl"
+            className="mb-4 text-4xl font-bold tracking-tight text-primary md:text-5xl"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -83,7 +83,7 @@ export default function Faq1() {
           <Accordion
             type="single"
             collapsible
-            className="border-border grid gap-4 w-full rounded-2xl border p-4 bg-background/50 backdrop-blur-md shadow-sm"
+            className="border-border grid gap-4 w-full rounded-2xl border p-4 bg-background/50 backdrop-blur-md"
           >
             {items.map((item, index) => (
               <motion.div
@@ -98,14 +98,14 @@ export default function Faq1() {
                   value={item.id}
                   className={cn(
                     'bg-card/30 my-0 overflow-hidden rounded-xl border border-border/50 px-4 transition-all duration-300',
-                    'data-[state=open]:bg-card/70 data-[state=open]:border-primary/20 data-[state=open]:shadow-md',
+                    'data-[state=open]:bg-card/70 data-[state=open]:border-primary/20',
                     'hover:border-primary/20 hover:bg-card/50'
                   )}
                 >
                   <AccordionPrimitive.Header className="flex">
                     <AccordionPrimitive.Trigger
                       className={cn(
-                        'group flex flex-1 items-center justify-between gap-4 py-5 text-left text-lg font-semibold',
+                        'group flex flex-1 items-center justify-between gap-4 py-5 text-left text-lg font-semibold text-primary',
                         'hover:text-primary transition-all duration-300 outline-none',
                         'focus-visible:ring-primary/50 focus-visible:ring-2',
                         'data-[state=open]:text-primary',

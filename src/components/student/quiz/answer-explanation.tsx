@@ -90,11 +90,10 @@ export function AnswerExplanation({ question, userAnswer }: Props) {
       </CardHeader>
       <CardContent className="pt-0 pb-2 space-y-3">
         {/* Explanation Text */}
-        <div className="prose prose-xs sm:prose-sm max-w-none text-foreground">
+        <div className="prose prose-xs sm:prose-sm max-w-none text-foreground text-xs sm:text-sm leading-tight font-medium [&>p]:mb-2 [&>ul]:mb-2 [&>ol]:mb-2">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeRaw]}
-            className="text-xs sm:text-sm leading-tight font-medium [&>p]:mb-2 [&>ul]:mb-2 [&>ol]:mb-2"
             components={{
               p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
               a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{children}</a>,

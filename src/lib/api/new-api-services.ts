@@ -630,6 +630,7 @@ export class NewApiService {
       rotations?: Array<'R1' | 'R2' | 'R3' | 'R4'>;
       universityIds?: number[];
       questionSourceIds?: number[];
+      repetitionCountMin?: number;
     },
     options?: { signal?: AbortSignal }
   ): Promise<ApiResponse<{ totalQuestionCount: number; accessibleQuestionCount: number }>> {

@@ -1,42 +1,9 @@
-Page: /session/230/results
-
-Remove the existing statistics component.
-
-Create and render a new results component using the API response from:
-POST /students/quiz-sessions/sessionid/submit-answer
-
-Use the API response structure below as the data source:
-
-{
-  "success": true,
-  "data": {
-    "message": "Answers submitted successfully",
-    "results": [
-      { "questionId": 1, "isCorrect": false },
-      { "questionId": 2, "isCorrect": false },
-      { "questionId": 3, "isCorrect": true }
-    ],
-    "score": 9.09,
-    "totalScore20": 1.82,
-    "correctAnswersCount": 1,
-    "incorrectAnswersCount": 2,
-    "unansweredCount": 8,
-    "totalQuestions": 11
-  },
-  "meta": {
-    "timestamp": "2026-02-04T11:22:15.195Z",
-    "requestId": "6djjdjafabf"
-  }
-}
-
-Component requirements:
-- Display counts for:
-  - Correct answers
-  - Incorrect answers
-  - Unanswered questions
-- Visualize these counts using a circular chart (donut or radial chart).
-- Display the final score as “X / 20” using the `totalScore20` value.
-
-
-fSijfoNbd9rHJd3ZttCR
-postgresql://admin:fSijfoNbd9rHJd3ZttCR@medadn-db-fur34v:5432/myadndb
+endpoint /quizzes/question-count request does not have repeated questions field and always return 0 decipite there is questions in the database.
+request :
+```json
+{"courseIds":[4,5],"questionTypes":["MULTIPLE_CHOICE","SINGLE_CHOICE","QROC"],"years":[2024],"questionSourceIds":[2],"universityIds":[1],"rotations":[]}
+```
+response : 
+```json
+{"success":true,"data":{"totalQuestionCount":0,"accessibleQuestionCount":0},"meta":{"timestamp":"2026-02-10T14:19:08.072Z","requestId":"wbfagv7zz8"}}
+```

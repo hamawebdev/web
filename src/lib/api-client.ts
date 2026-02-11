@@ -76,17 +76,34 @@ class ApiClient {
     this.client.interceptors.request.use(
       (config) => {
         const token = this.getStoredToken();
-
         // Do NOT attach Authorization header for auth endpoints that should not require it
         const url = config.url || '';
-        const isAuthEndpoint = url.includes('/auth/login') ||
-          url.includes('/auth/register') ||
-          url.includes('/auth/forgot-password') ||
-          url.includes('/auth/reset-password') ||
-          url.includes('/auth/refresh');
+        const lowerUrl = url.toLowerCase();
 
-        if (!isAuthEndpoint && token) {
+        // Public auth endpoints that don't need or shouldn't have the current token
+        const isPublicAuthEndpoint =
+          lowerUrl.includes('/auth/login') ||
+          lowerUrl.includes('/auth/register') ||
+          lowerUrl.includes('/auth/forgot-password') ||
+          lowerUrl.includes('/auth/reset-password') ||
+          (lowerUrl.includes('/auth/refresh') && !lowerUrl.includes('profile')); // Ensure profile is never matched here
+
+        // Always attach token unless it's a strictly public endpoint
+        // Special care for profile endpoint to ensure it gets the token despite having 'auth' in path
+        if (!isPublicAuthEndpoint && token) {
           config.headers.Authorization = `Bearer ${token}`;
+
+          // Debug check for critical profile endpoint if needed
+          if (lowerUrl.includes('/auth/profile')) {
+            console.log('🔐 [ApiClient] Attaching token to profile request', {
+              tokenPrefix: token.substring(0, 10) + '...'
+            });
+          }
+        }
+
+        // Log if token is missing for protected endpoints (except public ones)
+        if (!token && !isPublicAuthEndpoint && lowerUrl.includes('/auth/')) {
+          console.warn('⚠️ [ApiClient] No token available for protected auth endpoint:', url);
         }
 
         // Debug logging for residency question requests

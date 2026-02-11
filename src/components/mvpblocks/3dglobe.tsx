@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { LiquidButton } from '@/components/animate-ui/primitives/buttons/liquid';
 
 export default function Globe3D() {
   return (
@@ -42,13 +43,14 @@ export default function Globe3D() {
           </p>
 
           <div className="mb-10 flex flex-col items-center justify-center gap-4 sm:mb-0 sm:flex-row">
-            <Link
-              prefetch={false}
-              href="/register"
-              className="relative w-full overflow-hidden rounded-full bg-primary px-8 py-4 text-primary-foreground font-medium shadow-lg transition-all duration-300 hover:bg-primary/90 hover:shadow-xl sm:w-auto"
+            <LiquidButton
+              asChild
+              className="w-full rounded-full [--liquid-button-background-color:var(--primary)] px-8 py-4 text-primary-foreground font-medium sm:w-auto"
             >
-              Get Started
-            </Link>
+              <Link prefetch={false} href="/register">
+                Get Started
+              </Link>
+            </LiquidButton>
             <a
               href="#features"
               className="flex w-full items-center justify-center gap-2 text-muted-foreground transition-colors hover:text-foreground sm:w-auto"
@@ -78,7 +80,7 @@ export default function Globe3D() {
         >
           <div className="relative z-10 mx-auto max-w-5xl overflow-hidden rounded-2xl shadow-[0_20px_60px_-15px_hsla(354,62%,66%,0.25)] border border-border/50">
             <img
-              src="https://i.postimg.cc/FKKY5fRB/lunexa-db.webp"
+              src="/dashboard.webp"
               alt="MedADN Dashboard"
               width={1920}
               height={1080}

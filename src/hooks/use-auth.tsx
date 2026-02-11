@@ -105,6 +105,9 @@ export function useAuth() {
       const response = await AuthAPI.login(credentials);
 
       if (response.user) {
+        // Update cache immediately to prevent unnecessary refetch and auth states race conditions
+        cachedAuthResult = { isAuthenticated: true, user: response.user };
+
         setAuthState({
           isAuthenticated: true,
           user: response.user,
@@ -122,7 +125,10 @@ export function useAuth() {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
-      
+
+      // Clear cache on error
+      cachedAuthResult = null;
+
       setAuthState(prev => ({
         ...prev,
         loading: false,
@@ -140,7 +146,7 @@ export function useAuth() {
       setAuthState(prev => ({ ...prev, loading: true }));
 
       await AuthAPI.logout();
-      
+
       setAuthState({
         isAuthenticated: false,
         user: null,
@@ -169,7 +175,7 @@ export function useAuth() {
       setAuthState(prev => ({ ...prev, loading: true, error: null }));
 
       const updatedUser = await AuthAPI.updateProfile(profileData);
-      
+
       // Update localStorage with legacy format
       const legacyUser = convertApiUserToLegacy(updatedUser);
       localStorage.setItem('auth_user', JSON.stringify(legacyUser));
@@ -184,7 +190,7 @@ export function useAuth() {
       return updatedUser;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Profile update failed';
-      
+
       setAuthState(prev => ({
         ...prev,
         loading: false,
@@ -202,12 +208,12 @@ export function useAuth() {
       setAuthState(prev => ({ ...prev, loading: true, error: null }));
 
       await AuthAPI.changePassword(currentPassword, newPassword);
-      
+
       setAuthState(prev => ({ ...prev, loading: false }));
       toast.success('Password changed successfully');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Password change failed';
-      
+
       setAuthState(prev => ({
         ...prev,
         loading: false,

@@ -634,16 +634,17 @@ export function UnifiedQuestion({ question, type, onOpenAIChat, onEditNote }: Pr
                     ) : question.correctAnswers?.[0] ? (
                       question.correctAnswers?.[0]
                     ) : question.explanation ? (
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        rehypePlugins={[rehypeRaw]}
-                        className="prose prose-sm max-w-none text-success prose-p:text-success prose-strong:text-success prose-headings:text-success"
-                        components={{
-                          p: ({ children }) => <span className="block">{children}</span>
-                        }}
-                      >
-                        {question.explanation}
-                      </ReactMarkdown>
+                      <div className="prose prose-sm max-w-none text-success prose-p:text-success prose-strong:text-success prose-headings:text-success">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          rehypePlugins={[rehypeRaw]}
+                          components={{
+                            p: ({ children }) => <span className="block">{children}</span>
+                          }}
+                        >
+                          {question.explanation}
+                        </ReactMarkdown>
+                      </div>
                     ) : (
                       'Answer not available'
                     )}
@@ -699,16 +700,17 @@ export function UnifiedQuestion({ question, type, onOpenAIChat, onEditNote }: Pr
                     ) : question.correctAnswers?.[0] ? (
                       question.correctAnswers?.[0]
                     ) : question.explanation ? (
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        rehypePlugins={[rehypeRaw]}
-                        className="prose prose-sm max-w-none text-success prose-p:text-success prose-strong:text-success prose-headings:text-success"
-                        components={{
-                          p: ({ children }) => <span className="block">{children}</span>
-                        }}
-                      >
-                        {question.explanation}
-                      </ReactMarkdown>
+                      <div className="prose prose-sm max-w-none text-success prose-p:text-success prose-strong:text-success prose-headings:text-success">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          rehypePlugins={[rehypeRaw]}
+                          components={{
+                            p: ({ children }) => <span className="block">{children}</span>
+                          }}
+                        >
+                          {question.explanation}
+                        </ReactMarkdown>
+                      </div>
                     ) : (
                       'Answer not available'
                     )}

@@ -256,6 +256,7 @@ export function useQuestionCount(): UseQuestionCountResult {
     rotations?: Array<'R1' | 'R2' | 'R3' | 'R4'>;
     universityIds?: number[];
     questionSourceIds?: number[];
+    repetitionCountMin?: number;
   }) => {
     return JSON.stringify({
       courseIds: filters.courseIds?.slice().sort(),
@@ -264,6 +265,7 @@ export function useQuestionCount(): UseQuestionCountResult {
       rotations: filters.rotations?.slice().sort(),
       universityIds: filters.universityIds?.slice().sort(),
       questionSourceIds: filters.questionSourceIds?.slice().sort(),
+      repetitionCountMin: filters.repetitionCountMin,
     });
   }, []);
 
@@ -274,6 +276,7 @@ export function useQuestionCount(): UseQuestionCountResult {
     rotations?: Array<'R1' | 'R2' | 'R3' | 'R4'>;
     universityIds?: number[];
     questionSourceIds?: number[];
+    repetitionCountMin?: number;
   }) => {
     const cacheKey = generateCacheKey(filters);
 

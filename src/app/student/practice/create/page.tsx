@@ -69,6 +69,9 @@ export default function PracticeCreatePage() {
         ...(payload.sessionFilters?.universityIds?.length > 0 && {
           universityIds: payload.sessionFilters.universityIds
         }),
+        ...(payload.sessionFilters?.repetitionCountMin && {
+          repetitionCountMin: payload.sessionFilters.repetitionCountMin
+        }),
         rotations: [], // Always empty for practice sessions
       };
 

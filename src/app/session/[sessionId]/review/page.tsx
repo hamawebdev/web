@@ -257,11 +257,10 @@ export default function SessionReviewPage() {
                           <BookOpen className="h-4 w-4 text-primary" />
                           <h4 className="text-sm font-medium text-primary">Explanation</h4>
                         </div>
-                        <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                        <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 prose prose-sm max-w-none text-foreground prose-p:text-foreground prose-strong:text-foreground prose-headings:text-foreground">
                           <ReactMarkdown
                             remarkPlugins={[remarkGfm]}
                             rehypePlugins={[rehypeRaw]}
-                            className="prose prose-sm max-w-none text-foreground prose-p:text-foreground prose-strong:text-foreground prose-headings:text-foreground"
                             components={{
                               p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed text-sm">{children}</p>,
                               a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{children}</a>,

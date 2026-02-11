@@ -3,6 +3,7 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { LiquidButton } from '@/components/animate-ui/primitives/buttons/liquid';
 
 import { useAuth } from '@/hooks/use-auth';
 import AuthAPI from '@/lib/auth-api';
@@ -111,14 +112,14 @@ export function Header() {
                         Login
                       </Button>
                     </Link>
-                    <Link href="/register">
-                      <Button
-                        size="sm"
-                        className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl font-medium transition-all duration-300 shadow-sm"
-                      >
+                    <LiquidButton
+                      asChild
+                      className="sm:w-auto [--liquid-button-background-color:var(--primary)] rounded-2xl px-4 py-2 text-primary-foreground font-medium"
+                    >
+                      <Link href="/register">
                         Sign Up
-                      </Button>
-                    </Link>
+                      </Link>
+                    </LiquidButton>
                   </>
                 )}
               </>
