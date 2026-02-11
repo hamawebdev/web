@@ -143,7 +143,7 @@ export default function PracticeCreatePage() {
 
 
         {/* Main Content */}
-        <Card className="border-border/50 shadow-lg">
+        <Card className="border-border/50">
           <CardContent className="p-4 sm:p-6">
             <SessionWizard
               onCreate={(p) => handleCreateSession(p as any)}

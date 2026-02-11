@@ -247,14 +247,14 @@ export function ModernRegisterForm() {
             <div className="flex justify-center mb-4">
               <img
                 src="/logo.png"
-                alt="MedCortex Logo"
+                alt="Med-ADN Logo"
                 className="h-24 w-24 object-contain transition-transform duration-300 group-hover:scale-105"
               />
             </div>
 
             {/* Title */}
             <CardTitle className="!text-3xl !font-semibold !tracking-tight !text-emerald-400 !text-center !flex !justify-center !items-center !transition-none !group-hover:!text-emerald-400 !leading-tight">
-              Rejoindre MedCortex
+              Rejoindre Med-ADN
             </CardTitle>
 
             {/* Description */}

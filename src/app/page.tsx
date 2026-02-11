@@ -9,6 +9,7 @@ import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import Globe3D from '@/components/mvpblocks/3dglobe';
 import { Feature } from "@/components/ui/feature-with-advantages";
+import DesignerPricing from '@/components/mvpblocks/designer-pricing';
 import Faq1 from '@/components/mvpblocks/faq-1';
 import CTA2 from '@/components/mvpblocks/cta';
 import { JsonLd } from '@/components/json-ld';
@@ -68,6 +69,8 @@ export default function Home() {
         <LandingStats />
 
         <Feature />
+
+        <DesignerPricing />
 
         <Faq1 />
 

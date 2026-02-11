@@ -40,12 +40,12 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
   return (
     <TooltipProvider>
       <SidebarProvider defaultOpen={true}>
-        <div 
-          className='flex min-h-screen min-h-[100dvh] w-full' 
-          style={{ 
+        <div
+          className='flex h-screen h-[100dvh] overflow-hidden w-full'
+          style={{
             background: 'var(--background)',
             // Ensure proper initial rendering on iOS
-            minHeight: '100dvh',
+            height: '100dvh',
             WebkitBackfaceVisibility: 'hidden',
             backfaceVisibility: 'hidden'
           }}

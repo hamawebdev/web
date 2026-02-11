@@ -3,28 +3,28 @@ import { Badge } from "@/components/ui/badge";
 
 const characteristics = [
   {
-    title: 'Premium Question Bank',
-    description: '100,000+ medical questions aligned with the Medical School curriculum.',
+    title: 'AI-Powered Personal Tutor',
+    description: 'Instant, deep-dive explanations powered by ChatGPT PRO. It’s like having a professor available 24/7 to clarify complex topics on demand.',
   },
   {
-    title: 'Smart Organization',
-    description: 'Content structured by modules, courses, and study years for targeted learning.',
+    title: 'Algeria\'s Largest QCM Bank',
+    description: 'Access more than 150k questions from 10 universities and 10k resources. The most comprehensive preparation resource available.',
   },
   {
-    title: 'Certified Content',
-    description: 'Questions validated by medical experts according to international standards.',
+    title: 'Unbreakable Reliability',
+    description: 'Engineered for 99.99% uptime on high-speed servers. We ensure a seamless, lag-free experience because every second of your study time counts.',
   },
   {
-    title: 'Continuous Evolution',
-    description: 'A dynamic platform constantly enriched to stay at the cutting edge of innovation.',
+    title: 'Seamless User Experience',
+    description: 'A beautiful, distraction-free interface designed to induce "flow state". Navigation is effortless, so you can focus entirely on retaining information.',
   },
   {
-    title: 'Detailed Explanations',
-    description: 'Corrections enriched with anatomical diagrams and medical imaging.',
+    title: 'Strategic Repetition Focus',
+    description: 'Save valuable time by practicing only the repeated questions. Master high-yield content first to maximize your score with minimal effort.',
   },
   {
-    title: 'Learning Intelligence',
-    description: 'Advanced analytics to transform your data into actionable insights.',
+    title: 'Official Exams',
+    description: 'Practice in an environment with real exams. Build confidence and stamina with every session.',
   },
 ];
 

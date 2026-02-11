@@ -70,12 +70,12 @@ export function Header() {
         }`}
     >
       <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-        {/* Logo with MedCortex branding */}
+        {/* Logo with Med-ADN branding */}
         <Link href="/" className="group flex items-center transition-all duration-300 hover:scale-105 flex-shrink-0 gap-2">
           <div className="flex items-center gap-2">
             <img
               src="/logo.png"
-              alt="MedCortex Logo"
+              alt="Med-ADN Logo"
               className={`object-contain transition-all duration-300 ${isScrolled ? 'h-8 w-8' : 'h-10 w-10'}`}
             />
             <span className={`font-bold text-foreground transition-all duration-300 ${isScrolled ? 'text-lg' : 'text-xl'}`}>

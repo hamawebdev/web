@@ -5,12 +5,12 @@ import { type SidebarData } from '../types'
 export const sidebarData: SidebarData = {
   user: {
     name: 'Admin User',
-    email: 'admin@medcortex.com',
+    email: 'admin@medadn.com',
     avatar: '/images/avatars/default.jpg',
   },
   teams: [
     {
-      name: 'MedCortex Admin',
+      name: 'MedAdn Admin',
       logo: Settings,
       plan: 'Administration',
     },

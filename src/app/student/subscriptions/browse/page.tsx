@@ -11,11 +11,12 @@ import { LoadingSpinner } from '@/components/loading-states/api-loading-states';
 import { RedeemActivationCodeModal } from '@/components/student/subscription/redeem-activation-code-modal';
 import { SubscriptionErrorBoundary, usePerformanceMonitoring, useErrorReporting } from '@/components/student/subscription/subscription-error-boundary';
 import { StudyPackPricingCard } from '@/components/student/subscription/study-pack-pricing-card';
-import { RefreshCw, AlertCircle } from 'lucide-react';
+import { RefreshCw, AlertCircle, Instagram } from 'lucide-react';
+import { PaymentService } from '@/lib/api-services';
 import { Gift } from '@solar-icons/react';
 import type { StudyPack } from '@/types/api';
 
-type PricingMode = 'YEAR' | 'MONTH';
+
 
 function BrowseSubscriptionsPageContent() {
   // Performance monitoring
@@ -25,8 +26,9 @@ function BrowseSubscriptionsPageContent() {
   const [packsLoading, setPacksLoading] = useState(true);
   const [packsError, setPacksError] = useState<string | null>(null);
   const [studyPacks, setStudyPacks] = useState<any[]>([]);
-  const [pricingMode, setPricingMode] = useState<PricingMode>('YEAR');
+  const [pricingMode] = useState<'YEAR'>('YEAR');
   const [selectedPackId, setSelectedPackId] = useState<number | null>(null);
+  const [processingPackId, setProcessingPackId] = useState<number | null>(null);
 
   // Memoize the loadPacks function to prevent unnecessary re-renders
   const loadPacks = useCallback(async () => {
@@ -156,11 +158,58 @@ function BrowseSubscriptionsPageContent() {
     }
 
     // Non-subscriber subscribe flow - redirect to payment page
-    const durationType = pricingMode === 'YEAR' ? 'yearly' : 'monthly';
-    const durationValue = pricingMode === 'YEAR' ? '1' : '1'; // Default to 1 year or 1 month
+    const durationType = 'yearly';
+    const durationValue = '1';
 
-    const paymentUrl = `/student/subscriptions/payment?studyPackId=${pack.id}&durationType=${durationType}&durationValue=${durationValue}`;
-    router.push(paymentUrl);
+    // Direct redirection to Chargily
+    // We default to 'edahabia' as it's the most common method
+    // and 'ar' locale as fallback
+    const browserLang = typeof window !== 'undefined' ? window.navigator.language.split('-')[0] : 'ar';
+    const locale = ['ar', 'en', 'fr'].includes(browserLang) ? browserLang : 'ar';
+
+    setProcessingPackId(pack.id);
+
+    const paymentRequest = {
+      studyPackId: pack.id,
+      paymentDuration: {
+        type: durationType,
+        ...(durationType === 'monthly' ? { months: parseInt(durationValue) } : { years: parseInt(durationValue) })
+      },
+      locale: locale as any,
+      paymentMethod: 'edahabia' as const
+    };
+
+    PaymentService.createCheckoutSession(paymentRequest)
+      .then((response: any) => {
+        if (response.success && response.data?.checkoutUrl) {
+          window.location.href = response.data.checkoutUrl;
+        } else {
+          console.error('Failed to create checkout session', response);
+          // Fallback to old behavior if direct checkout fails
+          alert("Failed to initiate payment. Please try again later.");
+          setProcessingPackId(null);
+        }
+      })
+      .catch((err) => {
+        console.error('Payment error:', err);
+        // Fallback to old behavior on error
+        alert("An error occurred while initiating payment. Please check your connection and try again.");
+        setProcessingPackId(null);
+      })
+      .finally(() => {
+        // Don't clear processing state if successful redirect is happening to prevent flash
+        // But if we're falling back to router.push, we might want to keep it or clear it. 
+        // Clearing it is safer in case the redirect is slow or fails silently.
+        // However, since we're doing window.location.href, we can leave it.
+        // If we fallback to router.push, we also leave it as page will change.
+        // If error and NO fallback (which isn't the case here), we would clear.
+
+        // Actually, if we error/fallback, we should probably clear it if we stay on page (which we don't, we push).
+        // If an error happens that PREVENTS redirect, we should clear.
+        // But here we ALWAYS try to redirect (either to chargily or payment page).
+        // So keeping it true is fine as the page will unload.
+      });
+
   }, [cancelledWithinGraceIds, activeSub, pricingMode, router]);
 
   // Handle successful activation code redemption
@@ -195,17 +244,9 @@ function BrowseSubscriptionsPageContent() {
               <div className="flex gap-2">
                 <Button
                   className="flex-1"
-                  variant={pricingMode === 'YEAR' ? 'default' : 'outline'}
-                  onClick={() => setPricingMode('YEAR')}
+                  variant="default"
                 >
                   Yearly
-                </Button>
-                <Button
-                  className="flex-1"
-                  variant={pricingMode === 'MONTH' ? 'default' : 'outline'}
-                  onClick={() => setPricingMode('MONTH')}
-                >
-                  Monthly
                 </Button>
               </div>
             </div>
@@ -248,7 +289,7 @@ function BrowseSubscriptionsPageContent() {
                 <StudyPackPricingCard
                   key={pack.id}
                   pack={pack}
-                  billingCycle={pricingMode === 'YEAR' ? 'yearly' : 'monthly'}
+                  billingCycle="yearly"
                   isSelected={selectedPackId === pack.id}
                   isDisabled={disabled}
                   isGrace={isGrace}
@@ -256,13 +297,26 @@ function BrowseSubscriptionsPageContent() {
                   ctaVariant={cta.variant}
                   onSelect={() => handlePackSelect(pack.id)}
                   onCtaClick={() => handleCtaClick(pack)}
+                  isProcessing={processingPackId === pack.id}
                 />
               );
             })}
           </div>
         )}
+        {/* Contact Section */}
+        <div className="flex flex-col items-center gap-4 mt-8 pt-6 border-t border-border/50 max-w-md mx-auto w-full">
+          <p className="text-sm text-muted-foreground text-center font-medium">
+            Or contact us to get activation code
+          </p>
+          <Button
+            onClick={() => window.open('https://www.instagram.com/med.adn.dz/', '_blank')}
+            className="w-full sm:w-auto min-w-[200px] bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#FCB045] hover:opacity-90 text-white shadow-md hover:shadow-lg transition-all duration-300"
+          >
+            <Instagram className="h-4 w-4 mr-2" />
+            Contact us on Instagram
+          </Button>
+        </div>
 
-        {/* Redeem Activation Code Modal */}
         <RedeemActivationCodeModal
           open={redeemOpen}
           onOpenChange={setRedeemOpen}

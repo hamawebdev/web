@@ -4,7 +4,7 @@ import NumberFlow from "@number-flow/react";
 import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock } from "lucide-react";
+import { Clock, Loader2 } from "lucide-react";
 import type { StudyPack } from "@/types/api";
 
 const TRANSITION = {
@@ -24,6 +24,7 @@ interface StudyPackPricingCardProps {
   ctaVariant: "default" | "outline";
   onSelect: () => void;
   onCtaClick: () => void;
+  isProcessing?: boolean;
 }
 
 export function StudyPackPricingCard({
@@ -36,6 +37,7 @@ export function StudyPackPricingCard({
   ctaVariant,
   onSelect,
   onCtaClick,
+  isProcessing = false,
 }: StudyPackPricingCardProps) {
   const isResidency = pack.type === "RESIDENCY";
   const price = billingCycle === "monthly" ? pack.pricePerMonth : pack.pricePerYear;
@@ -48,20 +50,18 @@ export function StudyPackPricingCard({
       className={`relative cursor-pointer ${isDisabled && !isGrace ? "opacity-60" : ""}`}
     >
       <div
-        className={`relative rounded-xl bg-card border border-foreground/10 transition-colors duration-300 ${
-          isSelected ? "z-10 border-primary border-2" : ""
-        }`}
+        className={`relative rounded-xl bg-card border border-foreground/10 transition-colors duration-300 ${isSelected ? "z-10 border-primary border-2" : ""
+          }`}
       >
         <div className="p-5">
           <div className="flex justify-between items-start">
             <div className="flex gap-4">
               <div className="mt-1 shrink-0">
                 <div
-                  className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
-                    isSelected
+                  className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${isSelected
                       ? "border-primary"
                       : "border-muted-foreground/15"
-                  }`}
+                    }`}
                 >
                   <AnimatePresence mode="wait" initial={false}>
                     {isSelected && (
@@ -85,7 +85,7 @@ export function StudyPackPricingCard({
                 <h3 className="text-lg font-medium text-foreground leading-tight">
                   {pack.name}
                 </h3>
-               
+
               </div>
             </div>
             <div className="text-right">
@@ -126,14 +126,21 @@ export function StudyPackPricingCard({
                   <Button
                     className="w-full"
                     variant={ctaVariant}
-                    disabled={isDisabled && !isGrace}
+                    disabled={(isDisabled && !isGrace) || isProcessing}
                     title={isDisabled && !isGrace ? "You already have an active subscription" : ""}
                     onClick={(e) => {
                       e.stopPropagation();
                       onCtaClick();
                     }}
                   >
-                    {ctaLabel}
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      ctaLabel
+                    )}
                   </Button>
                 </div>
               </motion.div>
