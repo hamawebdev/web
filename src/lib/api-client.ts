@@ -288,18 +288,10 @@ class ApiClient {
   private handleAuthError() {
     console.log('🚨 API Client: Handling authentication error, clearing tokens');
     this.clearStoredTokens();
-
-    // Only redirect if we're not already on the login page
-    if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-      console.log('🚨 API Client: Redirecting to login page');
-      // Use a small delay to prevent immediate redirect during API calls
-      setTimeout(() => {
-        if (!window.location.pathname.includes('/login')) {
-          console.log('🚨 API Client: Executing redirect to /login');
-          window.location.href = '/login';
-        }
-      }, 500); // Increased delay to prevent race conditions
-    }
+    // Do NOT hard-redirect to /login here.
+    // React auth guards (checkAndRedirect) will detect the cleared tokens
+    // and redirect the user through the React router, which allows
+    // proper handling of post-payment and other flows.
   }
 
   // Token management methods

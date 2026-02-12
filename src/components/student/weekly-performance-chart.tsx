@@ -343,49 +343,6 @@ export function WeeklyPerformanceChart({ weeklyPerformance, loading }: Props) {
           </div>
         </div>
 
-        {/* Performance Summary */}
-        <div className='grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4'>
-          <div className='rounded-lg p-3 text-center border bg-primary/10 border-primary/20'>
-            <div className='flex items-center justify-center mb-1'>
-              <div className='p-1 rounded-full bg-primary/20'>
-                <Target className='h-3 w-3 text-primary' />
-              </div>
-            </div>
-            <div className='text-lg font-bold' style={{ color: '#18686E' }}>{overallAccuracy}%</div>
-            <div className='text-xs font-medium' style={{ color: '#18686E' }}>Overall Accuracy</div>
-          </div>
-
-          <div className='rounded-lg p-3 text-center border bg-primary/10 border-primary/20'>
-            <div className='flex items-center justify-center mb-1'>
-              <div className='p-1 rounded-full bg-primary/20'>
-                <BarChart3 className='h-3 w-3 text-primary' />
-              </div>
-            </div>
-            <div className='text-lg font-bold' style={{ color: '#18686E' }}>{totalQuestions}</div>
-            <div className='text-xs font-medium' style={{ color: '#18686E' }}>Total Questions</div>
-          </div>
-
-          <div className='rounded-lg p-3 text-center border bg-primary/10 border-primary/20'>
-            <div className='flex items-center justify-center mb-1'>
-              <div className='p-1 rounded-full bg-primary/20'>
-                {accuracyTrend > 0 ? (
-                  <TrendingUp className='h-3 w-3 text-primary' />
-                ) : accuracyTrend < 0 ? (
-                  <TrendingDown className='h-3 w-3 text-destructive' />
-                ) : (
-                  <Award className='h-3 w-3 text-primary' />
-                )}
-              </div>
-            </div>
-            <div className={cn(
-              'text-lg font-bold',
-              accuracyTrend < 0 ? 'text-destructive' : ''
-            )} style={accuracyTrend >= 0 ? { color: '#18686E' } : {}}>
-              {Math.abs(accuracyTrend)}%
-            </div>
-            <div className='text-xs font-medium' style={{ color: '#18686E' }}>Weekly Trend</div>
-          </div>
-        </div>
       </CardHeader>
 
       <CardContent>

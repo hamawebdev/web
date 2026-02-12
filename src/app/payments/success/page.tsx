@@ -1,89 +1,20 @@
 // @ts-nocheck
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { VerifiedCheck } from '@solar-icons/react';
-import { AuthAPI } from '@/lib/auth-api';
-import { toast } from 'sonner';
 
 export default function PaymentSuccessPage() {
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [retryCount, setRetryCount] = useState(0);
     const router = useRouter();
 
-    // Handle keyboard navigation and accessibility
-    useEffect(() => {
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Enter' && !isLoading) {
-                handleGoToDashboard();
-            }
-        };
-
-        document.addEventListener('keydown', handleKeyDown);
-        return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [isLoading]);
-
-    const handleGoToDashboard = async (isRetry = false) => {
-        setIsLoading(true);
-        if (!isRetry) {
-            setError(null);
-        }
-
-        try {
-            // Refresh user token using the auth API
-            console.log('🔄 PaymentSuccess: Refreshing user token...', { attempt: retryCount + 1 });
-            await AuthAPI.refreshTokens();
-            console.log('✅ PaymentSuccess: Token refresh successful');
-
-            // Reset retry count on success
-            setRetryCount(0);
-
-            // Show success message
-            toast.success('Session actualisée avec succès');
-
-            // Redirect to student dashboard
-            router.push('/student/dashboard');
-        } catch (error) {
-            console.error('❌ PaymentSuccess: Token refresh failed:', error);
-
-            // Default user-facing message per requirements
-            let errorMessage = "Impossible d'actualiser la session. Veuillez réessayer.";
-
-            // Increment retry counter (manual retries only)
-            setRetryCount(prev => prev + 1);
-
-            // Refine message based on known API error patterns
-            if (error instanceof Error) {
-                if (error.message.includes('No refresh token available') ||
-                    error.message.includes('Invalid refresh token') ||
-                    error.message.includes('Refresh token has expired')) {
-                    errorMessage = 'Votre session a expiré. Redirection vers la page de connexion...';
-                } else if (error.message.includes('User account not found') ||
-                    error.message.includes('account has been deactivated')) {
-                    errorMessage = 'Problème avec votre compte. Veuillez contacter le support.';
-                }
-            }
-
-            // If multiple failures, redirect to login
-            const failures = retryCount + 1;
-            if (failures >= 2 || errorMessage.includes('session a expiré')) {
-                setError('Échec après plusieurs tentatives. Redirection vers la page de connexion...');
-                toast.error('Échec après plusieurs tentatives. Redirection vers la page de connexion...');
-                setTimeout(() => {
-                    router.push('/login');
-                }, 3000);
-            } else {
-                setError(errorMessage);
-                toast.error(errorMessage);
-            }
-        } finally {
-            setIsLoading(false);
-        }
+    const handleGoToDashboard = () => {
+        // Navigate directly to the dashboard.
+        // The ApiClient interceptors will handle token refresh transparently
+        // if the access token has expired during the payment flow.
+        router.push('/student/dashboard');
     };
 
     return (
@@ -106,18 +37,10 @@ export default function PaymentSuccessPage() {
                     </CardHeader>
 
                     <CardContent className="space-y-4 sm:space-y-5 md:space-y-6 lg:space-y-8 px-4 sm:px-6 md:px-8 pb-6 sm:pb-8 md:pb-10 lg:pb-12 flex flex-col items-center">
-                        {/* Error Message */}
-                        {error && (
-                            <div className="p-3 sm:p-4 md:p-5 lg:p-6 bg-destructive/10 border border-destructive/20 rounded-xl animate-slide-up">
-                                <p className="text-destructive text-xs sm:text-sm md:text-base lg:text-lg font-medium text-center leading-relaxed">{error}</p>
-                            </div>
-                        )}
-
                         {/* Dashboard Button */}
                         <div className="flex justify-center">
                             <Button
                                 onClick={handleGoToDashboard}
-                                disabled={isLoading}
                                 className="
                   w-full md:w-auto md:min-w-[280px] lg:w-[320px] xl:w-[360px]
                   h-11 sm:h-12 md:h-13 lg:h-14 xl:h-16
@@ -128,44 +51,14 @@ export default function PaymentSuccessPage() {
                 "
                                 size="lg"
                             >
-                                {isLoading ? (
-                                    <>
-                                        <Loader2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 animate-spin" />
-                                        <span className="text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl">Actualisation en cours...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <span className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl">Go to Dashboard</span>
-                                        <ArrowRight className="ml-2 h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />
-                                    </>
-                                )}
+                                <span className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl">Go to Dashboard</span>
+                                <ArrowRight className="ml-2 h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />
                             </Button>
                         </div>
-
-                        {/* Retry Button (shown on error) */}
-                        {error && (
-                            <div className="flex justify-center">
-                                <Button
-                                    onClick={() => handleGoToDashboard(true)}
-                                    disabled={isLoading}
-                                    variant="outline"
-                                    className="
-                    w-full md:w-auto md:min-w-[240px] lg:w-[280px] xl:w-[320px]
-                    h-10 sm:h-11 md:h-12 lg:h-13 xl:h-14
-                    mt-2 text-sm sm:text-base md:text-lg lg:text-xl
-                    touch-target
-                  "
-                                >
-                                    Réessayer
-                                </Button>
-                            </div>
-                        )}
-
-
-
                     </CardContent>
                 </Card>
             </div>
         </div>
     );
 }
+

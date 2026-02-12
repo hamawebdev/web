@@ -793,4 +793,46 @@ export class NewApiService {
       handleApiError(error, 'create residency session');
     }
   }
+
+  /**
+   * Create Quiz Session
+   * POST /api/v1/quizzes/sessions (Canonical spec)
+   */
+  static async createQuizSession(payload: {
+    title: string;
+    courseIds: number[];
+    sessionType: 'PRACTICE' | 'EXAM';
+    questionCount?: number;
+    questionTypes?: Array<'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'QROC'>;
+    years?: number[];
+    rotations?: string[];
+    universityIds?: number[];
+    questionSourceIds?: number[];
+    repetitionCountMin?: number;
+    repetitionYears?: number[];
+  }): Promise<ApiResponse<any>> {
+    try {
+      console.log('🌐 [NewApiService] Creating quiz session:', payload);
+
+      const response = await apiClient.post<any>('/quizzes/sessions', payload);
+
+      // Handle potential nested response structure
+      if (response && response.success && response.data) {
+        const data = (response.data as any).data || response.data;
+        console.log('📥 [NewApiService] Quiz session created:', {
+          sessionId: data.sessionId,
+          success: true
+        });
+        return {
+          ...response,
+          data: data
+        };
+      }
+
+      return response;
+    } catch (error) {
+      console.error('💥 [NewApiService] Create quiz session error:', error);
+      handleApiError(error, 'create quiz session');
+    }
+  }
 }

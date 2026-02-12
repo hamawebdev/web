@@ -193,11 +193,8 @@ export class AuthAPI {
 
       if (!response.success) {
         console.log('🔐 AuthAPI.getCurrentUser: Profile fetch failed', response.error);
-        // Only clear tokens on authentication errors, not on other failures
-        if (response.error && (response.error.includes('401') || response.error.includes('Unauthorized'))) {
-          console.log('🔐 AuthAPI.getCurrentUser: Authentication error, clearing tokens');
-          apiClient.clearTokens();
-        }
+        // Don't clear tokens here — the ApiClient interceptor already handles
+        // 401 errors (token refresh or clearing). Clearing again causes race conditions.
         return null;
       }
 
@@ -205,13 +202,8 @@ export class AuthAPI {
       return response.data as User;
     } catch (error: any) {
       console.log('🔐 AuthAPI.getCurrentUser: Error occurred', error);
-      // Only clear tokens on 401 errors, not on network or other errors
-      if (error.response?.status === 401 || error.message?.includes('401') || error.message?.includes('Unauthorized')) {
-        console.log('🔐 AuthAPI.getCurrentUser: 401 error, clearing tokens');
-        apiClient.clearTokens();
-      } else {
-        console.log('🔐 AuthAPI.getCurrentUser: Non-auth error, keeping tokens', error.message);
-      }
+      // Don't clear tokens here — the ApiClient interceptor already handles
+      // 401 errors (token refresh or clearing). Clearing again causes race conditions.
       return null;
     }
   }

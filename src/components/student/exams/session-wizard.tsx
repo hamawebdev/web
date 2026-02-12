@@ -446,10 +446,6 @@ export function ExamSessionWizard({
       toast.error("Please select a Question Source.");
       return;
     }
-    if (!selectedYear || selectedYear === 'ALL') {
-      toast.error("Please select an Exam Year.");
-      return;
-    }
 
     try {
       setLoading(true);
@@ -466,7 +462,7 @@ export function ExamSessionWizard({
         courseIds: finalCourseIds,
         sessionType: 'EXAM' as const,
         questionTypes: ['SINGLE_CHOICE', 'MULTIPLE_CHOICE', 'QROC'] as Array<'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'QROC'>,
-        years: [Number(selectedYear)],
+        years: (selectedYear && selectedYear !== 'ALL') ? [Number(selectedYear)] : undefined,
         universityIds: [UNIVERSITY_ID],
         questionSourceIds: [Number(selectedSource)]
       };
@@ -628,7 +624,7 @@ export function ExamSessionWizard({
                                     </div>
 
                                     <div className="space-y-2">
-                                      <Label>Exam Year <span className="text-red-500">*</span></Label>
+                                      <Label>Exam Year <span className="text-muted-foreground font-normal text-xs ml-1">(Optional)</span></Label>
                                       <SheetSelector
                                         title="Select Exam Year"
                                         triggerLabel="Select Year"
