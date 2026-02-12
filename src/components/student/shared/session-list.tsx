@@ -28,6 +28,7 @@ import {
   GraduationCap,
   BookOpen
 } from 'lucide-react';
+import { Restart, Results, Documents, TrashBinTrash } from '@solar-icons/react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
@@ -433,16 +434,82 @@ export function SessionList({
                       )} />
                     )}
                   </div>
-                  
+
                   <div className="flex-1 min-w-0">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 mb-1.5">
-                      <h3 className="font-semibold text-sm sm:text-base text-foreground leading-tight">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mb-1.5">
+                      <h3 className="font-semibold text-base sm:text-lg text-foreground leading-tight">
                         {session.title}
                       </h3>
-                      <Badge className={cn("text-xs w-fit", getStatusColor(session.status))}>
-                        {getStatusIcon(session.status)}
-                        <span className="ml-1">{session.status.replace('_', ' ')}</span>
-                      </Badge>
+
+                      {/* Action buttons moved to title */}
+                      <div className="flex flex-wrap items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                        {session.status === 'NOT_STARTED' && (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="h-9 px-4 text-sm font-medium"
+                            onClick={async () => {
+                              try {
+                                await QuizService.updateQuizSessionStatus(session.id, 'IN_PROGRESS');
+                              } catch { }
+                              router.push(`/session/${session.id}`);
+                            }}
+                          >
+                            <Play className="h-4 w-4 mr-2" />
+                            Start
+                          </Button>
+                        )}
+
+                        {session.status === 'IN_PROGRESS' && (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="h-9 px-4 text-sm font-medium"
+                            onClick={() => {
+                              router.push(`/session/${session.id}`);
+                            }}
+                          >
+                            Continue
+                          </Button>
+                        )}
+
+                        {session.status === 'COMPLETED' && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              className="h-9 px-4 text-sm font-medium"
+                              onClick={() => {
+                                router.push(`/session/${session.id}/results`);
+                              }}
+                            >
+                              <Documents className="h-4 w-4 mr-2" />
+                              <span>Results</span>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-9 w-9 p-0"
+                              onClick={() => {
+                                handleOpenRetake(session);
+                              }}
+                            >
+                              <Restart className="h-5 w-5" />
+                            </Button>
+                          </>
+                        )}
+
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-9 w-9 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={async () => {
+                            await handleDeleteSession(session.id);
+                          }}
+                        >
+                          <TrashBinTrash className="size-5" />
+                        </Button>
+                      </div>
                     </div>
 
                     {/* Unit Information with Logo */}
@@ -460,7 +527,7 @@ export function SessionList({
                           />
                           <div className="min-w-0">
                             <p className="text-xs text-muted-foreground">Unit</p>
-                            <p className="text-xs font-medium text-foreground truncate">
+                            <p className="text-sm font-medium text-foreground truncate">
                               {session.unit.name}
                             </p>
                           </div>
@@ -469,111 +536,31 @@ export function SessionList({
                     )}
 
                     {/* Session details - responsive grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1.5 sm:gap-3 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3 flex-shrink-0" />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1.5 sm:gap-3 text-sm text-muted-foreground/90">
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
                         <span className="truncate">{formatDate(session.createdAt)}</span>
                       </div>
-                      
+
                       {session.totalQuestions && (
-                        <div className="flex items-center gap-1">
-                          <BarChart3 className="h-3 w-3 flex-shrink-0" />
+                        <div className="flex items-center gap-1.5">
+                          <BarChart3 className="h-3.5 w-3.5 flex-shrink-0" />
                           <span>{session.totalQuestions} questions</span>
                         </div>
                       )}
-                      
-                      {session.score !== undefined && (
-                        <div className="flex items-center gap-1">
-                          <CheckCircle className="h-3 w-3 flex-shrink-0" />
-                          <span>{session.score}%</span>
-                        </div>
-                      )}
-                      
+
                       {session.timeSpent && (
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3 flex-shrink-0" />
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="h-3.5 w-3.5 flex-shrink-0" />
                           <span>{formatTimeSpent(session.timeSpent)}</span>
                         </div>
                       )}
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Action buttons - responsive layout */}
-                <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-2 pt-1.5 border-t border-border/50">
-                  <div className="flex flex-wrap gap-1.5 flex-1">
-                    {session.status === 'NOT_STARTED' && (
-                      <Button
-                        size="sm"
-                        variant="default"
-                        className="flex-1 sm:flex-none touch-target text-xs h-8"
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          try {
-                            await QuizService.updateQuizSessionStatus(session.id, 'IN_PROGRESS');
-                          } catch {}
-                          router.push(`/session/${session.id}`);
-                        }}
-                      >
-                        <Play className="h-3 w-3 mr-1" />
-                        Start
-                      </Button>
-                    )}
 
-                    {session.status === 'IN_PROGRESS' && (
-                      <Button
-                        size="sm"
-                        variant="default"
-                        className="flex-1 sm:flex-none touch-target text-xs h-8"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/session/${session.id}`);
-                        }}
-                      >
-                        Continue
-                      </Button>
-                    )}
-
-                    {session.status === 'COMPLETED' && (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="default"
-                          className="flex-1 sm:flex-none touch-target text-xs h-8"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/session/${session.id}/results`);
-                          }}
-                        >
-                          View Results
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="default"
-                          className="flex-1 sm:flex-none touch-target text-xs h-8"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenRetake(session);
-                          }}
-                        >
-                          Retake
-                        </Button>
-                      </>
-                    )}
-                  </div>
-
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10 touch-target text-xs h-8"
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      await handleDeleteSession(session.id);
-                    }}
-                  >
-                    Remove
-                  </Button>
-                </div>
               </div>
             </CardContent>
           </Card>

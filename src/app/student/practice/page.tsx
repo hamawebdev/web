@@ -48,7 +48,7 @@ export default function PracticePage() {
                   Practice History
                 </h1>
               </div>
-              <p className="text-muted-foreground text-xs sm:text-sm lg:text-base">View your past practice sessions</p>
+              <p className="text-muted-foreground text-xs sm:text-sm lg:text-base">View your past practice series</p>
             </div>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">

@@ -22,12 +22,13 @@ import {
   Trophy,
   Zap
 } from 'lucide-react';
+import { Restart } from '@solar-icons/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -230,9 +231,9 @@ export function EnhancedSessionHistorySection({
           <div className="text-center text-red-600 dark:text-red-400">
             <XCircle className="h-8 w-8 mx-auto mb-2" />
             <p>Failed to load quiz history: {error}</p>
-            <Button 
-              variant="outline" 
-              onClick={() => window.location.reload()} 
+            <Button
+              variant="outline"
+              onClick={() => window.location.reload()}
               className="mt-4"
             >
               Try Again
@@ -661,8 +662,8 @@ export function EnhancedSessionHistorySection({
                                 <div className={cn(
                                   "absolute -bottom-2 left-0 lg:left-0 right-0 lg:right-auto lg:w-16 h-1 rounded-full transition-all duration-300",
                                   session.percentage >= 80 ? "bg-gradient-to-r from-chart-2 to-chart-4" :
-                                  session.percentage >= 60 ? "bg-gradient-to-r from-chart-3 to-chart-1" :
-                                  "bg-gradient-to-r from-destructive to-chart-5"
+                                    session.percentage >= 60 ? "bg-gradient-to-r from-chart-3 to-chart-1" :
+                                      "bg-gradient-to-r from-destructive to-chart-5"
                                 )}></div>
                               </div>
 
@@ -679,11 +680,11 @@ export function EnhancedSessionHistorySection({
                                 <div className={cn(
                                   "px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide",
                                   session.percentage >= 80 ? "bg-chart-2/20 text-chart-2" :
-                                  session.percentage >= 60 ? "bg-chart-3/20 text-chart-3" :
-                                  "bg-destructive/20 text-destructive"
+                                    session.percentage >= 60 ? "bg-chart-3/20 text-chart-3" :
+                                      "bg-destructive/20 text-destructive"
                                 )}>
                                   {session.percentage >= 80 ? "Excellent" :
-                                   session.percentage >= 60 ? "Good" : "Needs Work"}
+                                    session.percentage >= 60 ? "Good" : "Needs Work"}
                                 </div>
                               </div>
                             </div>
@@ -713,16 +714,17 @@ export function EnhancedSessionHistorySection({
                             {session.type === 'PRACTICE' && (
                               <Button
                                 variant="ghost"
-                                size="sm"
+                                size="icon"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleRetakeSession(session.id);
                                 }}
-                                className="group/btn relative overflow-hidden flex items-center gap-[calc(var(--spacing)*2)] px-4 py-2 hover:bg-chart-2/10 hover:text-chart-2 transition-all duration-300 hover:scale-105"
+                                className="group/btn relative overflow-hidden hover:bg-chart-2/10 hover:text-chart-2 transition-all duration-300 hover:scale-105 h-8 w-8 p-0"
+                                title="Retake"
                               >
                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-chart-2/10 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-500"></div>
-                                <Play className="h-4 w-4 transition-transform duration-200 group-hover/btn:scale-110 group-hover/btn:rotate-12" />
-                                <span className="font-semibold">Retake</span>
+                                <Restart className="h-4 w-4 transition-transform duration-200 group-hover/btn:scale-110 group-hover/btn:rotate-12" />
+                                <span className="sr-only">Retake</span>
                               </Button>
                             )}
                           </div>

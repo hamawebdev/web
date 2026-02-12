@@ -61,10 +61,10 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
                 'px-4 py-6',
                 // Tablet: 2rem padding
                 'md:px-8 md:py-8',
-                // Desktop: 3rem padding, max-width 1280px
-                'xl:px-12 xl:py-12 xl:max-w-7xl xl:mx-auto',
-                // Large Desktop: 4rem padding, max-width 1440px
-                '2xl:px-16 2xl:max-w-screen-2xl'
+                // Desktop: 3rem padding
+                'xl:px-6 xl:py-6 w-full',
+                // Large Desktop: 4rem padding
+                '2xl:px-8'
               )}>
                 {children}
               </div>

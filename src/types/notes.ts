@@ -17,6 +17,15 @@ export interface StudentNote {
     question?: {
         id: number;
         questionText: string;
+        explanation?: string | null;
+        questionType?: string;
+        questionImages?: string[];
+        questionAnswers?: {
+            id: number;
+            answerText: string;
+            isCorrect: boolean;
+            explanation?: string | null;
+        }[];
         course?: {
             id: number;
             name: string;
@@ -29,6 +38,16 @@ export interface StudentNote {
                 };
             };
         };
+        university?: {
+            id: number;
+            name: string;
+            country: string;
+        };
+        source?: {
+            id: number;
+            name: string;
+        };
+        examYear?: number | null;
     };
 }
 

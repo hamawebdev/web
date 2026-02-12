@@ -72,7 +72,7 @@ export default function PracticeCreatePage() {
         ...(payload.sessionFilters?.repetitionCountMin && {
           repetitionCountMin: payload.sessionFilters.repetitionCountMin
         }),
-        rotations: [], // Always empty for practice sessions
+        rotations: [], // Always empty for practice series
       };
 
       console.log('🚀 [Practice/Create] Creating session with payload:', {
@@ -143,7 +143,7 @@ export default function PracticeCreatePage() {
 
 
         {/* Main Content */}
-        <Card className="border-border/50">
+        <Card className="border shadow-none bg-card">
           <CardContent className="p-4 sm:p-6">
             <SessionWizard
               onCreate={(p) => handleCreateSession(p as any)}

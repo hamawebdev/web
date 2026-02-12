@@ -43,9 +43,7 @@ interface NotesFilterSheetProps {
     onClear: () => void;
     activeFilterCount: number;
     units: Unit[];
-    labels: Label[];
     unitsLoading?: boolean;
-    labelsLoading?: boolean;
 }
 
 /**
@@ -60,9 +58,7 @@ export function NotesFilterSheet({
     onClear,
     activeFilterCount,
     units,
-    labels,
     unitsLoading,
-    labelsLoading,
 }: NotesFilterSheetProps) {
     const [expandedUnits, setExpandedUnits] = useState<Set<number>>(new Set());
 
@@ -95,13 +91,7 @@ export function NotesFilterSheet({
         onFiltersChange({ ...filters, selectedModules: newModules });
     };
 
-    // Toggle label selection
-    const toggleLabel = (labelId: number) => {
-        const newLabels = filters.selectedLabels.includes(labelId)
-            ? filters.selectedLabels.filter(id => id !== labelId)
-            : [...filters.selectedLabels, labelId];
-        onFiltersChange({ ...filters, selectedLabels: newLabels });
-    };
+
 
     const handleApply = () => {
         onApply();
@@ -206,33 +196,7 @@ export function NotesFilterSheet({
                             )}
                         </div>
 
-                        <Separator />
 
-                        {/* Labels Section */}
-                        <div className="space-y-3">
-                            <h4 className="text-sm font-medium">Labels</h4>
-                            {labelsLoading ? (
-                                <div className="text-sm text-muted-foreground py-2">Loading...</div>
-                            ) : labels.length === 0 ? (
-                                <div className="text-sm text-muted-foreground py-2">No labels available</div>
-                            ) : (
-                                <div className="flex flex-wrap gap-2">
-                                    {labels.map(label => (
-                                        <Badge
-                                            key={label.id}
-                                            variant={filters.selectedLabels.includes(label.id) ? 'default' : 'outline'}
-                                            className="cursor-pointer transition-colors"
-                                            onClick={() => toggleLabel(label.id)}
-                                        >
-                                            {label.name}
-                                            {filters.selectedLabels.includes(label.id) && (
-                                                <X className="h-3 w-3 ml-1" />
-                                            )}
-                                        </Badge>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
                     </div>
                 </ScrollArea>
 

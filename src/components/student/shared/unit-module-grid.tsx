@@ -7,6 +7,7 @@ import { LoadingSpinner } from '@/components/loading-states';
 import { EmptyState } from '@/components/ui/empty-state';
 import { UnitModuleCard, UnitModuleItem } from './unit-module-card';
 import { UnitModuleCompactCard } from './unit-module-compact-card';
+import { UnitModuleImageCard } from './unit-module-image-card';
 import { Building2, BookOpen, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -50,7 +51,7 @@ export function UnitModuleGrid({
   selectedItem = null,
   layout = 'compact' // Default to compact layout for modern design
 }: UnitModuleGridProps) {
-  
+
   // Convert API data to UnitModuleItem format
   const unitItems: UnitModuleItem[] = units.map(unit => ({
     id: unit.id,
@@ -129,11 +130,11 @@ export function UnitModuleGrid({
           <div className={cn(
             "grid gap-4 auto-rows-fr",
             layout === 'compact'
-              ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-4"
+              ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-2"
               : "grid-cols-1 lg:grid-cols-2 xl:grid-cols-3"
           )}>
             {unitItems.map((item) => {
-              const CardComponent = layout === 'compact' ? UnitModuleCompactCard : UnitModuleCard;
+              const CardComponent = layout === 'compact' ? UnitModuleImageCard : UnitModuleCard;
               return (
                 <CardComponent
                   key={`unit-${item.id}`}
@@ -161,15 +162,15 @@ export function UnitModuleGrid({
             <h3 className="text-base sm:text-lg font-semibold text-foreground">Independent Modules</h3>
             <Badge variant="secondary" className="text-xs">{independentModuleItems.length}</Badge>
           </div>
-          
+
           <div className={cn(
             "grid gap-4 auto-rows-fr",
             layout === 'compact'
-              ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-4"
+              ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-2"
               : "grid-cols-1 lg:grid-cols-2 xl:grid-cols-3"
           )}>
             {independentModuleItems.map((item) => {
-              const CardComponent = layout === 'compact' ? UnitModuleCompactCard : UnitModuleCard;
+              const CardComponent = layout === 'compact' ? UnitModuleImageCard : UnitModuleCard;
               return (
                 <CardComponent
                   key={`module-${item.id}`}

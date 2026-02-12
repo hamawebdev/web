@@ -38,19 +38,15 @@ export default function CreateExamPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto max-w-5xl px-4 sm:px-6 pb-6 sm:pb-8">
-
-
-        {/* Main Content */}
-        <Card className="border-border/50 shadow-lg">
-          <CardContent className="p-0">
-            <ExamSessionWizard
-              onCancel={() => router.push('/student/exams')}
-            />
-          </CardContent>
-        </Card>
-      </div>
+    <div className="min-h-screen bg-background p-4">
+      {/* Main Content */}
+      <Card className="border-border/50 max-w-xl mx-auto">
+        <CardContent className="p-0">
+          <ExamSessionWizard
+            onCancel={() => router.push('/student/exams')}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }

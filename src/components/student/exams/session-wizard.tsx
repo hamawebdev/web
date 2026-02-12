@@ -573,7 +573,7 @@ export function ExamSessionWizard({
 
                             <div className="grid grid-cols-1 gap-4">
                               <div className="space-y-2">
-                                <Label>Unite (All modules)</Label>
+                                <Label>Unit</Label>
                                 <SheetSelector
                                   title="Select Unit"
                                   triggerLabel="Select Unit"

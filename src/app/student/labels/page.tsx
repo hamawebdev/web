@@ -396,11 +396,7 @@ export default function LabelsPage() {
                     className="pl-10 h-10 border-border focus:border-primary/50"
                   />
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-sm px-3 py-1.5 font-medium">
-                    {filteredLabels.length} label{filteredLabels.length !== 1 ? 's' : ''} found
-                  </Badge>
-                </div>
+
               </div>
             )}
 

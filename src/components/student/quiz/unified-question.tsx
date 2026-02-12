@@ -547,7 +547,7 @@ export function UnifiedQuestion({ question, type, onOpenAIChat, onEditNote }: Pr
       {renderClinicalInfo()}
 
       {/* Question Content - Dynamically sized */}
-      <Card className="border-primary/20 bg-gradient-to-br from-card via-primary/3 to-accent/5 shadow-sm hover:shadow-md transition-all duration-200 flex-shrink-0">
+      <Card className="border-primary/20 bg-gradient-to-br from-card via-primary/3 to-accent/5 transition-all duration-200 flex-shrink-0">
         <CardContent className={cn(
           "quiz-question-container",
           isUltraCompactMode ? "px-1 py-0" : isCompactMode ? "px-1 py-0" : "px-1.5 py-0.5"
@@ -789,11 +789,11 @@ export function UnifiedQuestion({ question, type, onOpenAIChat, onEditNote }: Pr
                   <Card
                     key={option.id}
                     className={cn(
-                      "group cursor-pointer transition-all duration-200 ease-out hover:shadow-md border-2 flex-shrink-0 rounded-lg quiz-option-card",
+                      "group cursor-pointer transition-all duration-200 ease-out border-2 flex-shrink-0 rounded-lg quiz-option-card",
                       // Override default Card py-6 gap-6 with reduced spacing
                       getCardSpacing,
                       getOptionStyles(status),
-                      isSelected && !isAnswerRevealed && "ring-2 ring-primary/50 shadow-lg border-primary/40 bg-primary",
+                      isSelected && !isAnswerRevealed && "ring-2 ring-primary/50 border-primary/40 bg-primary",
                       !isSelected && !isAnswerRevealed && "hover:border-primary/30 hover:bg-primary/5",
                       isDisabled && "cursor-not-allowed opacity-75",
                       eliminatedOptions.has(option.id) && "bg-gray-200 dark:bg-gray-700"
@@ -883,11 +883,11 @@ export function UnifiedQuestion({ question, type, onOpenAIChat, onEditNote }: Pr
                     <Card
                       key={option.id}
                       className={cn(
-                        "group cursor-pointer transition-all duration-200 ease-out hover:shadow-md border-2 flex-shrink-0 rounded-lg quiz-option-card",
+                        "group cursor-pointer transition-all duration-200 ease-out border-2 flex-shrink-0 rounded-lg quiz-option-card",
                         // Override default Card py-6 gap-6 with reduced spacing
                         getCardSpacing,
                         getOptionStyles(status),
-                        isSelected && !isAnswerRevealed && "ring-2 ring-primary/50 shadow-lg border-primary/40 bg-primary",
+                        isSelected && !isAnswerRevealed && "ring-2 ring-primary/50 border-primary/40 bg-primary",
                         !isSelected && !isAnswerRevealed && "hover:border-primary/30 hover:bg-primary/5",
                         isDisabled && "cursor-not-allowed opacity-75",
                         eliminatedOptions.has(option.id) && "bg-gray-200 dark:bg-gray-700"

@@ -7,7 +7,7 @@ import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { StudentProfileDropdown } from './profile-dropdown'
 import { ThemeToggle } from '@/components/theme-toggle'
-import { Notebook } from '@solar-icons/react'
+import { HamburgerMenu } from '@solar-icons/react'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Logo } from '@/components/ui/logo'
 
@@ -57,7 +57,9 @@ export const Header = ({
             variant='ghost'
             className='h-9 w-9 rounded-lg hover:bg-muted/50 transition-colors touch-target'
             aria-label="Open navigation menu"
-          />
+          >
+            <HamburgerMenu className="h-5 w-5" />
+          </SidebarTrigger>
 
           {/* Center: Logo */}
           <div className='flex-1 flex justify-center'>

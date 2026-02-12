@@ -49,17 +49,17 @@ export const sidebarData: SidebarData = {
           icon: Widget2,
         },
         {
-          title: 'Practice',
+          title: 'Serie',
           icon: Pulse2,
           group: 'practice',
           items: [
             {
-              title: 'Create Session',
+              title: 'Create Serie',
               url: '/student/practice/create',
               icon: AddCircle,
             },
             {
-              title: 'Old Sessions',
+              title: 'Old Series',
               url: '/student/practice',
               icon: History,
             },
@@ -76,7 +76,7 @@ export const sidebarData: SidebarData = {
               icon: AddCircle,
             },
             {
-              title: 'Old Sessions',
+              title: 'Old Series',
               url: '/student/exams',
               icon: History,
             },
@@ -93,7 +93,7 @@ export const sidebarData: SidebarData = {
               icon: AddCircle,
             },
             {
-              title: 'Old Sessions',
+              title: 'Old Series',
               url: '/student/residency',
               icon: History,
             },
@@ -105,7 +105,7 @@ export const sidebarData: SidebarData = {
       title: '',
       items: [
         {
-          title: 'Course Resources',
+          title: 'Resources',
           url: '/student/course-resources',
           icon: FolderOpen,
         },

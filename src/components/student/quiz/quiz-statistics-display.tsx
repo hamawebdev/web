@@ -2,22 +2,6 @@
 'use client';
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import {
-  CheckCircle,
-  XCircle,
-  Clock,
-  Target,
-  TrendingUp,
-  BarChart3,
-  Award,
-  Circle,
-  Trophy,
-  AlertTriangle,
-  RefreshCw
-} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 
@@ -147,12 +131,6 @@ export function QuizStatisticsDisplay({
 
       {/* Circular Chart - Show when we have data */}
       {/* Chart removed as component is missing */}
-      {!showApiError && chartData && (
-        <div className="p-4 text-center border rounded-lg bg-muted/50">
-          <p className="font-semibold">Statistics Chart Unavailable</p>
-          <p className="text-sm text-muted-foreground">{statsError || 'Display component missing'}</p>
-        </div>
-      )}
 
       {/* Error Display - Show when submission failed */}
       {/* Error Display - Show when submission failed */}
@@ -163,50 +141,7 @@ export function QuizStatisticsDisplay({
         </div>
       )}
 
-      {/* Additional Details Card - Show when we have API data */}
-      {hasValidApiData && !showApiError && (
-        <Card className="border-border/50 shadow-sm">
-          <CardHeader className="text-center pb-4">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <Trophy className="h-6 w-6 text-primary" />
-              <CardTitle className="text-xl">Session Details</CardTitle>
-            </div>
-            <CardDescription>
-              Additional metrics from your session
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-center">
-              {scoreOutOf20 !== undefined && (
-                <div className="space-y-2">
-                  <div className="text-2xl font-bold text-primary">{scoreOutOf20.toFixed(1)}</div>
-                  <div className="text-sm text-muted-foreground">Score / 20</div>
-                </div>
-              )}
-              <div className="space-y-2">
-                <div className="text-2xl font-bold text-muted-foreground">{formatTime(totalTimeSpent)}</div>
-                <div className="text-sm text-muted-foreground">Time Spent</div>
-              </div>
-              {averageTimePerQuestion > 0 && (
-                <div className="space-y-2">
-                  <div className="text-2xl font-bold text-muted-foreground">{averageTimePerQuestion}s</div>
-                  <div className="text-sm text-muted-foreground">Avg per Question</div>
-                </div>
-              )}
-            </div>
-            {sessionStatus && (
-              <div className="mt-4 text-center">
-                <Badge
-                  variant={sessionStatus === 'completed' ? 'default' : 'secondary'}
-                  className="font-semibold"
-                >
-                  Status: {sessionStatus.charAt(0).toUpperCase() + sessionStatus.slice(1)}
-                </Badge>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+
 
     </div>
   );

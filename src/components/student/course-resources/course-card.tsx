@@ -1,17 +1,27 @@
 'use client'
 
-import React from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import React, { useState, useEffect } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   BookOpen,
   CheckCircle,
   Video,
   Star,
   Headphones,
-  FileArchive
+  FileText,
+  Download,
+  ExternalLink,
+  DollarSign,
+  File
 } from 'lucide-react'
+import { ContentService } from '@/lib/api-services'
+import { CourseResource } from '@/types/api'
+import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
+import { LoadingSpinner } from '@/components/loading-states'
 
 interface CourseCardProps {
   course: {
@@ -23,107 +33,186 @@ interface CourseCardProps {
       quizzesCount: number
     }
   }
-  onClick?: () => void
-  onOfficialCourse?: () => void
-  onVideoCourse?: () => void
-  onSummaryCourse?: () => void
-  // New handlers for additional resource types
-  onAudioResource?: () => void
-  onOtherResource?: () => void
 }
 
-// Resource type configuration with icons, labels, and colors
-const RESOURCE_TYPE_CONFIG = {
-  OFFICIAL_SUPPORT: {
-    icon: CheckCircle,
-    label: 'Official Support',
-    className: 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-100 border-emerald-500/30'
-  },
-  CHOICE_OF_TEAM: {
-    icon: Star,
-    label: 'Team Choice',
-    className: 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-100 border-amber-500/30'
-  },
-  VIDEO: {
-    icon: Video,
-    label: 'Video',
-    className: 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-100 border-blue-500/30'
-  },
-  AUDIO: {
-    icon: Headphones,
-    label: 'Audio',
-    className: 'bg-purple-500/20 hover:bg-purple-500/30 text-purple-100 border-purple-500/30'
-  },
-  OTHER: {
-    icon: FileArchive,
-    label: 'Other Resources',
-    className: 'bg-gray-500/20 hover:bg-gray-500/30 text-gray-100 border-gray-500/30'
+// Resource type configuration with icons and labels
+const RESOURCE_TYPES = [
+  { id: 'VIDEO', label: 'Vidéos', icon: Video },
+  { id: 'AUDIO', label: 'Audio', icon: Headphones },
+  { id: 'CHOICE_OF_TEAM', label: "Choix de l'équipe", icon: Star },
+  { id: 'OFFICIAL_SUPPORT', label: 'Support Officiel', icon: FileText },
+  { id: 'OTHER', label: 'Autres résumés', icon: File },
+] as const
+
+type ResourceType = typeof RESOURCE_TYPES[number]['id']
+
+export function CourseCard({ course }: CourseCardProps) {
+  const [activeTab, setActiveTab] = useState<ResourceType>('VIDEO')
+  const [resources, setResources] = useState<Record<ResourceType, CourseResource[]>>({
+    VIDEO: [],
+    AUDIO: [],
+    CHOICE_OF_TEAM: [],
+    OFFICIAL_SUPPORT: [],
+    OTHER: []
+  })
+  const [loading, setLoading] = useState<Record<ResourceType, boolean>>({
+    VIDEO: false,
+    AUDIO: false,
+    CHOICE_OF_TEAM: false,
+    OFFICIAL_SUPPORT: false,
+    OTHER: false
+  })
+  const [fetched, setFetched] = useState<Record<ResourceType, boolean>>({
+    VIDEO: false,
+    AUDIO: false,
+    CHOICE_OF_TEAM: false,
+    OFFICIAL_SUPPORT: false,
+    OTHER: false
+  })
+
+  const fetchResources = async (type: ResourceType) => {
+    if (fetched[type]) return
+
+    setLoading(prev => ({ ...prev, [type]: true }))
+    try {
+      const response = await ContentService.getCourseResources(course.id, {
+        page: 1,
+        limit: 100,
+        type
+      })
+
+      if (response.success && response.data) {
+        const d: any = response.data
+        const inner = d?.data?.data ?? d?.data ?? d
+        const fetchedResources = Array.isArray(inner?.resources) ? inner.resources : Array.isArray(inner) ? inner : []
+
+        // Filter by type on client side as well to ensure correctness
+        const filteredResources = Array.isArray(fetchedResources)
+          ? fetchedResources.filter((r: CourseResource) => r.type === type)
+          : []
+
+        setResources(prev => ({ ...prev, [type]: filteredResources }))
+        setFetched(prev => ({ ...prev, [type]: true }))
+      }
+    } catch (err) {
+      console.error('Failed to fetch resources', err)
+      toast.error('Failed to load resources')
+    } finally {
+      setLoading(prev => ({ ...prev, [type]: false }))
+    }
   }
-}
 
-export function CourseCard({
-  course,
-  onClick,
-  onOfficialCourse,
-  onVideoCourse,
-  onSummaryCourse,
-  onAudioResource,
-  onOtherResource
-}: CourseCardProps) {
-  const handleButtonClick = (e: React.MouseEvent, action?: () => void) => {
-    e.stopPropagation() // Prevent card click when button is clicked
-    if (action) {
-      action()
+  // Fetch resources when tab changes
+  useEffect(() => {
+    fetchResources(activeTab)
+  }, [activeTab, course.id])
+
+  const handleOpenLink = (url: string) => {
+    window.open(url, '_blank')
+  }
+
+  const handleDownloadResource = (resource: CourseResource) => {
+    if (resource.isPaid && !resource.price) {
+      toast.error('This is a paid resource. Please purchase to access.')
+      return
+    }
+
+    if (resource.filePath) {
+      const link = document.createElement('a')
+      link.href = resource.filePath
+      link.download = resource.title
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      toast.success('Download started')
+    } else {
+      toast.info('Download not available for this resource')
+    }
+  }
+
+  const handleResourceClick = (resource: CourseResource) => {
+    if (resource.externalUrl) {
+      handleOpenLink(resource.externalUrl)
+    } else if (resource.filePath) {
+      handleDownloadResource(resource)
+    } else {
+      toast.info('No link available for this resource')
     }
   }
 
   return (
-    <Card
-      className="text-card-foreground flex flex-col rounded-xl border p-4 sm:p-6 gap-4 sm:gap-6 shadow-sm hover:shadow-primary/5 duration-300 ease-out hover:-translate-y-1 relative overflow-hidden group bg-primary transition-all hover:shadow-md border-border/50 hover:border-primary/30"
-      onClick={onClick}
-    >
-      <CardHeader className="p-0">
-        <CardTitle className="flex items-center gap-2 text-base text-primary-foreground">
-          <BookOpen className="h-5 w-5 text-primary-foreground" />
+    <Card className="w-full bg-card border-border shadow-sm">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-xl font-bold flex items-center gap-2">
           {course.name}
         </CardTitle>
+        {course.description && (
+          <p className="text-sm text-muted-foreground">{course.description}</p>
+        )}
       </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="VIDEO" value={activeTab} onValueChange={(v) => setActiveTab(v as ResourceType)} className="w-full">
+          <TabsList className="w-full justify-start h-auto bg-transparent p-0 border-b rounded-none mb-4 flex-wrap">
+            {RESOURCE_TYPES.map((type) => (
+              <TabsTrigger
+                key={type.id}
+                value={type.id}
+                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none px-4 py-2 hover:text-primary transition-colors gap-2"
+              >
+                <type.icon className="h-4 w-4" />
+                {type.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-      <CardContent className="p-0 flex flex-col gap-2">
-        {/* Official Support - Green/Verified */}
-        <Button
-          variant="outline"
-          className={`w-full justify-start gap-2 ${RESOURCE_TYPE_CONFIG.OFFICIAL_SUPPORT.className}`}
-          onClick={(e) => handleButtonClick(e, onOfficialCourse)}
-        >
-          <CheckCircle className="h-4 w-4" />
-          {RESOURCE_TYPE_CONFIG.OFFICIAL_SUPPORT.label}
-        </Button>
-
-        {/* Video - Blue */}
-        <Button
-          variant="outline"
-          className={`w-full justify-start gap-2 ${RESOURCE_TYPE_CONFIG.VIDEO.className}`}
-          onClick={(e) => handleButtonClick(e, onVideoCourse)}
-        >
-          <Video className="h-4 w-4" />
-          {RESOURCE_TYPE_CONFIG.VIDEO.label}
-        </Button>
-
-        {/* Team Choice - Amber/Star */}
-        <Button
-          variant="outline"
-          className={`w-full justify-start gap-2 ${RESOURCE_TYPE_CONFIG.CHOICE_OF_TEAM.className}`}
-          onClick={(e) => handleButtonClick(e, onSummaryCourse)}
-        >
-          <Star className="h-4 w-4" />
-          {RESOURCE_TYPE_CONFIG.CHOICE_OF_TEAM.label}
-        </Button>
+          {RESOURCE_TYPES.map((type) => (
+            <TabsContent key={type.id} value={type.id} className="mt-0">
+              {loading[type.id] ? (
+                <div className="flex justify-center py-8">
+                  <LoadingSpinner size="md" />
+                </div>
+              ) : resources[type.id].length > 0 ? (
+                <div className="space-y-1">
+                  {resources[type.id].map((resource, index) => (
+                    <div
+                      key={resource.id}
+                      onClick={() => handleResourceClick(resource)}
+                      className="group flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                    >
+                      <span className="text-muted-foreground min-w-[1.5rem] pt-0.5 text-sm font-medium">
+                        {index + 1}.
+                      </span>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium text-foreground group-hover:text-primary transition-colors">
+                            {resource.title}
+                          </span>
+                          {resource.isPaid && (
+                            <Badge variant="outline" className="text-xs h-5 px-1.5 ml-2">
+                              {resource.price ? `$${resource.price}` : 'Premium'}
+                            </Badge>
+                          )}
+                        </div>
+                        {resource.description && (
+                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                            {resource.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  Aucune ressource disponible pour cette catégorie.
+                </div>
+              )}
+            </TabsContent>
+          ))}
+        </Tabs>
       </CardContent>
     </Card>
   )
 }
 
-// Export resource type config for use in other components
-export { RESOURCE_TYPE_CONFIG }
 

@@ -17,6 +17,9 @@ export interface QuizQuestion {
   difficulty?: 'easy' | 'medium' | 'hard';
   subject?: string;
   tags?: string[];
+  repetitionCount?: number;
+  repetitionYears?: number[];
+  fields?: string[];
   // Additional fields from API response
   questionType?: 'MULTIPLE_CHOICE' | 'SINGLE_CHOICE' | 'TRUE_FALSE';
   yearLevel?: string;
@@ -282,7 +285,7 @@ function quizReducer(state: QuizState, action: QuizAction): QuizState {
       const newFlags = currentFlags.includes(action.flag)
         ? currentFlags.filter(f => f !== action.flag)
         : [...currentFlags, action.flag];
-      
+
       return {
         ...state,
         session: {

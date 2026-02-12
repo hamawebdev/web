@@ -35,8 +35,11 @@ export function InlineNoteEditor({
         try {
             // Persist to API
             const payload: any = { noteText, questionId: Number(questionId) };
-            const sId = state?.apiSessionId || state?.session?.id || state?.session?.sessionId;
-            if (sId) payload.quizId = Number(sId);
+            // Only send quizId if the session has an actual Quiz reference (not the session ID).
+            // state.apiSessionId is a QuizSession ID, NOT a Quiz ID — sending it causes
+            // "Quiz with ID X not found" because the backend validates against the Quiz table.
+            const actualQuizId = state?.session?.quizId;
+            if (actualQuizId) payload.quizId = Number(actualQuizId);
 
             // Dynamic import to avoid circular dependencies
             const { StudentService } = await import('@/lib/api-services');

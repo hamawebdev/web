@@ -23,7 +23,7 @@ export const dynamic = 'force-dynamic';
  */
 
 import { useEffect, useState, useMemo, useCallback, Suspense } from 'react'
-import { Filter, DocumentText } from '@solar-icons/react'
+import { Filter, PenNewSquare } from '@solar-icons/react'
 import { LoadingSpinner } from '@/components/loading-states'
 import { useStudentAuth } from '@/hooks/use-auth'
 import { useNotesFilters } from '@/hooks/use-notes-filters'
@@ -32,23 +32,21 @@ import { StudentService } from '@/lib/api-services'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { Textarea } from '@/components/ui/textarea'
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
 import { StudentNote } from '@/types/notes'
-
-// Import new flat view components
-import { NotesList } from '@/components/student/notes/notes-list'
 import { NotesFilterSheet } from '@/components/student/notes/notes-filter-sheet'
 import { ActiveFilters } from '@/components/student/notes/active-filters'
-import { MarkdownNoteEditor } from '@/components/ui/markdown-editor'
+import { NoteDetailView } from '@/components/student/notes/note-detail-view'
+import { NotesTable } from '@/components/student/notes/notes-table'
 
 function NotesContent() {
   const { isAuthenticated, loading: authLoading } = useStudentAuth()
@@ -63,9 +61,7 @@ function NotesContent() {
 
   // Filter data for the sheet
   const [units, setUnits] = useState<{ id: number; name: string; modules?: { id: number; name: string }[] }[]>([])
-  const [labels, setLabels] = useState<{ id: number; name: string }[]>([])
   const [unitsLoading, setUnitsLoading] = useState(false)
-  const [labelsLoading, setLabelsLoading] = useState(false)
 
   // Use the notes filters hook
   const {
@@ -79,7 +75,6 @@ function NotesContent() {
 
   // Edit/Delete state for notes
   const [editing, setEditing] = useState<StudentNote | null>(null)
-  const [editText, setEditText] = useState('')
   const [localSaving, setLocalSaving] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null)
 
@@ -91,19 +86,26 @@ function NotesContent() {
 
       console.log('📝 [Notes Page] Fetching all notes...')
 
-      const response = await NewApiService.getAllStudentNotes()
+      const response = await StudentService.getNotes()
 
-      console.log('📝 [Notes Page] All notes response:', {
-        success: response.success,
-        notesCount: Array.isArray(response.data) ? response.data.length : 0,
-      })
+      console.log('📝 [Notes Page] All notes response:', response)
 
-      if (response.success && response.data) {
-        const notes = Array.isArray(response.data) ? response.data : []
-        setAllNotes(notes)
-      } else {
-        throw new Error(response.error || 'Failed to fetch notes')
+      // The canonical endpoint returns a flat array directly via res.json(result).
+      // apiClient.makeRequest returns response.data (the raw body).
+      // So `response` may be:
+      //  - A flat array [...] (canonical endpoint)
+      //  - { success: true, data: [...] } (wrapped response)
+      //  - { success: true, data: { data: [...] } } (double-wrapped)
+      let notes: StudentNote[] = []
+      if (Array.isArray(response)) {
+        notes = response
+      } else if (response?.success && response?.data) {
+        notes = Array.isArray(response.data) ? response.data : (Array.isArray(response.data?.data) ? response.data.data : [])
+      } else if (response?.data && Array.isArray(response.data)) {
+        notes = response.data
       }
+
+      setAllNotes(notes)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to load notes'
       console.error('📝 [Notes Page] fetchAllNotes error:', error)
@@ -132,22 +134,6 @@ function NotesContent() {
       console.error('Failed to fetch units:', error)
     } finally {
       setUnitsLoading(false)
-    }
-
-    // Fetch labels
-    setLabelsLoading(true)
-    try {
-      const response = await StudentService.getLabels()
-      if (response.success && response.data) {
-        const labelsData = Array.isArray(response.data.data)
-          ? response.data.data.map(l => ({ id: l.id, name: l.name }))
-          : []
-        setLabels(labelsData)
-      }
-    } catch (error) {
-      console.error('Failed to fetch labels:', error)
-    } finally {
-      setLabelsLoading(false)
     }
   }, [])
 
@@ -179,11 +165,11 @@ function NotesContent() {
     return map
   }, [units])
 
-  const labelNames = useMemo(() => {
-    const map = new Map<number, string>()
-    labels.forEach(l => map.set(l.id, l.name))
-    return map
-  }, [labels])
+  const labelNames = useMemo(() => new Map<number, string>(), [])
+
+  // View state
+  const [currentView, setCurrentView] = useState<'list' | 'detail'>('list')
+  const [selectedNote, setSelectedNote] = useState<StudentNote | null>(null)
 
   // Handlers
   const handleSearchChange = useCallback((query: string) => {
@@ -194,27 +180,32 @@ function NotesContent() {
     setFilters(prev => ({ ...prev, sortBy, sortOrder }))
   }, [setFilters])
 
-  const openEdit = (note: StudentNote) => {
-    setEditing(note)
-    setEditText(note.noteText || '')
+  const openNoteDetail = (note: StudentNote) => {
+    setSelectedNote(note)
+    setCurrentView('detail')
+    // Scroll to top when switching views
+    window.scrollTo({ top: 0, behavior: 'instant' })
   }
 
-  const saveEdit = async () => {
-    if (!editing) return
+  const closeNoteDetail = () => {
+    setSelectedNote(null)
+    setCurrentView('list')
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  }
+
+  const saveEdit = async (noteId: number, newText: string) => {
     try {
-      const next = (editText || '').trim()
-      const prev = (editing.noteText || '').trim()
-      if (next === prev) {
-        toast.info('No changes to save')
-        setEditing(null)
-        return
-      }
+      const next = (newText || '').trim()
       setLocalSaving(true)
 
-      await StudentService.updateNote(editing.id, { noteText: editText })
-      setEditing(null)
+      await StudentService.updateNote(noteId, { noteText: next })
       toast.success('Note updated successfully')
-      fetchAllNotes() // Refresh notes
+
+      // Update local state to reflect changes immediately
+      const updatedNote = { ...selectedNote, noteText: next } as StudentNote
+      setSelectedNote(updatedNote)
+
+      fetchAllNotes() // Refresh full list
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update note'
       toast.error(errorMessage)
@@ -231,6 +222,11 @@ function NotesContent() {
       await StudentService.deleteNote(deleteTarget)
       setDeleteTarget(null)
       toast.success('Note deleted successfully')
+
+      if (currentView === 'detail') {
+        closeNoteDetail()
+      }
+
       fetchAllNotes() // Refresh notes
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete note'
@@ -274,6 +270,39 @@ function NotesContent() {
     )
   }
 
+  if (currentView === 'detail' && selectedNote) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-7xl">
+          <NoteDetailView
+            note={selectedNote}
+            onBack={closeNoteDetail}
+            onSave={saveEdit}
+            onDelete={requestDelete}
+            saving={localSaving}
+          />
+        </div>
+        {/* Delete Confirmation (Available in Detail View too) */}
+        <AlertDialog open={deleteTarget != null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete this note?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete your note.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setDeleteTarget(null)}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-7xl">
@@ -282,7 +311,7 @@ function NotesContent() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div className="flex items-center gap-3 sm:gap-4">
               <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-primary flex items-center justify-center shadow-lg">
-                <DocumentText className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                <PenNewSquare className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
@@ -349,18 +378,16 @@ function NotesContent() {
           </div>
         )}
 
-        {/* Notes List */}
+        {/* Notes Table */}
         {!notesLoading && !notesError && (
-          <NotesList
+          <NotesTable
             notes={filteredNotes}
             loading={notesLoading}
-            searchQuery={filters.searchQuery}
-            onSearchChange={handleSearchChange}
+            onEdit={openNoteDetail}
+            onDelete={requestDelete}
             sortBy={filters.sortBy}
             sortOrder={filters.sortOrder}
             onSortChange={handleSortChange}
-            onEdit={openEdit}
-            onDelete={requestDelete}
           />
         )}
 
@@ -374,57 +401,8 @@ function NotesContent() {
           onClear={resetFilters}
           activeFilterCount={activeFilterCount}
           units={units}
-          labels={labels}
           unitsLoading={unitsLoading}
-          labelsLoading={labelsLoading}
         />
-
-        {/* Edit Note Dialog */}
-        <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Edit Note</DialogTitle>
-              <DialogDescription>Update your note content.</DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <MarkdownNoteEditor
-                  value={editText}
-                  onChange={setEditText}
-                  placeholder="Enter your note..."
-                />
-                <div className="text-xs text-muted-foreground">
-                  {editText.length}/5000 characters
-                </div>
-              </div>
-            </div>
-
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setEditing(null)}
-                disabled={localSaving}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={saveEdit}
-                disabled={localSaving || !editText.trim()}
-                className="min-w-20"
-              >
-                {localSaving ? (
-                  <div className="flex items-center gap-2">
-                    <LoadingSpinner size="sm" />
-                    Saving...
-                  </div>
-                ) : (
-                  'Save'
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
         {/* Delete Confirmation */}
         <AlertDialog open={deleteTarget != null} onOpenChange={(open) => !open && setDeleteTarget(null)}>

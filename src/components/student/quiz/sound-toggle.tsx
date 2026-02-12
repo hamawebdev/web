@@ -7,7 +7,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Volume2, VolumeX } from 'lucide-react';
+import { VolumeLoud, VolumeCross } from '@solar-icons/react';
 import { cn } from '@/lib/utils';
 import { useSoundManager } from '@/hooks/use-sound-manager';
 
@@ -42,7 +42,7 @@ export function SoundToggle({
     toggleMute();
   };
 
-  const Icon = isMuted ? VolumeX : Volume2;
+  const Icon = isMuted ? VolumeCross : VolumeLoud;
   const label = isMuted ? 'Unmute sounds' : 'Mute sounds';
   const buttonText = isMuted ? 'Muted' : 'Sound';
 
@@ -98,7 +98,7 @@ export function SoundToggleCompact({ className }: { className?: string }) {
     setRenderKey(prev => prev + 1);
   }, [isMuted]);
 
-  const Icon = isMuted ? VolumeX : Volume2;
+  const Icon = isMuted ? VolumeCross : VolumeLoud;
   const label = isMuted ? 'Unmute sounds' : 'Mute sounds';
 
   return (

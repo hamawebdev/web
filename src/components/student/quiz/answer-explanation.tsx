@@ -3,7 +3,8 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Lightbulb, BookOpen, Check, X, Info } from 'lucide-react';
+import { BookOpen, Check, X, Info } from 'lucide-react';
+import { LightbulbBolt } from '@solar-icons/react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw'; import { QuizQuestion, UserAnswer } from './quiz-context';
@@ -83,8 +84,8 @@ export function AnswerExplanation({ question, userAnswer }: Props) {
   return (
     <Card id="answer-explanation" className="border-primary/20 bg-primary/5 shadow-sm">
       <CardHeader className="pb-1 pt-2">
-        <CardTitle className="flex items-center gap-2 text-primary-foreground text-sm sm:text-base font-bold">
-          <Lightbulb className="h-4 w-4" />
+        <CardTitle className="flex items-center gap-2 text-primary text-sm sm:text-base font-bold">
+          <LightbulbBolt className="h-4 w-4" />
           Explanation
         </CardTitle>
       </CardHeader>

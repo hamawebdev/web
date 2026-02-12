@@ -18,6 +18,7 @@ import {
   CourseSelectSheet,
   SimpleMultiSelectDialog,
   MultiSelectDialog,
+  MultiSelectSheet,
 } from "@/components/student/practice/dialog-selectors";
 import { ChevronLeft, ChevronRight, CheckCircle2, X, CheckSquare, Square, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -494,7 +495,7 @@ export function SessionWizard({
     const firstModule = availableModules.find((m: any) => moduleIds.includes(m.value));
     const moduleName = firstModule?.label;
     const courseLabels = courseOptions.filter((c: any) => courseIds.includes(c.value)).map((c: any) => c.label.split(' (')[0]);
-    const base = courseLabels.slice(0, 2).join(', ') || moduleName || unitName || 'Practice Session';
+    const base = courseLabels.slice(0, 2).join(', ') || moduleName || unitName || 'Practice Serie';
     return base;
   }, [title, unitId, moduleIds, courseIds, availableUnits, availableModules, courseOptions]);
 
@@ -714,6 +715,7 @@ export function SessionWizard({
                       ? "Loading..."
                       : "Select year"
                   }
+                  triggerClassName="shadow-none"
                 />
               )}
 
@@ -734,6 +736,7 @@ export function SessionWizard({
                   title="Select Unit"
                   description="Choose a unit for your practice session"
                   searchPlaceholder="Search units..."
+                  className="shadow-none"
                 />
               </div>
 
@@ -761,6 +764,7 @@ export function SessionWizard({
                   disabled={!unitId || unitId === "" || contentLoading}
                   loading={contentLoading}
                   showSelectAll={unitId && unitId !== "" && availableModules.length > 0}
+                  className="shadow-none"
                 />
               </div>
 
@@ -804,6 +808,7 @@ export function SessionWizard({
                     loading={contentLoading}
                     error={contentError}
                     showSelectAll={(unitId || moduleIds.length > 0) && availableCourses.length > 0}
+                    className="shadow-none"
                   />
 
                   {/* Course Loading/Error States */}
@@ -846,6 +851,7 @@ export function SessionWizard({
                   placeholder="Select one or more types"
                   title="Select Question Types"
                   description="Choose the types of questions to include"
+                  className="shadow-none"
                 />
               </div>
 
@@ -860,7 +866,7 @@ export function SessionWizard({
                     )}
                   </Label>
                 </div>
-                <SimpleMultiSelectDialog
+                <MultiSelectSheet
                   options={(sessionFilters?.examYears || []).map((y: any) => {
                     const year = typeof y === 'object' ? y.year : y;
                     return { label: String(year), value: String(year) };
@@ -873,6 +879,9 @@ export function SessionWizard({
                   disabled={sessionFiltersLoading || !!sessionFiltersError}
                   loading={sessionFiltersLoading}
                   error={sessionFiltersError}
+                  searchPlaceholder="Search years..."
+                  emptySearchMessage="No years found"
+                  className="shadow-none"
                 />
               </div>
 
@@ -882,7 +891,7 @@ export function SessionWizard({
                     Sources
                   </Label>
                 </div>
-                <MultiSelectDialog
+                <MultiSelectSheet
                   options={(sessionFilters?.questionSources || []).map((s: any) => ({ value: String(s.id), label: s.name }))}
                   value={quizSourceIds.map(String)}
                   onChange={(vals) => setQuizSourceIds(vals.map((v) => Number(v)))}
@@ -894,6 +903,7 @@ export function SessionWizard({
                   disabled={sessionFiltersLoading || !!sessionFiltersError}
                   loading={sessionFiltersLoading}
                   error={sessionFiltersError}
+                  className="shadow-none"
                 />
               </div>
 
@@ -930,7 +940,7 @@ export function SessionWizard({
               return null;
             })()}
 
-            {/* Question count slider */}
+            {/* Question count with -/+ buttons */}
             <div className="space-y-1.5">
               <Label>Question Count</Label>
               <div className="flex items-center gap-3">
@@ -944,21 +954,43 @@ export function SessionWizard({
                     aria-valuetext={`${questionCount} questions`}
                   />
                 </div>
-                <input
-                  type="number"
-                  min={1}
-                  max={Math.max(1, totalAvailable)}
-                  value={questionCountLoading ? '' : questionCountError ? '' : questionCount}
-                  onChange={(e) => {
-                    const value = parseInt(e.target.value) || 1;
-                    const clampedValue = Math.min(Math.max(1, value), Math.max(1, totalAvailable));
-                    setQuestionCount(clampedValue);
-                  }}
-                  disabled={questionCountLoading || totalAvailable === 0 || !!questionCountError}
-                  placeholder={questionCountLoading ? '...' : questionCountError ? '—' : '1'}
-                  className="w-14 text-right text-sm border border-input bg-background px-2 py-1 rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed sm:w-16 md:w-18 lg:w-20"
-                  aria-label="Question count"
-                />
+                <div className="flex items-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-r-none h-9"
+                    onClick={() => setQuestionCount(prev => Math.max(1, prev - 1))}
+                    disabled={questionCountLoading || questionCount <= 1 || totalAvailable === 0 || !!questionCountError}
+                  >
+                    -
+                  </Button>
+                  <input
+                    type="number"
+                    min={1}
+                    max={Math.max(1, totalAvailable)}
+                    value={questionCountLoading ? '' : questionCountError ? '' : questionCount}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value) || 1;
+                      const clampedValue = Math.min(Math.max(1, value), Math.max(1, totalAvailable));
+                      setQuestionCount(clampedValue);
+                    }}
+                    disabled={questionCountLoading || totalAvailable === 0 || !!questionCountError}
+                    placeholder={questionCountLoading ? '...' : questionCountError ? '—' : '1'}
+                    className="w-14 text-center text-sm border border-input bg-background px-2 py-1 h-9 focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed sm:w-16 md:w-18 lg:w-20"
+                    aria-label="Question count"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-l-none h-9"
+                    onClick={() => setQuestionCount(prev => Math.min(totalAvailable, prev + 1))}
+                    disabled={questionCountLoading || questionCount >= totalAvailable || totalAvailable === 0 || !!questionCountError}
+                  >
+                    +
+                  </Button>
+                </div>
               </div>
               <p className="text-xs text-muted-foreground">
                 Max available: {questionCountLoading ? '...' : questionCountError ? 'Unavailable' : totalAvailable}
@@ -1009,10 +1041,10 @@ export function SessionWizard({
       {/* Header with title and stepper - matching multi-step-form.tsx style */}
       <div className="flex flex-row items-start justify-between space-y-0 px-6 py-4">
         <div className="flex flex-col gap-1">
-          <h2 className="text-xl font-semibold">Create Session</h2>
+          <h2 className="text-xl font-semibold">Create Serie</h2>
           <p className="text-sm text-muted-foreground">
-            {step === 1 && "Select units, modules, and courses for your practice session."}
-            {step === 2 && "Configure question filters and Review session settings."}
+            {step === 1 && "Select units, modules, and courses for your practice serie."}
+            {step === 2 && "Configure question filters and Review serie settings."}
           </p>
         </div>
         <div className="flex items-center gap-1.5 pt-1">
@@ -1094,7 +1126,7 @@ export function SessionWizard({
                   Creating...
                 </>
               ) : (
-                'Create Session'
+                'Create Serie'
               )}
             </Button>
           )}

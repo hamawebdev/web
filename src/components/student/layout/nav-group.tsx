@@ -82,7 +82,7 @@ const SidebarMenuLink = ({ item, href }: { item: NavLink & { disabled?: boolean 
           "relative h-9 rounded-xl transition-all duration-200 group px-3",
           "flex items-center justify-start gap-3 w-full",
           isActive
-            ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium shadow-sm'
+            ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
             : 'text-muted-foreground',
           disabled && 'opacity-50 cursor-not-allowed'
         )}

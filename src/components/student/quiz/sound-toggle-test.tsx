@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Volume2, VolumeX } from 'lucide-react';
+import { VolumeLoud, VolumeCross } from '@solar-icons/react';
 import { useSoundManager } from '@/hooks/use-sound-manager';
 
 /**
@@ -23,7 +23,7 @@ export function SoundToggleTest() {
     setRenderKey(prev => prev + 1);
   }, [isMuted]);
 
-  const Icon = isMuted ? VolumeX : Volume2;
+  const Icon = isMuted ? VolumeCross : VolumeLoud;
   const label = isMuted ? 'Unmute sounds' : 'Mute sounds';
 
   return (

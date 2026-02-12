@@ -1,24 +1,23 @@
 // @ts-nocheck
 'use client';
 
+import { PauseCircle, PlayCircle, Home } from '@solar-icons/react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Menu,
   X,
   Clock,
-  Pause,
-  Play,
   ChevronLeft,
   ChevronRight,
-  Home,
   Settings,
   Flag,
   BookOpen,
   Trophy,
   Send,
   Check,
-  X as XIcon
+  X as XIcon,
+  Play
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -498,13 +497,11 @@ export function QuizLayout() {
                   >
                     {timer.isPaused ? (
                       <>
-                        <Play className="h-3 w-3 sm:h-4 sm:w-4" />
-                        <span className="hidden sm:inline">Resume</span>
+                        <PlayCircle className="h-4 w-4 sm:h-5 sm:w-5" />
                       </>
                     ) : (
                       <>
-                        <Pause className="h-3 w-3 sm:h-4 sm:w-4" />
-                        <span className="hidden sm:inline">Pause</span>
+                        <PauseCircle className="h-4 w-4 sm:h-5 sm:w-5" />
                       </>
                     )}
                   </Button>
@@ -896,14 +893,11 @@ export function QuizLayout() {
               <div className="text-center space-y-4">
                 <div className="mx-auto w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center">
                   <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center animate-pulse-soft">
-                    <span className="text-4xl">⏸️</span>
+                    <PauseCircle size={40} className="text-primary" />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <h2 className="text-3xl font-bold tracking-tight text-foreground">Quiz Paused</h2>
-                  <p className="text-lg text-muted-foreground leading-relaxed max-w-md mx-auto">
-                    Your answers have been automatically saved. Review your progress below.
-                  </p>
                 </div>
               </div>
 
@@ -948,9 +942,6 @@ export function QuizLayout() {
                 </div>
                 <div className="space-y-2">
                   <h2 className="text-3xl font-bold tracking-tight text-foreground">Quiz Statistics</h2>
-                  <p className="text-lg text-muted-foreground leading-relaxed max-w-md mx-auto">
-                    Your answers have been automatically saved. Review your detailed progress below.
-                  </p>
                 </div>
               </div>
 

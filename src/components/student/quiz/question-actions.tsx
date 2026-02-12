@@ -11,9 +11,9 @@ import {
   AlertTriangle,
   BookOpen,
   Check,
-  Tag,
   Bot
 } from 'lucide-react';
+import { PenNewSquare, DangerCircle, Bookmark } from '@solar-icons/react';
 import { Button } from '@/components/ui/button';
 import { MarkdownNoteEditor } from '@/components/ui/markdown-editor';
 import { Card, CardContent } from '@/components/ui/card';
@@ -98,7 +98,7 @@ export function QuestionActions({ onOpenAIChat, onEditNote }: QuestionActionsPro
             className="gap-1"
             title="Ask AI Assistant"
           >
-            <img src="/chatgpt.svg" alt="ChatGPT" className="h-4 w-4" />
+            <img src="/chatgpt.png" alt="ChatGPT" className="h-4 w-4" />
             <span className="hidden sm:inline">AI</span>
           </Button>
         )}
@@ -113,8 +113,7 @@ export function QuestionActions({ onOpenAIChat, onEditNote }: QuestionActionsPro
             existingNote && "text-blue-600"
           )}
         >
-          <MessageSquare className="h-4 w-4" />
-          <span className="hidden sm:inline">Note</span>
+          <PenNewSquare className="h-5 w-5" />
         </Button>
 
 
@@ -134,7 +133,7 @@ export function QuestionActions({ onOpenAIChat, onEditNote }: QuestionActionsPro
               flags.includes('report_error') && "text-orange-600"
             )}
           >
-            <AlertTriangle className="h-4 w-4" />
+            <DangerCircle className="h-4 w-4" />
             <span className="hidden sm:inline">Report</span>
           </Button>
         </QuestionReportDialog>
@@ -143,7 +142,7 @@ export function QuestionActions({ onOpenAIChat, onEditNote }: QuestionActionsPro
         <Dialog open={showLabelDialog} onOpenChange={setShowLabelDialog}>
           <DialogTrigger asChild>
             <Button variant="ghost" size="sm" className="gap-1">
-              <Tag className="h-4 w-4" />
+              <Bookmark className="h-4 w-4" />
               <span className="hidden sm:inline">Label</span>
             </Button>
           </DialogTrigger>
