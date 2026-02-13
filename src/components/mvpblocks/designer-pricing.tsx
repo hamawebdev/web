@@ -51,12 +51,12 @@ export default function DesignerPricing() {
 
   return (
     <div className="relative min-h-full w-full bg-background font-sans text-foreground antialiased">
-      <section className="relative mr-auto ml-auto max-w-7xl pt-16 pr-4 pb-16 pl-4 sm:px-6 sm:py-24 lg:px-8">
-        <div className="mb-16 text-center sm:mb-20">
-          <h1 className="mb-6 text-4xl leading-tight font-bold tracking-tight sm:text-5xl lg:text-6xl">
+      <section className="relative mr-auto ml-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-20 lg:px-8">
+        <div className="mb-10 text-center sm:mb-16 lg:mb-20">
+          <h1 className="mb-4 text-3xl leading-tight font-bold tracking-tight sm:text-4xl lg:text-6xl">
             <span
               className={cn(
-                'text-7xl font-normal tracking-tight text-primary',
+                'text-4xl sm:text-5xl font-normal tracking-tight text-primary',
                 serif.className,
               )}
             >
@@ -65,21 +65,21 @@ export default function DesignerPricing() {
             <br />
             <span
               className={cn(
-                'text-8xl font-normal tracking-tight text-foreground',
+                'text-5xl sm:text-6xl lg:text-7xl font-normal tracking-tight text-foreground',
                 serif.className,
               )}
             >
               Academic Potential
             </span>
           </h1>
-          <p className="mr-auto ml-auto max-w-3xl text-base text-muted-foreground sm:text-lg md:text-xl">
+          <p className="mr-auto ml-auto max-w-3xl text-sm text-muted-foreground sm:text-base md:text-lg">
             Join thousands of successful students with our comprehensive preparation platforms.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-8 mb-16">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-8 mb-12 lg:mb-16">
           {/* Card A: All Years Pass */}
-          <article className="relative flex flex-col rounded-3xl border-2 border-border bg-card pt-8 pr-8 pb-8 pl-8 transition-all duration-300 hover:border-primary lg:p-10">
+          <article className="relative flex flex-col rounded-2xl border-2 border-border bg-card p-6 transition-all duration-300 hover:border-primary lg:p-10">
             <div className="mb-8 flex items-start justify-between">
               <div className="flex items-center gap-2">
                 <Star className="h-5 w-5 text-primary fill-current" />
@@ -151,7 +151,7 @@ export default function DesignerPricing() {
           </article>
 
           {/* Card B: Residency Elite */}
-          <article className="dark relative z-10 flex scale-105 flex-col rounded-3xl border-2 border-border bg-card p-8 text-foreground transition-all duration-300 lg:scale-110 lg:p-10 shadow-2xl shadow-black/20">
+          <article className="dark relative z-10 flex flex-col rounded-2xl border-2 border-border bg-card p-6 text-foreground transition-all duration-300 lg:scale-110 lg:p-10 shadow-2xl shadow-black/20">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2 transform">
               <div className="rounded-full bg-[image:var(--primary-gradient)] px-6 py-2 text-xs font-bold text-white uppercase tracking-wider shadow-lg">
                 Most Popular
@@ -171,7 +171,7 @@ export default function DesignerPricing() {
             </div>
 
             <div className="mb-8">
-              <h2 className="mb-3 text-3xl leading-tight font-medium lg:text-3xl bg-clip-text text-transparent bg-gradient-to-r from-foreground to-muted-foreground">
+              <h2 className="mb-3 text-2xl leading-tight font-medium lg:text-3xl bg-clip-text text-transparent bg-gradient-to-r from-foreground to-muted-foreground">
                 Residency Elite
               </h2>
 
@@ -230,18 +230,18 @@ export default function DesignerPricing() {
         </div>
 
         {/* FOMO Component */}
-        <div className="dark relative mx-auto max-w-5xl overflow-hidden rounded-2xl bg-background p-1 shadow-2xl">
+        <div className="dark relative mx-auto max-w-5xl overflow-hidden rounded-xl bg-background p-1 shadow-2xl lg:rounded-2xl">
           <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/50 to-primary opacity-20 animate-pulse"></div>
-          <div className="relative flex flex-col md:flex-row items-center justify-between gap-8 rounded-lg bg-card/90 backdrop-blur-sm px-6 py-10 md:px-12 border border-border shadow-xl">
-            <div className="flex flex-col gap-3 text-center md:text-left max-w-md">
+          <div className="relative flex flex-col md:flex-row items-center justify-between gap-6 rounded-lg bg-card/90 backdrop-blur-sm px-4 py-8 md:px-10 md:py-8 border border-border shadow-xl">
+            <div className="flex flex-col gap-2 text-center md:text-left max-w-md">
               <div className="flex items-center justify-center md:justify-start gap-2 text-primary">
-                <Clock className="w-5 h-5 animate-bounce" />
-                <span className="font-bold tracking-widest uppercase text-xs">Limited Time Offer</span>
+                <Clock className="w-4 h-4 animate-bounce" />
+                <span className="font-bold tracking-widest uppercase text-[10px] sm:text-xs">Limited Time Offer</span>
               </div>
-              <h3 className="text-3xl font-bold text-foreground md:text-4xl">
+              <h3 className="text-xl md:text-2xl font-bold text-foreground md:text-4xl">
                 Exclusive Launch Discount
               </h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">
+              <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">
                 Secure your premium access at these prices before the offer expires. Don't miss the chance to upgrade your career.
               </p>
             </div>
