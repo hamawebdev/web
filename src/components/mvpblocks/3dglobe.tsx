@@ -35,8 +35,8 @@ export default function Globe3D() {
             THE NEXT GENERATION OF MEDICAL EDUCATION
           </span>
           <h1 className="mx-auto mb-6 max-w-4xl text-4xl font-semibold text-foreground md:text-5xl lg:text-7xl">
-            Master Medicine with{' '}
-            <span className="text-primary">GPT5-PRO</span>
+            Master Your Medical{' '}
+            <span className="text-primary">Studies</span>
           </h1>
           <p className="mx-auto mb-10 max-w-2xl text-lg text-muted-foreground md:text-xl">
             MedADN combines the official curriculum with cutting-edge learning technology to help you achieve medical excellence with precision.

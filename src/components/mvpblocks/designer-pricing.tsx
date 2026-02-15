@@ -141,12 +141,7 @@ export default function DesignerPricing() {
                   <strong>10k+ Resources</strong> & study materials
                 </span>
               </li>
-              <li className="flex items-start gap-3">
-                <Zap className="mt-0.5 h-4 w-4 flex-shrink-0 text-yellow-500 fill-current" />
-                <span>
-                  <strong>ChatGPT Pro Integration</strong> - AI Tutor
-                </span>
-              </li>
+
             </ul>
           </article>
 
@@ -219,12 +214,7 @@ export default function DesignerPricing() {
                   <strong>Advanced Analytics</strong> & Performance Tracking
                 </span>
               </li>
-              <li className="flex items-start gap-3">
-                <Zap className="mt-0.5 h-4 w-4 flex-shrink-0 text-yellow-400 fill-current" />
-                <span className="text-foreground">
-                  <strong>Priority ChatGPT Pro</strong> - Faster responses
-                </span>
-              </li>
+
             </ul>
           </article>
         </div>

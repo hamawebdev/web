@@ -2,10 +2,7 @@ import { Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 const characteristics = [
-  {
-    title: 'AI-Powered Personal Tutor',
-    description: 'Instant, deep-dive explanations powered by ChatGPT PRO. It’s like having a professor available 24/7 to clarify complex topics on demand.',
-  },
+
   {
     title: 'Algeria\'s Largest QCM Bank',
     description: 'Access more than 150k questions from 10 universities and 10k resources. The most comprehensive preparation resource available.',
@@ -19,8 +16,8 @@ const characteristics = [
     description: 'A beautiful, distraction-free interface designed to induce "flow state". Navigation is effortless, so you can focus entirely on retaining information.',
   },
   {
-    title: 'Strategic Repetition Focus',
-    description: 'Save valuable time by practicing only the repeated questions. Master high-yield content first to maximize your score with minimal effort.',
+    title: 'Practice Only Repeated Questions',
+    description: 'Save time with practicing only repeated questions.',
   },
   {
     title: 'Official Exams',

@@ -5,7 +5,7 @@ import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import useMeasure from "react-use-measure";
 // Card components removed - component is now wrapped by parent Card
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/animate-ui/components/radix/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
@@ -907,16 +907,17 @@ export function SessionWizard({
                 />
               </div>
 
-              {/* Repetition filter checkbox */}
-              <div className="col-span-1 md:col-span-2 flex items-center space-x-2 pt-1">
-                <Checkbox
+              {/* Repetition filter switch */}
+              <div className="col-span-1 md:col-span-2 flex items-center space-x-3 pt-1">
+                <Switch
                   id="repetition-only"
                   checked={repetitionOnly}
                   onCheckedChange={(checked) => setRepetitionOnly(checked === true)}
+                  className="h-6 w-11 data-[state=checked]:bg-primary"
                 />
                 <label
                   htmlFor="repetition-only"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer select-none"
+                  className="text-sm font-bold leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer select-none"
                 >
                   Practice only repeated questions
                 </label>

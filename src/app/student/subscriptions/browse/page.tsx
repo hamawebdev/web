@@ -26,7 +26,7 @@ function BrowseSubscriptionsPageContent() {
   const [packsLoading, setPacksLoading] = useState(true);
   const [packsError, setPacksError] = useState<string | null>(null);
   const [studyPacks, setStudyPacks] = useState<any[]>([]);
-  const [pricingMode] = useState<'YEAR'>('YEAR');
+  const [pricingMode, setPricingMode] = useState<'YEAR' | 'MONTH'>('YEAR');
   const [selectedPackId, setSelectedPackId] = useState<number | null>(null);
   const [processingPackId, setProcessingPackId] = useState<number | null>(null);
 
@@ -158,7 +158,7 @@ function BrowseSubscriptionsPageContent() {
     }
 
     // Non-subscriber subscribe flow - redirect to payment page
-    const durationType = 'yearly';
+    const durationType = pricingMode === 'YEAR' ? 'yearly' : 'monthly';
     const durationValue = '1';
 
     // Direct redirection to Chargily
@@ -234,19 +234,27 @@ function BrowseSubscriptionsPageContent() {
           <div className="flex flex-col items-center gap-4">
             <div className="flex flex-col gap-3 w-full sm:w-80 lg:w-96">
               <Button
-                className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white font-semibold shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 ease-out focus:ring-2 focus:ring-primary/50 focus:ring-offset-2"
+                className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white font-semibold transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 ease-out focus:ring-2 focus:ring-primary/50 focus:ring-offset-2"
                 variant="default"
                 onClick={() => setRedeemOpen(true)}
               >
                 <Gift className="h-4 w-4 mr-2" />
                 Activation Code
               </Button>
-              <div className="flex gap-2">
+              <div className="flex bg-muted p-1 rounded-lg">
                 <Button
-                  className="flex-1"
-                  variant="default"
+                  className={`flex-1 rounded-md transition-all ${pricingMode === 'YEAR' ? 'bg-background hover:bg-background' : 'hover:bg-transparent'}`}
+                  variant={pricingMode === 'YEAR' ? 'secondary' : 'ghost'}
+                  onClick={() => setPricingMode('YEAR')}
                 >
                   Yearly
+                </Button>
+                <Button
+                  className={`flex-1 rounded-md transition-all ${pricingMode === 'MONTH' ? 'bg-background shadow-sm hover:bg-background' : 'hover:bg-transparent'}`}
+                  variant={pricingMode === 'MONTH' ? 'secondary' : 'ghost'}
+                  onClick={() => setPricingMode('MONTH')}
+                >
+                  Monthly
                 </Button>
               </div>
             </div>
@@ -289,7 +297,7 @@ function BrowseSubscriptionsPageContent() {
                 <StudyPackPricingCard
                   key={pack.id}
                   pack={pack}
-                  billingCycle="yearly"
+                  billingCycle={pricingMode === 'YEAR' ? 'yearly' : 'monthly'}
                   isSelected={selectedPackId === pack.id}
                   isDisabled={disabled}
                   isGrace={isGrace}
@@ -310,7 +318,7 @@ function BrowseSubscriptionsPageContent() {
           </p>
           <Button
             onClick={() => window.open('https://www.instagram.com/med.adn.dz/', '_blank')}
-            className="w-full sm:w-auto min-w-[200px] bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#FCB045] hover:opacity-90 text-white shadow-md hover:shadow-lg transition-all duration-300"
+            className="w-full sm:w-auto min-w-[200px] bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#FCB045] hover:opacity-90 text-white transition-all duration-300"
           >
             <Instagram className="h-4 w-4 mr-2" />
             Contact us on Instagram

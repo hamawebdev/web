@@ -3741,19 +3741,19 @@ export class AdminCourseResourcesService {
       updatedAt: string;
     }>;
   }>> {
-    return apiClient.get<{
-      studyPacks: Array<{
-        id: number;
-        name: string;
-        description: string;
-        type: 'YEAR' | 'RESIDENCY';
-        yearNumber: string | null;
-        price: number;
-        isActive: boolean;
-        createdAt: string;
-        updatedAt: string;
-      }>;
-    }>('/admin/study-packs');
+    const response = await apiClient.get<any>('/admin/study-packs');
+
+    // Handle paginated response structure directly from API
+    if ((response as any).items && Array.isArray((response as any).items)) {
+      return {
+        success: true,
+        data: {
+          studyPacks: (response as any).items
+        }
+      };
+    }
+
+    return response;
   }
 
   /**

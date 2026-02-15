@@ -146,9 +146,6 @@ export function CourseCard({ course }: CourseCardProps) {
         <CardTitle className="text-xl font-bold flex items-center gap-2">
           {course.name}
         </CardTitle>
-        {course.description && (
-          <p className="text-sm text-muted-foreground">{course.description}</p>
-        )}
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="VIDEO" value={activeTab} onValueChange={(v) => setActiveTab(v as ResourceType)} className="w-full">
