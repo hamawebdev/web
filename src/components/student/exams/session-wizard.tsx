@@ -44,7 +44,6 @@ const UNIVERSITY_ID = 1;
 
 export type ExamSessionPayload = {
   title: string;
-  unit?: string;
   module?: string;
 };
 
@@ -262,26 +261,14 @@ export function ExamSessionWizard({
   // Auto-generated title state
   const [generatedTitle, setGeneratedTitle] = useState<string>("");
 
-  const [selectedUnite, setSelectedUnite] = useState<{
-    id: number;
-    name: string;
-  } | undefined>(undefined);
-
   const [selectedModule, setSelectedModule] = useState<{
     id: number;
     name: string;
   } | undefined>(undefined);
 
-  const [uniteOptions, setUniteOptions] = useState<Array<{
-    id: number;
-    name: string;
-  }>>([]);
-
   const [moduleOptions, setModuleOptions] = useState<Array<{
     id: number;
     name: string;
-    uniteName?: string;
-    isIndependent?: boolean;
   }>>([]);
 
   // Exam session filters state
@@ -295,21 +282,7 @@ export function ExamSessionWizard({
   const [selectedYear, setSelectedYear] = useState<string | undefined>(undefined);
 
 
-  // Auto-deselection handlers
-  const handleUniteSelection = (uniteId: string) => {
-    // If empty string passed (cleared), clear selection
-    if (!uniteId) {
-      handleUniteDeselection();
-      return;
-    }
-    const unite = uniteOptions.find(u => String(u.id) === uniteId);
-    if (unite) {
-      setSelectedUnite(unite);
-      setSelectedModule(undefined);
-      resetFilters();
-    }
-  };
-
+  // Selection handlers
   const handleModuleSelection = (moduleId: string) => {
     // If empty string passed (cleared), clear selection
     if (!moduleId) {
@@ -319,14 +292,8 @@ export function ExamSessionWizard({
     const module = moduleOptions.find(m => String(m.id) === moduleId);
     if (module) {
       setSelectedModule(module);
-      setSelectedUnite(undefined);
       resetFilters();
     }
-  };
-
-  const handleUniteDeselection = () => {
-    setSelectedUnite(undefined);
-    resetFilters();
   };
 
   const handleModuleDeselection = () => {
@@ -352,27 +319,28 @@ export function ExamSessionWizard({
   const { filters: contentFilters } = useContentFilters({ yearLevel: activeYearLevel });
 
   const { filters: sessionFilters, loading: sessionFiltersLoading } = useQuizSessionFilters({
-    uniteId: selectedUnite?.id,
     moduleId: selectedModule?.id
   });
   const { subscriptions } = useUserSubscriptions();
 
-  // Build options
+  // Build module options from all available modules
   React.useEffect(() => {
     if (!contentFilters) return;
 
-    const unites = (contentFilters.unites || []).map((u: any) => ({
-      id: u.id,
-      name: u.name
-    }));
+    const modules: Array<{ id: number; name: string }> = [];
 
-    const modules = (contentFilters.independentModules || []).map((m: any) => ({
-      id: m.id,
-      name: m.name,
-      isIndependent: true
-    }));
+    // Add modules from unites
+    (contentFilters.unites || []).forEach((u: any) => {
+      (u.modules || []).forEach((m: any) => {
+        modules.push({ id: m.id, name: m.name });
+      });
+    });
 
-    setUniteOptions(unites);
+    // Add independent modules
+    (contentFilters.independentModules || []).forEach((m: any) => {
+      modules.push({ id: m.id, name: m.name });
+    });
+
     setModuleOptions(modules);
   }, [contentFilters]);
 
@@ -401,8 +369,7 @@ export function ExamSessionWizard({
   const autoGenerateTitle = useCallback(() => {
     const parts: string[] = [];
 
-    if (selectedUnite) parts.push(selectedUnite.name);
-    else if (selectedModule) parts.push(selectedModule.name);
+    if (selectedModule) parts.push(selectedModule.name);
 
     const selectedSourceObj = questionSources.find(s => String(s.id) === selectedSource);
     if (selectedSourceObj) parts.push(selectedSourceObj.name);
@@ -412,34 +379,40 @@ export function ExamSessionWizard({
     const title = parts.length > 0 ? parts.join(' - ') : '';
     setGeneratedTitle(title);
     return title;
-  }, [selectedUnite, selectedModule, questionSources, selectedSource, selectedYear]);
+  }, [selectedModule, questionSources, selectedSource, selectedYear]);
 
   useEffect(() => {
     autoGenerateTitle();
-  }, [selectedUnite, selectedModule, selectedSource, selectedYear, autoGenerateTitle]);
+  }, [selectedModule, selectedSource, selectedYear, autoGenerateTitle]);
 
   // Extraction Logic
   const extractCourseIdsFromContentFilters = useCallback((): number[] => {
-    if (!contentFilters) return [];
+    if (!contentFilters || !selectedModule) return [];
     const courseIds: number[] = [];
 
-    if (selectedUnite) {
-      const selectedUnit = contentFilters.unites?.find((u: any) => u.id === selectedUnite.id);
-      selectedUnit?.modules?.forEach((module: any) => {
-        module.courses?.forEach((course: any) => courseIds.push(course.id));
+    // Check modules within unites
+    (contentFilters.unites || []).forEach((u: any) => {
+      (u.modules || []).forEach((m: any) => {
+        if (m.id === selectedModule.id) {
+          m.courses?.forEach((course: any) => courseIds.push(course.id));
+        }
       });
-    } else if (selectedModule) {
-      const foundModule = contentFilters.independentModules?.find((module: any) => module.id === selectedModule.id);
-      foundModule?.courses?.forEach((course: any) => courseIds.push(course.id));
-    }
+    });
+
+    // Check independent modules
+    (contentFilters.independentModules || []).forEach((m: any) => {
+      if (m.id === selectedModule.id) {
+        m.courses?.forEach((course: any) => courseIds.push(course.id));
+      }
+    });
 
     return [...new Set(courseIds)];
-  }, [contentFilters, selectedUnite, selectedModule]);
+  }, [contentFilters, selectedModule]);
 
   // Actions
   const handleCreate = async () => {
-    if (!selectedUnite && !selectedModule) {
-      toast.error("Please select a Unit or Module.");
+    if (!selectedModule) {
+      toast.error("Please select a Module.");
       return;
     }
     if (!selectedSource || selectedSource === 'ALL') {
@@ -451,11 +424,11 @@ export function ExamSessionWizard({
       setLoading(true);
       const finalCourseIds = extractCourseIdsFromContentFilters();
       if (finalCourseIds.length === 0) {
-        toast.error('No courses found for the selected unit/module.');
+        toast.error('No courses found for the selected module.');
         return;
       }
 
-      const sessionTitle = generatedTitle.trim() || `${selectedUnite?.name || selectedModule?.name || 'Custom'} Exam Session`;
+      const sessionTitle = generatedTitle.trim() || `${selectedModule?.name || 'Custom'} Exam Session`;
 
       const sessionData = {
         title: sessionTitle,
@@ -500,7 +473,7 @@ export function ExamSessionWizard({
     },
   };
 
-  const hasSelection = !!selectedUnite || !!selectedModule;
+  const hasSelection = !!selectedModule;
 
   return (
     <ApiErrorBoundary>
@@ -557,7 +530,6 @@ export function ExamSessionWizard({
                                   value={selectedYearLevel as any}
                                   onChange={(yearLevel) => {
                                     setSelectedYearLevel(yearLevel);
-                                    handleUniteDeselection();
                                     handleModuleDeselection();
                                   }}
                                   loading={yearLevelLoading}
@@ -567,36 +539,15 @@ export function ExamSessionWizard({
                               </div>
                             )}
 
-                            <div className="grid grid-cols-1 gap-4">
-                              <div className="space-y-2">
-                                <Label>Unit</Label>
-                                <SheetSelector
-                                  title="Select Unit"
-                                  triggerLabel="Select Unit"
-                                  value={selectedUnite?.id}
-                                  options={uniteOptions.map(u => ({ ...u, description: "Contains all modules in unit" }))}
-                                  onSelect={handleUniteSelection}
-                                  disabled={!!selectedModule}
-                                />
-                              </div>
-
-                              <div className="relative flex items-center py-2">
-                                <div className="flex-grow border-t border-muted"></div>
-                                <span className="flex-shrink-0 mx-4 text-muted-foreground text-xs uppercase">Or</span>
-                                <div className="flex-grow border-t border-muted"></div>
-                              </div>
-
-                              <div className="space-y-2">
-                                <Label>Independent Module</Label>
-                                <SheetSelector
-                                  title="Select Independent Module"
-                                  triggerLabel="Select Independent Module"
-                                  value={selectedModule?.id}
-                                  options={moduleOptions.map(m => ({ ...m, description: "Independent module" }))}
-                                  onSelect={handleModuleSelection}
-                                  disabled={!!selectedUnite}
-                                />
-                              </div>
+                            <div className="space-y-2">
+                              <Label>Module</Label>
+                              <SheetSelector
+                                title="Select Module"
+                                triggerLabel="Select Module"
+                                value={selectedModule?.id}
+                                options={moduleOptions}
+                                onSelect={handleModuleSelection}
+                              />
                             </div>
 
                             <Separator />

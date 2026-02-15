@@ -13,7 +13,6 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import {
-  UnitSelectSheet,
   ModuleSelectSheet,
   CourseSelectSheet,
   SimpleMultiSelectDialog,
@@ -34,7 +33,6 @@ import { YearLevelSelector } from "@/components/student/shared/year-level-select
 export type PracticeSessionPayload = {
   title: string;
   program?: string;
-  unitId?: number;
   moduleId?: number;
   courseIds?: number[];
   availableCount?: number; // UI-computed available to clamp before sending
@@ -90,7 +88,6 @@ export function SessionWizard({
 
   // Step 1
   const [title, setTitle] = useState("");
-  const [unitId, setUnitId] = useState<string>("");
   const [moduleIds, setModuleIds] = useState<string[]>([]);
   const [courseIds, setCourseIds] = useState<string[]>([]);
 
@@ -122,7 +119,6 @@ export function SessionWizard({
   };
 
   const clearAllSelections = () => {
-    setUnitId("");
     setModuleIds([]);
     setCourseIds([]);
     setTypes([]);
@@ -139,131 +135,73 @@ export function SessionWizard({
     setCourseIds(selectedCourseIds);
   };
 
-  // Build options from content filters
-  const unitOptions = useMemo(() => {
-    console.log('🔍 [Practice Session Wizard] Content Filters Data:', contentFilters);
-    console.log('🔍 [Practice Session Wizard] Unites from backend:', contentFilters?.unites);
-    console.log('🔍 [Practice Session Wizard] Independent Modules from backend:', contentFilters?.independentModules);
-
-    const units = contentFilters?.unites?.map((u: any) => ({ value: String(u.id), label: u.name })) || [];
-    console.log('🔍 [Practice Session Wizard] Processed Unit Options:', units);
-
-    return units;
-  }, [contentFilters]);
-
+  // Build module options from content filters (all modules from unites + independent)
   const moduleOptions = useMemo(() => {
     const modules: any[] = [];
 
-    console.log('🔍 [Practice Session Wizard] Building module options...');
-
     // Add modules from unites
-    (contentFilters?.unites || []).forEach((u: any, uniteIndex: number) => {
-      console.log(`🔍 [Practice Session Wizard] Processing Unite ${uniteIndex + 1}:`, u);
-      console.log(`🔍 [Practice Session Wizard] Unite ${u.name} has ${u.modules?.length || 0} modules:`, u.modules);
-
-      (u.modules || []).forEach((m: any, moduleIndex: number) => {
-        console.log(`🔍 [Practice Session Wizard] Adding module ${moduleIndex + 1} from unite ${u.name}:`, m);
+    (contentFilters?.unites || []).forEach((u: any) => {
+      (u.modules || []).forEach((m: any) => {
         modules.push({
           value: String(m.id),
           label: m.name,
-          unitId: String(u.id),
-          unitName: u.name,
           description: m.description
         });
       });
     });
 
     // Add independent modules
-    (contentFilters?.independentModules || []).forEach((m: any, moduleIndex: number) => {
-      console.log(`🔍 [Practice Session Wizard] Adding independent module ${moduleIndex + 1}:`, m);
+    (contentFilters?.independentModules || []).forEach((m: any) => {
       modules.push({
         value: String(m.id),
-        label: `${m.name} (Independent)`,
-        unitId: null,
-        unitName: null,
+        label: m.name,
         description: m.description,
-        isIndependent: true
       });
     });
-
-    console.log('🔍 [Practice Session Wizard] Final Module Options:', modules);
-    console.log('🔍 [Practice Session Wizard] Total modules found:', modules.length);
 
     return modules;
   }, [contentFilters]);
 
-  // Extract courses from content filters based on selected modules or unit
+  // Extract courses from content filters based on selected modules
   const courseOptions = useMemo(() => {
-    if (!contentFilters) return [];
+    if (!contentFilters || moduleIds.length === 0) return [];
 
     const courses: any[] = [];
 
-    console.log('🔍 [Practice Session Wizard] Extracting courses from content filters...');
-
-    // If a unit is selected, get all courses from that unit's modules
-    if (unitId && unitId !== "") {
-      const selectedUnit = contentFilters.unites?.find((u: any) => String(u.id) === unitId);
-      if (selectedUnit) {
-        console.log(`🔍 [Practice Session Wizard] Found selected unit: ${selectedUnit.name}`);
-        (selectedUnit.modules || []).forEach((module: any) => {
-          console.log(`🔍 [Practice Session Wizard] Processing module: ${module.name} with ${module.courses?.length || 0} courses`);
-          (module.courses || []).forEach((course: any) => {
-            courses.push({
-              value: String(course.id),
-              label: course.name,
-              description: course.description,
-              moduleId: String(module.id),
-              unitId: unitId,
-              questionCount: 0 // Will be updated via question count API
-            });
-          });
-        });
-      }
-    }
-    // If specific modules are selected, get courses from those modules
-    else if (moduleIds.length > 0) {
-      console.log(`🔍 [Practice Session Wizard] Processing ${moduleIds.length} selected modules`);
-
-      // Check modules within units
-      (contentFilters.unites || []).forEach((unit: any) => {
-        (unit.modules || []).forEach((module: any) => {
-          if (moduleIds.includes(String(module.id))) {
-            console.log(`🔍 [Practice Session Wizard] Found selected module in unit: ${module.name}`);
-            (module.courses || []).forEach((course: any) => {
-              courses.push({
-                value: String(course.id),
-                label: course.name,
-                description: course.description,
-                moduleId: String(module.id),
-                unitId: String(unit.id),
-                questionCount: 0 // Will be updated via question count API
-              });
-            });
-          }
-        });
-      });
-
-      // Check independent modules
-      (contentFilters.independentModules || []).forEach((module: any) => {
+    // Check modules within unites
+    (contentFilters.unites || []).forEach((unit: any) => {
+      (unit.modules || []).forEach((module: any) => {
         if (moduleIds.includes(String(module.id))) {
-          console.log(`🔍 [Practice Session Wizard] Found selected independent module: ${module.name}`);
           (module.courses || []).forEach((course: any) => {
             courses.push({
               value: String(course.id),
               label: course.name,
               description: course.description,
               moduleId: String(module.id),
-              unitId: null, // Independent modules don't belong to a unit
-              questionCount: 0 // Will be updated via question count API
+              questionCount: 0
             });
           });
         }
       });
-    }
+    });
 
-    console.log(`🔍 [Practice Session Wizard] Total courses extracted: ${courses.length}`);
+    // Check independent modules
+    (contentFilters.independentModules || []).forEach((module: any) => {
+      if (moduleIds.includes(String(module.id))) {
+        (module.courses || []).forEach((course: any) => {
+          courses.push({
+            value: String(course.id),
+            label: course.name,
+            description: course.description,
+            moduleId: String(module.id),
+            questionCount: 0
+          });
+        });
+      }
+    });
+
     return courses;
-  }, [contentFilters, unitId, moduleIds]);
+  }, [contentFilters, moduleIds]);
 
   // Auto-generate title based on course selection with randomness
   const generateAlphabeticTitle = (): string => {
@@ -320,18 +258,8 @@ export function SessionWizard({
     setTitle(autoTitle);
   }, [courseIds]);
 
-  // Filter options by current selections
-  const availableUnits = unitOptions;
-  const availableModules = useMemo(() => {
-    // When a unit is selected, show only modules from that unit
-    if (unitId && unitId !== "") {
-      return moduleOptions.filter((m: any) => m.unitId === unitId);
-    }
-    // When no unit is selected, show only independent modules
-    else {
-      return moduleOptions.filter((m: any) => m.isIndependent === true);
-    }
-  }, [moduleOptions, unitId]);
+  // All modules are directly available
+  const availableModules = moduleOptions;
 
   const availableCourses = useMemo(() => {
     // If we're loading content filters or have an error, return empty array
@@ -339,31 +267,8 @@ export function SessionWizard({
       return [];
     }
 
-    // If a unit is selected AND specific modules are also selected,
-    // filter courses by those modules only
-    if (unitId && unitId !== "" && moduleIds.length > 0) {
-      const selectedModules = new Set(moduleIds);
-      return courseOptions.filter((c: any) =>
-        c.moduleId && selectedModules.has(c.moduleId)
-      );
-    }
-
-    // If only a unit is selected (no modules), show all courses from that unit
-    if (unitId && unitId !== "") {
-      return courseOptions;
-    }
-
-    // If modules are selected (without a unit), filter courses by those modules
-    if (moduleIds.length > 0) {
-      const selectedModules = new Set(moduleIds);
-      return courseOptions.filter((c: any) =>
-        !c.moduleId || selectedModules.has(c.moduleId)
-      );
-    }
-
-    // No selection, no courses available
-    return [];
-  }, [courseOptions, unitId, moduleIds, contentLoading, contentError]);
+    return courseOptions;
+  }, [courseOptions, contentLoading, contentError]);
 
   // Handle removing individual courses
   const removeCourse = (courseIdToRemove: string) => {
@@ -382,53 +287,32 @@ export function SessionWizard({
 
   const areAllCoursesSelected = availableCourses.length > 0 && courseIds.length === availableCourses.length;
 
-  // Helper function to extract course IDs from content filters based on selections
+  // Helper function to extract course IDs from content filters based on module selections
   const extractCourseIdsFromContentFilters = (): number[] => {
-    if (!contentFilters) return [];
+    if (!contentFilters || moduleIds.length === 0) return [];
 
     const courseIds: number[] = [];
+    const selectedModuleIds = moduleIds.map(Number);
 
-    // If a unit is selected, collect all course IDs from that unit's modules
-    if (unitId && unitId !== "") {
-      const selectedUnit = contentFilters.unites?.find((u: any) => u.id === Number(unitId));
-      if (selectedUnit?.modules) {
-        selectedUnit.modules.forEach((module: any) => {
-          if (module.courses) {
-            module.courses.forEach((course: any) => {
-              courseIds.push(course.id);
-            });
-          }
-        });
-      }
-    }
-    // If specific modules are selected, collect course IDs from those modules
-    else if (moduleIds.length > 0) {
-      const selectedModuleIds = moduleIds.map(Number);
-
-      // Check modules within unites
-      contentFilters.unites?.forEach((unite: any) => {
-        unite.modules?.forEach((module: any) => {
-          if (selectedModuleIds.includes(module.id) && module.courses) {
-            module.courses.forEach((course: any) => {
-              courseIds.push(course.id);
-            });
-          }
-        });
-      });
-
-      // Check independent modules
-      contentFilters.independentModules?.forEach((module: any) => {
+    // Check modules within unites
+    contentFilters.unites?.forEach((unite: any) => {
+      unite.modules?.forEach((module: any) => {
         if (selectedModuleIds.includes(module.id) && module.courses) {
           module.courses.forEach((course: any) => {
             courseIds.push(course.id);
           });
         }
       });
-    }
-    // If specific courses are selected, use those
-    else if (courseIds.length > 0) {
-      return courseIds.map(Number);
-    }
+    });
+
+    // Check independent modules
+    contentFilters.independentModules?.forEach((module: any) => {
+      if (selectedModuleIds.includes(module.id) && module.courses) {
+        module.courses.forEach((course: any) => {
+          courseIds.push(course.id);
+        });
+      }
+    });
 
     return [...new Set(courseIds)]; // Remove duplicates
   };
@@ -437,12 +321,12 @@ export function SessionWizard({
   const selectAllModules = () => {
     const allModuleIds = availableModules.map((m: any) => m.value);
     setModuleIds(allModuleIds);
-    setCourseIds([]); // Clear courses when modules change
+    setCourseIds([]);
   };
 
   const deselectAllModules = () => {
     setModuleIds([]);
-    setCourseIds([]); // Clear courses when modules change
+    setCourseIds([]);
   };
 
   const areAllModulesSelected = availableModules.length > 0 && moduleIds.length === availableModules.length;
@@ -491,13 +375,12 @@ export function SessionWizard({
   // Title suggestion from API/context (fallback): build from selections when empty
   const suggestedTitle = useMemo(() => {
     if (title.trim()) return title;
-    const unitName = availableUnits.find((u: any) => u.value === unitId)?.label;
     const firstModule = availableModules.find((m: any) => moduleIds.includes(m.value));
     const moduleName = firstModule?.label;
     const courseLabels = courseOptions.filter((c: any) => courseIds.includes(c.value)).map((c: any) => c.label.split(' (')[0]);
-    const base = courseLabels.slice(0, 2).join(', ') || moduleName || unitName || 'Practice Serie';
+    const base = courseLabels.slice(0, 2).join(', ') || moduleName || 'Practice Serie';
     return base;
-  }, [title, unitId, moduleIds, courseIds, availableUnits, availableModules, courseOptions]);
+  }, [title, moduleIds, courseIds, availableModules, courseOptions]);
 
   // Compute allowed yearLevels from subscriptions
   const allowedYearLevels = useMemo(() => {
@@ -510,9 +393,9 @@ export function SessionWizard({
     if (courseIds.length > 0) {
       return courseIds.map(Number);
     }
-    // Otherwise, extract course IDs from unit/module selections
+    // Otherwise, extract course IDs from module selections
     return extractCourseIdsFromContentFilters();
-  }, [courseIds, unitId, moduleIds, contentFilters]);
+  }, [courseIds, moduleIds, contentFilters]);
 
   const mappedTypes = useMemo(() => types.map(t => {
     const upper = t.toUpperCase();
@@ -523,23 +406,10 @@ export function SessionWizard({
 
   // Validate if all required filters are present for practice sessions
   const areRequiredFiltersComplete = useMemo(() => {
-    // For practice sessions, the minimum requirement is having courses selected
     const hasCourses = selectedCourseIdsNum.length > 0;
-
-    // Additional validation: ensure we have a valid unit or module selection
-    const hasValidSelection = (unitId && unitId !== "") || moduleIds.length > 0;
-
-    console.log('🔍 [Practice Session Wizard] Filter validation:', {
-      hasCourses,
-      hasValidSelection,
-      courseCount: selectedCourseIdsNum.length,
-      unitId,
-      moduleCount: moduleIds.length,
-      isComplete: hasCourses && hasValidSelection
-    });
-
+    const hasValidSelection = moduleIds.length > 0;
     return hasCourses && hasValidSelection;
-  }, [selectedCourseIdsNum, unitId, moduleIds]);
+  }, [selectedCourseIdsNum, moduleIds]);
 
   const filtersForCounts = useMemo(() => ({
     courseIds: selectedCourseIdsNum,
@@ -614,7 +484,7 @@ export function SessionWizard({
   }, [totalAvailable]);
 
   // Step 1 validation: requires title and unit/module selection
-  const step1Valid = !!title && ((unitId && unitId !== "") || moduleIds.length > 0);
+  const step1Valid = !!title && moduleIds.length > 0;
   const step2Valid = totalAvailable > 0 && questionCount > 0 && questionCount <= totalAvailable && !questionCountError;
 
   const canNext = useMemo(() => {
@@ -657,8 +527,6 @@ export function SessionWizard({
     onCreate({
       title: finalTitle,
       program: program.trim() || undefined,
-      unitId: unitId && unitId !== "" ? Number(unitId) : undefined,
-      // expose moduleIds for multi-select
       ...(moduleIds.length ? { moduleIds: moduleIds.map(Number) } : {} as any),
       courseIds: finalCourseIds, // Use extracted course IDs
       availableCount: totalAvailable,
@@ -704,7 +572,6 @@ export function SessionWizard({
                   onChange={(yearLevel) => {
                     setSelectedYearLevel(yearLevel);
                     // Reset selections when year level changes
-                    setUnitId("");
                     setModuleIds([]);
                     setCourseIds([]);
                   }}
@@ -718,27 +585,6 @@ export function SessionWizard({
                   triggerClassName="shadow-none"
                 />
               )}
-
-              {/* Unit Selection */}
-              <div className="space-y-2">
-                <Label>Unit</Label>
-                <UnitSelectSheet
-                  value={unitId}
-                  onChange={(v) => {
-                    setUnitId(v);
-                    setModuleIds([]);
-                    setCourseIds([]);
-                  }}
-                  options={availableUnits}
-                  placeholder={contentLoading ? "Loading units..." : "Select unit"}
-                  loading={contentLoading}
-                  error={contentError}
-                  title="Select Unit"
-                  description="Choose a unit for your practice session"
-                  searchPlaceholder="Search units..."
-                  className="shadow-none"
-                />
-              </div>
 
               {/* Modules Selection */}
               <div className="space-y-2">
@@ -756,14 +602,14 @@ export function SessionWizard({
                   options={availableModules}
                   value={moduleIds}
                   onChange={(vals) => { setModuleIds(vals); setCourseIds([]); }}
-                  placeholder={!unitId || unitId === "" ? "Select unit first" : (contentLoading ? "Loading modules..." : "Select modules")}
+                  placeholder={contentLoading ? "Loading modules..." : "Select modules"}
                   title="Select Modules"
-                  description={!unitId || unitId === "" ? "Please select a unit first" : "Choose modules to include in your practice session"}
+                  description="Choose modules to include in your practice session"
                   searchPlaceholder="Search modules..."
                   emptySearchMessage="No modules found"
-                  disabled={!unitId || unitId === "" || contentLoading}
+                  disabled={contentLoading}
                   loading={contentLoading}
-                  showSelectAll={unitId && unitId !== "" && availableModules.length > 0}
+                  showSelectAll={availableModules.length > 0}
                   className="shadow-none"
                 />
               </div>
@@ -786,8 +632,8 @@ export function SessionWizard({
                     value={courseIds}
                     onChange={handleCourseSelection}
                     placeholder={
-                      !unitId && !moduleIds.length
-                        ? "Select unit or modules first"
+                      !moduleIds.length
+                        ? "Select modules first"
                         : contentLoading
                           ? "Loading courses..."
                           : contentError
@@ -798,16 +644,16 @@ export function SessionWizard({
                     }
                     title="Select Courses"
                     description={
-                      !unitId && !moduleIds.length
-                        ? "Please select a unit or modules first"
+                      !moduleIds.length
+                        ? "Please select modules first"
                         : "Choose courses to include in your practice session"
                     }
                     searchPlaceholder="Search courses..."
                     emptySearchMessage="No courses found"
-                    disabled={(!unitId && !moduleIds.length) || contentLoading}
+                    disabled={!moduleIds.length || contentLoading}
                     loading={contentLoading}
                     error={contentError}
-                    showSelectAll={(unitId || moduleIds.length > 0) && availableCourses.length > 0}
+                    showSelectAll={moduleIds.length > 0 && availableCourses.length > 0}
                     className="shadow-none"
                   />
 
@@ -1044,7 +890,7 @@ export function SessionWizard({
         <div className="flex flex-col gap-1">
           <h2 className="text-xl font-semibold">Create Serie</h2>
           <p className="text-sm text-muted-foreground">
-            {step === 1 && "Select units, modules, and courses for your practice serie."}
+            {step === 1 && "Select modules and courses for your practice serie."}
             {step === 2 && "Configure question filters and Review serie settings."}
           </p>
         </div>
