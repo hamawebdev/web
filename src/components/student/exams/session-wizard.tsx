@@ -428,7 +428,7 @@ export function ExamSessionWizard({
         return;
       }
 
-      const sessionTitle = generatedTitle.trim() || `${selectedModule?.name || 'Custom'} Exam Session`;
+      const sessionTitle = (generatedTitle.trim() || `${selectedModule?.name || 'Custom'} Exam Session`).slice(0, 100);
 
       const sessionData = {
         title: sessionTitle,

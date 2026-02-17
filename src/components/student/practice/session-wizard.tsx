@@ -494,7 +494,7 @@ export function SessionWizard({
   }, [step, step1Valid, step2Valid, contentLoading, contentError, questionCountLoading, questionCountError, sessionFiltersLoading, sessionFiltersError, courseIds.length]);
 
   const handleCreate = () => {
-    const finalTitle = (title.trim() || suggestedTitle || 'Practice Session').slice(0, 200);
+    const finalTitle = (title.trim() || suggestedTitle || 'Practice Session').slice(0, 100);
     if (finalTitle.length < 3) return; // enforce min 3 chars
 
     // Extract course IDs based on current selections
