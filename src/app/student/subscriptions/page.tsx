@@ -6,12 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import {
-  CheckCircle,
-  AlertCircle,
-  Crown,
-  Gift
-} from 'lucide-react';
+import { CheckCircle, AlertCircle, Crown, Gift } from 'lucide-react';
+import { DollarMinimalistic } from '@solar-icons/react';
 import { StudentService } from '@/lib/api-services';
 import { useRouter } from 'next/navigation';
 import type { UserSubscription } from '@/types/api';
@@ -93,7 +89,10 @@ export default function SubscriptionsPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-bold tracking-tight">My Subscriptions</h1>
+            <h1 className="text-4xl font-bold tracking-tight flex items-center gap-3">
+              <DollarMinimalistic className="h-10 w-10" />
+              My Subscriptions
+            </h1>
           </div>
           
           <div className="flex items-center gap-2">

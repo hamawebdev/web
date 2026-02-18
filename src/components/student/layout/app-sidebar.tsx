@@ -72,11 +72,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           const url: string | undefined = item.url;
           const isSubscriptionPage = url?.startsWith('/student/subscriptions');
           const isSettingsPage = url === '/student/settings';
-          
+
           if (url && !isSubscriptionPage && !isSettingsPage) {
             return { ...item, disabled: true };
           }
-          
+
           // Also check sub-items for collapsible items
           if (item.items && Array.isArray(item.items)) {
             return {
@@ -122,10 +122,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent className='px-0 py-3 group-data-[collapsible=icon]:px-0'>
         {computedNavGroups.map((group, index) => (
-          <NavGroup 
-            key={index} 
-            title={group.title} 
-            items={group.items} 
+          <NavGroup
+            key={index}
+            title={group.title}
+            items={group.items}
           />
         ))}
       </SidebarContent>

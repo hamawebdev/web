@@ -9,6 +9,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw'; import { QuizQuestion, UserAnswer } from './quiz-context';
 import { ImageGallery } from './image-gallery';
+import { resolveImagePath } from '@/lib/image-loader';
 
 interface Props {
   question: QuizQuestion;
@@ -28,14 +29,14 @@ export function AnswerExplanation({ question, userAnswer }: Props) {
         // If image is just a URL string
         return {
           id: index + 1,
-          imagePath: img,
+          imagePath: resolveImagePath(img),
           altText: `Explanation Image ${index + 1}`
         };
       } else if (img && typeof img === 'object') {
         // If image is an object with properties
         return {
           id: img.id || index + 1,
-          imagePath: img.imagePath || img.url || img.src || '',
+          imagePath: resolveImagePath(img.imagePath || img.url || img.src || ''),
           altText: img.altText || img.alt || img.description || `Explanation Image ${index + 1}`
         };
       }

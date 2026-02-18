@@ -2,7 +2,7 @@
 'use client';
 
 import React from 'react';
-import { AddCircle } from '@solar-icons/react';
+import { AddCircle, FileText } from '@solar-icons/react';
 import { Button } from '@/components/ui/button';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { FullPageLoading } from '@/components/loading-states';
@@ -40,10 +40,7 @@ export default function PracticePage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="relative">
-                  <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-primary animate-pulse-soft"></div>
-                  <div className="absolute inset-0 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-primary/30 animate-ping"></div>
-                </div>
+                <FileText className="w-5 h-5 text-primary" />
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold practice-history-gradient-text">
                   Practice History
                 </h1>

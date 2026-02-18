@@ -24,12 +24,30 @@ export function customImageLoader({ src, width, quality }: ImageLoaderProps): st
  */
 export function isApiMediaUrl(src: string): boolean {
   if (!src) return false;
-  return src.includes('/api/v1/media/') || 
-         src.includes('/api/media/') || 
-         src.includes('explanations/') ||
-         src.includes('questions/') ||
-         src.includes('images/') ||
-         src.includes('logos/');
+  return src.includes('/api/v1/media/') ||
+    src.includes('/api/media/') ||
+    src.includes('explanations/') ||
+    src.includes('questions/') ||
+    src.includes('images/') ||
+    src.includes('logos/');
+}
+
+/**
+ * Resolve an image path from the database to a valid API URL.
+ * Converts /uploads/<fileType>/<filename> → /api/v1/media/<fileType>/<filename>
+ * because the backend does not serve static files at /uploads/* — 
+ * it only serves them through the /api/v1/media/:fileType/:filename route.
+ */
+export function resolveImagePath(imagePath: string): string {
+  if (!imagePath) return imagePath;
+  // Already a full URL or an API path — leave as-is
+  if (imagePath.startsWith('http') || imagePath.startsWith('/api/')) return imagePath;
+  // Convert /uploads/<type>/<file> → /api/v1/media/<type>/<file>
+  const uploadsMatch = imagePath.match(/^\/uploads\/([^/]+)\/(.+)$/);
+  if (uploadsMatch) {
+    return `/api/v1/media/${uploadsMatch[1]}/${uploadsMatch[2]}`;
+  }
+  return imagePath;
 }
 
 /**
@@ -38,12 +56,12 @@ export function isApiMediaUrl(src: string): boolean {
  */
 export function getFullMediaUrl(src: string): string {
   if (!src) return src;
-  
+
   // If already a full URL, return as-is
   if (src.startsWith('http://') || src.startsWith('https://')) {
     return src;
   }
-  
+
   // If it's a relative API path, make it absolute
   if (src.startsWith('/api/')) {
     // In production, use the current domain
@@ -53,7 +71,7 @@ export function getFullMediaUrl(src: string): string {
     // On server side, return relative path
     return src;
   }
-  
+
   return src;
 }
 

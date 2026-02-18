@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, BookOpen, Layers, ArrowLeft } from 'lucide-react'
-import { FolderWithFiles, SquareAcademicCap2 } from '@solar-icons/react'
+import { FolderWithFiles, SquareAcademicCap2, CursorSquare } from '@solar-icons/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
@@ -345,7 +345,7 @@ export default function CourseResourcesPage() {
           {navigation.level === 'units' && (
             <div className="space-y-6">
               <div className="flex items-center gap-2">
-                <SquareAcademicCap2 className="h-5 w-5" />
+                <CursorSquare className="h-5 w-5" />
                 <h3 className="text-lg font-semibold">Select a Unit or Module</h3>
               </div>
 

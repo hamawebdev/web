@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CorsSafeImage } from '@/components/ui/cors-safe-image';
+import { resolveImagePath } from '@/lib/image-loader';
 
 import {
   Select,
@@ -196,7 +197,7 @@ export function FullScreenImageViewer({
 
     const deltaX = touchStart.x - touchEnd.x;
     const deltaY = Math.abs(touchStart.y - touchEnd.y);
-    
+
     // Only trigger swipe if horizontal movement is greater than vertical
     if (Math.abs(deltaX) > deltaY && Math.abs(deltaX) > 50) {
       if (deltaX > 0 && currentIndex < images.length - 1) {
@@ -269,7 +270,7 @@ export function FullScreenImageViewer({
       {/* Header Controls */}
       <div className="absolute top-0 left-0 right-0 z-10 bg-black/50 backdrop-blur-md border-b border-white/10">
         <div className="flex items-center justify-between p-3 md:p-4">
-          
+
           <div className="flex items-center gap-1 md:gap-2">
             {/* Zoom Controls */}
             <Button
@@ -283,7 +284,7 @@ export function FullScreenImageViewer({
             >
               <ZoomOut className="h-3 w-3 md:h-4 md:w-4" />
             </Button>
-            
+
             <Select value={zoomValue} onValueChange={handleZoomChange}>
               <SelectTrigger
                 className="w-[80px] md:w-[100px] h-8 md:h-9 text-xs md:text-sm bg-white/20 text-white border-white/30"
@@ -300,7 +301,7 @@ export function FullScreenImageViewer({
                 ))}
               </SelectContent>
             </Select>
-            
+
             <Button
               variant="ghost"
               size="sm"
@@ -339,7 +340,7 @@ export function FullScreenImageViewer({
       </div>
 
       {/* Image Container */}
-      <div 
+      <div
         ref={containerRef}
         className="absolute inset-0 pt-14 md:pt-16 overflow-hidden"
         onMouseDown={handleMouseDown}
@@ -372,7 +373,7 @@ export function FullScreenImageViewer({
               )}
               <div className="relative w-full h-full flex items-center justify-center">
                 <img
-                  src={image.imagePath}
+                  src={resolveImagePath(image.imagePath)}
                   alt={image.altText || `Image ${currentIndex + 1}`}
                   className="max-w-full max-h-full object-contain"
                   onError={handleImageError}

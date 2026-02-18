@@ -154,15 +154,6 @@ export function UnitModuleGrid({
       {/* Independent Modules Section */}
       {independentModuleItems.length > 0 && (
         <div className="space-y-4">
-          <div className="flex items-center gap-2 flex-wrap">
-            <BookOpen className={cn(
-              "h-5 w-5 flex-shrink-0",
-              variant === 'practice' ? "text-chart-1" : "text-chart-3"
-            )} />
-            <h3 className="text-base sm:text-lg font-semibold text-foreground">Independent Modules</h3>
-            <Badge variant="secondary" className="text-xs">{independentModuleItems.length}</Badge>
-          </div>
-
           <div className={cn(
             "grid gap-4 auto-rows-fr",
             layout === 'compact'

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { HeartPulse } from "@solar-icons/react";
 
 export default function CTA2() {
   return (
@@ -16,7 +17,7 @@ export default function CTA2() {
 
       <div className="relative z-10">
         <h1 className="mb-3 text-3xl font-bold text-primary-foreground sm:text-4xl md:mb-4 md:text-5xl">
-         Welcome back ❤️
+          Welcome back <HeartPulse className="inline-block h-8 w-8 align-middle" />
         </h1>
        
 

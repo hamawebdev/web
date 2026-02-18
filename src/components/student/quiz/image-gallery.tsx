@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CorsSafeImage } from '@/components/ui/cors-safe-image';
+import { resolveImagePath } from '@/lib/image-loader';
 
 import { FullScreenImageViewer } from '@/components/ui/full-screen-image-viewer';
 
@@ -96,13 +97,13 @@ export function ImageGallery({
   }, []);
 
   const nextImage = useCallback(() => {
-    setSelectedImageIndex(prev => 
+    setSelectedImageIndex(prev =>
       prev !== null && prev < images.length - 1 ? prev + 1 : prev
     );
   }, [images.length]);
 
   const previousImage = useCallback(() => {
-    setSelectedImageIndex(prev => 
+    setSelectedImageIndex(prev =>
       prev !== null && prev > 0 ? prev - 1 : prev
     );
   }, []);
@@ -142,7 +143,7 @@ export function ImageGallery({
         )}>
           {images.filter(image => image.imagePath && image.imagePath.trim().length > 0).map((image, index) => {
             const hasError = imageErrors.has(image.id);
-            
+
             console.log(`[ImageGallery] Rendering image ${image.id}:`, {
               hasError,
               imagePath: image.imagePath
@@ -172,7 +173,7 @@ export function ImageGallery({
                     ) : (
                       <>
                         <img
-                          src={image.imagePath}
+                          src={resolveImagePath(image.imagePath)}
                           alt={image.altText || `Image ${index + 1}`}
                           className="max-w-full max-h-full object-contain rounded"
                           onError={(e) => handleImageError(image.id, image.imagePath, e)}

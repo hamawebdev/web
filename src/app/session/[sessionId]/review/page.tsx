@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ImageGallery } from '@/components/student/quiz/image-gallery';
+import { resolveImagePath } from '@/lib/image-loader';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -169,7 +170,7 @@ export default function SessionReviewPage() {
                         <ImageGallery
                           images={question.questionImages.map((img: any, idx: number) => ({
                             id: img.id || idx,
-                            imagePath: img.imagePath || img.url,
+                            imagePath: resolveImagePath(img.imagePath || img.url),
                             altText: img.altText || `Question image ${idx + 1}`
                           }))}
                           title="Question Images"
@@ -282,7 +283,7 @@ export default function SessionReviewPage() {
                         <ImageGallery
                           images={question.questionExplanationImages.map((img: any, idx: number) => ({
                             id: img.id || idx,
-                            imagePath: img.imagePath || img.url,
+                            imagePath: resolveImagePath(img.imagePath || img.url),
                             altText: img.altText || `Explanation image ${idx + 1}`
                           }))}
                           title="Explanation Images"
@@ -307,7 +308,7 @@ export default function SessionReviewPage() {
                               <ImageGallery
                                 images={answer.explanationImages.map((img: any, idx: number) => ({
                                   id: img.id || idx,
-                                  imagePath: img.imagePath || img.url,
+                                  imagePath: resolveImagePath(img.imagePath || img.url),
                                   altText: img.altText || `Answer explanation image ${idx + 1}`
                                 }))}
                                 title={`Answer Explanation Images for: "${answer.answerText || answer.text}"`}

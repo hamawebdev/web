@@ -119,13 +119,6 @@ export function QuestionMetadata({ question, className = '' }: QuestionMetadataP
           </Badge>
         )}
 
-        {/* Year Level */}
-        {question.yearLevel && (
-          <Badge variant="secondary" className="quiz-session-badge h-6 px-2 sm:px-2.5 text-xs font-semibold whitespace-nowrap border-0 bg-primary/10 text-primary hover:bg-primary/15">
-            <span>Year {question.yearLevel}</span>
-          </Badge>
-        )}
-
         {/* Fields */}
         {question.fields && question.fields.length > 0 && (
           <Badge variant="secondary" className="quiz-session-badge h-6 px-2 sm:px-2.5 text-xs font-semibold border-0 bg-primary/10 text-primary hover:bg-primary/15">
@@ -148,7 +141,7 @@ export function QuestionMetadata({ question, className = '' }: QuestionMetadataP
 
         {/* Repetition Count */}
         {question.repetitionCount !== undefined && (
-          <Badge variant="secondary" className="quiz-session-badge h-6 px-2 sm:px-2.5 text-xs font-semibold whitespace-nowrap border-0 bg-primary/10 text-primary hover:bg-primary/15">
+          <Badge variant="secondary" className="quiz-session-badge h-6 px-2 sm:px-2.5 text-xs font-semibold whitespace-nowrap border-0 bg-emerald-50 dark:bg-emerald-900 text-emerald-600 dark:text-emerald-200 hover:bg-emerald-100 dark:hover:bg-emerald-800">
             <RefreshCw className="h-3 w-3 mr-1 sm:mr-1.5" />
             <span>Repeated {question.repetitionCount}x</span>
           </Badge>

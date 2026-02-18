@@ -10,8 +10,7 @@ import {
   Flag,
   AlertTriangle,
   BookOpen,
-  Check,
-  Bot
+  Check
 } from 'lucide-react';
 import { PenNewSquare, DangerCircle, Bookmark } from '@solar-icons/react';
 import { Button } from '@/components/ui/button';
@@ -35,11 +34,10 @@ import { useLabels } from '@/hooks/use-student-organization';
 import { toast } from 'sonner';
 
 interface QuestionActionsProps {
-  onOpenAIChat?: () => void;
   onEditNote?: () => void;
 }
 
-export function QuestionActions({ onOpenAIChat, onEditNote }: QuestionActionsProps) {
+export function QuestionActions({ onEditNote }: QuestionActionsProps) {
   const { state, revealAnswer, toggleExplanation, bookmarkQuestion, addNote, flagQuestion } = useQuiz();
   const { session, currentQuestion, isAnswerRevealed, showExplanation } = state;
 
@@ -89,20 +87,6 @@ export function QuestionActions({ onOpenAIChat, onEditNote }: QuestionActionsPro
     <div className="space-y-3">
       {/* Primary Actions */}
       <div className="flex items-center gap-1">
-        {/* AI Chat Button */}
-        {onOpenAIChat && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onOpenAIChat}
-            className="gap-1"
-            title="Ask AI Assistant"
-          >
-            <img src="/chatgpt.png" alt="ChatGPT" className="h-4 w-4" />
-            <span className="hidden sm:inline">AI</span>
-          </Button>
-        )}
-
         {/* Add Note */}
         <Button
           variant="ghost"
@@ -114,6 +98,7 @@ export function QuestionActions({ onOpenAIChat, onEditNote }: QuestionActionsPro
           )}
         >
           <PenNewSquare className="h-5 w-5" />
+          <span className="hidden sm:inline">Note</span>
         </Button>
 
 

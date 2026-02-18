@@ -124,116 +124,94 @@ export default function ResidencyCreatePage() {
         </div>
 
         {/* Main Content */}
-        {!isResidency ? (
-          <Card className="border-border/50 shadow-lg">
-            <CardHeader className="text-center pb-6">
-              <div className="h-16 w-16 rounded-full bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900/30 dark:to-orange-800/30 flex items-center justify-center mx-auto mb-4">
-                <Stethoscope className="h-8 w-8 text-orange-600 dark:text-orange-400" />
-              </div>
-              <CardTitle className="text-2xl">Residency Access Required</CardTitle>
-            </CardHeader>
-            <CardContent className="text-center pb-8">
-              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                You need an active Residency study pack subscription to create residency sessions with specialized medical content.
-              </p>
-              <Button
-                onClick={() => router.push('/student/subscriptions')}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground"
-              >
-                View Subscription Plans
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="border-border/50 shadow-lg">
-            <CardContent className="p-6 space-y-6">
-              {filtersError && (
-                <Alert variant="destructive">
-                  <AlertDescription>Impossible de charger les filtres de résidanat.</AlertDescription>
-                </Alert>
-              )}
+        <Card className="border-border/50 shadow-lg">
+          <CardContent className="p-6 space-y-6">
+            {filtersError && (
+              <Alert variant="destructive">
+                <AlertDescription>Impossible de charger les filtres de résidanat.</AlertDescription>
+              </Alert>
+            )}
 
-              {!filtersError && (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>University</Label>
-                      <Select
-                        value={selectedUniversityId}
-                        onValueChange={setSelectedUniversityId}
-                        disabled={filtersLoading || !filters}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={filtersLoading ? 'Loading...' : 'Select a university'} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {filters?.universities?.map((u: any) => (
-                            <SelectItem key={u.id} value={String(u.id)}>
-                              {u.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Exam Year</Label>
-                      <Select
-                        value={selectedYear}
-                        onValueChange={setSelectedYear}
-                        disabled={filtersLoading || !filters}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={filtersLoading ? 'Loading...' : 'Select year'} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {filters?.years?.map((y: number) => (
-                            <SelectItem key={y} value={String(y)}>
-                              {y}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Parts (optional)</Label>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {(filters?.parts || []).map((p: string) => (
-                          <label key={p} className="flex items-center gap-2">
-                            <Checkbox
-                              checked={selectedParts.includes(p)}
-                              onCheckedChange={(checked) => {
-                                setSelectedParts((prev) => (checked ? [...prev, p] : prev.filter((x) => x !== p)));
-                              }}
-                            />
-                            <span className="text-sm">{p}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="flex items-center justify-end gap-3">
-                    <Button variant="outline" onClick={() => router.push('/student/residency')}>
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={handleCreate}
-                      disabled={
-                        creating || !selectedUniversityId || !selectedYear
-                      }
+            {!filtersError && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>University</Label>
+                    <Select
+                      value={selectedUniversityId}
+                      onValueChange={setSelectedUniversityId}
+                      disabled={filtersLoading || !filters}
                     >
-                      {creating ? 'Creating...' : 'Create Session'}
-                    </Button>
+                      <SelectTrigger>
+                        <SelectValue placeholder={filtersLoading ? 'Loading...' : 'Select a university'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {filters?.universities?.map((u: any) => (
+                          <SelectItem key={u.id} value={String(u.id)}>
+                            {u.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        )}
+
+                  <div className="space-y-2">
+                    <Label>Exam Year</Label>
+                    <Select
+                      value={selectedYear}
+                      onValueChange={setSelectedYear}
+                      disabled={filtersLoading || !filters}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={filtersLoading ? 'Loading...' : 'Select year'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {filters?.years?.map((y: number) => (
+                          <SelectItem key={y} value={String(y)}>
+                            {y}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Parts (optional)</Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {(filters?.parts || []).map((p: string) => (
+                        <label key={p} className="flex items-center gap-2">
+                          <Checkbox
+                            checked={selectedParts.includes(p)}
+                            onCheckedChange={(checked) => {
+                              setSelectedParts((prev) => (checked ? [...prev, p] : prev.filter((x) => x !== p)));
+                            }}
+                          />
+                          <span className="text-sm">{p}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="flex items-center justify-end gap-3">
+                  <Button variant="outline" onClick={() => router.push('/student/residency')}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleCreate}
+                    disabled={
+                      creating || !selectedUniversityId || !selectedYear
+                    }
+                  >
+                    {creating ? 'Creating...' : 'Create Session'}
+                  </Button>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

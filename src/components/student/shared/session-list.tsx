@@ -332,23 +332,8 @@ export function SessionList({
     );
   }
 
-  if (error) {
-    return (
-      <div className={cn("space-y-4", className)}>
-        {onBack && (
-          <Button variant="ghost" onClick={onBack} className="gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Back to selection
-          </Button>
-        )}
-        <EmptyState
-          icon={XCircle}
-          title="Failed to Load Sessions"
-          description={error}
-        />
-      </div>
-    );
-  }
+  // Note: Error handling removed - errors are handled by parent components
+  // Showing sessions list or empty state instead of error display
 
   if (sessions.length === 0) {
     // Determine if this is an error state or just empty results

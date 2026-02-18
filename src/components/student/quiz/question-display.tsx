@@ -28,6 +28,7 @@ import { useApiQuiz } from './quiz-api-context';
 import { AIChatPanel } from './ai-chat-panel';
 import type { QuestionContext } from '@/types/ai-chat-types';
 import { InlineNoteEditor } from './inline-note-editor';
+import { resolveImagePath } from '@/lib/image-loader';
 
 export function QuestionDisplay() {
   const { state, bookmarkQuestion, flagQuestion, revealAnswer } = useQuiz();
@@ -142,14 +143,14 @@ export function QuestionDisplay() {
           // If image is just a URL string
           return {
             id: index + 1,
-            imagePath: img,
+            imagePath: resolveImagePath(img),
             altText: `Image ${index + 1}`
           };
         } else if (img && typeof img === 'object') {
           // If image is an object with properties
           return {
             id: img.id || index + 1,
-            imagePath: img.imagePath || img.url || img.src || '',
+            imagePath: resolveImagePath(img.imagePath || img.url || img.src || ''),
             altText: img.altText || img.alt || img.description || `Image ${index + 1}`
           };
         }
