@@ -42,7 +42,11 @@ class ApiClient {
   private client: AxiosInstance;
   private tokenLoggedThisSession = false;
   private isRefreshing = false;
-  private failedQueue: { resolve: Function; reject: Function; config: any }[] = [];
+  private failedQueue: {
+    resolve: (value?: unknown) => void;
+    reject: (reason?: unknown) => void;
+    config: any;
+  }[] = [];
 
   constructor() {
     // Prepare headers for the axios instance
@@ -206,8 +210,16 @@ class ApiClient {
           originalRequest?.url?.includes('/auth/reset-password') ||
           originalRequest?.url?.includes('/auth/refresh');
 
-        // Handle 401 errors with automatic token refresh
-        if (error.response?.status === 401 && !isAuthEndpoint && !originalRequest._retry) {
+        const statusCode = error.response?.status;
+        const needs401Refresh = statusCode === 401 && !isAuthEndpoint && !originalRequest._retry;
+        const needsSubscription403Refresh =
+          statusCode === 403 &&
+          !isAuthEndpoint &&
+          !originalRequest._subscriptionRetry &&
+          this.isSubscriptionRequiredForbidden(error);
+
+        // Handle 401 (expired token) and targeted 403 (stale subscription claims) with token refresh
+        if (needs401Refresh || needsSubscription403Refresh) {
           // If already refreshing, queue this request
           if (this.isRefreshing) {
             return new Promise((resolve, reject) => {
@@ -215,38 +227,33 @@ class ApiClient {
             });
           }
 
-          originalRequest._retry = true;
+          if (needs401Refresh) {
+            originalRequest._retry = true;
+          }
+          if (needsSubscription403Refresh) {
+            originalRequest._subscriptionRetry = true;
+          }
+
+          const refreshToken = this.getStoredRefreshToken();
+          if (!refreshToken) {
+            if (needs401Refresh) {
+              this.handleAuthError();
+            }
+            return Promise.reject(error);
+          }
+
           this.isRefreshing = true;
 
           try {
-            const refreshToken = this.getStoredRefreshToken();
-            if (!refreshToken) {
-              throw new Error('No refresh token available');
-            }
-
-            console.log('🔄 [ApiClient] Refreshing access token...');
-
-            // Make refresh request directly with axios (not through interceptors)
-            const response = await axios.post(
-              `${API_CONFIG.baseURL}/auth/refresh`,
-              { refreshToken },
-              { headers: { 'Content-Type': 'application/json' } }
-            );
-
-            const tokens = response.data?.data?.tokens;
-            if (!tokens?.accessToken) {
-              throw new Error('Invalid refresh response');
-            }
-
+            console.log(`🔄 [ApiClient] Refreshing access token after ${statusCode} response...`);
+            const tokens = await this.refreshAccessToken(refreshToken);
             console.log('✅ [ApiClient] Token refreshed successfully');
-
-            // Store new tokens
-            this.setTokens(tokens.accessToken, tokens.refreshToken);
 
             // Process queued requests with new token
             this.processQueue(null, tokens.accessToken);
 
             // Retry the original request with new token
+            originalRequest.headers = originalRequest.headers || {};
             originalRequest.headers.Authorization = `Bearer ${tokens.accessToken}`;
             return this.client(originalRequest);
           } catch (refreshError: any) {
@@ -255,10 +262,14 @@ class ApiClient {
             // Process queued requests with error
             this.processQueue(refreshError, null);
 
-            // Clear tokens and redirect to login
-            this.handleAuthError();
+            // For 401 failures, clear tokens. For 403 subscription refresh failures,
+            // keep the existing session and return the original forbidden error.
+            if (needs401Refresh) {
+              this.handleAuthError();
+              return Promise.reject(refreshError);
+            }
 
-            return Promise.reject(refreshError);
+            return Promise.reject(error);
           } finally {
             this.isRefreshing = false;
           }
@@ -281,6 +292,29 @@ class ApiClient {
       }
     });
     this.failedQueue = [];
+  }
+
+  private async refreshAccessToken(refreshToken: string): Promise<{ accessToken: string; refreshToken?: string }> {
+    const response = await axios.post(
+      `${API_CONFIG.baseURL}/auth/refresh`,
+      { refreshToken },
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+
+    const tokens = response.data?.data?.tokens;
+    if (!tokens?.accessToken) {
+      throw new Error('Invalid refresh response');
+    }
+
+    this.setTokens(tokens.accessToken, tokens.refreshToken);
+    return tokens;
+  }
+
+  private isSubscriptionRequiredForbidden(error: AxiosError): boolean {
+    const data: any = error.response?.data;
+    const message = String(data?.error?.message || data?.message || '').toLowerCase();
+
+    return message.includes('active subscription required');
   }
 
 
