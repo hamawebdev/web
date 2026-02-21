@@ -135,8 +135,8 @@ export function CreateResidencyQuestionDialog({
       return;
     }
 
-    if (formData.questionText.length < 5) {
-      setError('Question text must be at least 5 characters');
+    if (formData.questionText.length < 2) {
+      setError('Question text must be at least 3 characters');
       return;
     }
 
