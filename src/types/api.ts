@@ -1248,6 +1248,7 @@ export interface ContentFiltersResponse {
   independentModules: Array<{
     id: number;
     name: string;
+    imagePath?: string | null;
     courses: Array<{
       id: number;
       name: string;
