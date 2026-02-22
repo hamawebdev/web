@@ -30,6 +30,8 @@ const generateDefaultTitle = () => {
   return `Practice Quiz - ${date} at ${time}`;
 };
 
+const MAX_SESSION_QUESTIONS = 1000;
+
 // Default quiz configuration
 const DEFAULT_CONFIG: QuizCreationConfig = {
   type: 'PRACTICE',
@@ -133,6 +135,13 @@ export function useQuizCreation(
         break;
 
       case 3: // Question count (was step 4)
+        if (config.settings.questionCount > MAX_SESSION_QUESTIONS) {
+          errors.push({
+            field: 'questionCount',
+            message: `Question count cannot exceed ${MAX_SESSION_QUESTIONS}.`,
+            type: 'error'
+          });
+        }
         if (config.settings.questionCount > availableQuestions) {
           errors.push({
             field: 'questionCount',
@@ -270,7 +279,7 @@ export function useQuizCreation(
       // Randomize and limit to requested count
       const shuffledQuestions = uniqueQuestions.sort(() => Math.random() - 0.5);
       const questionIds: number[] = shuffledQuestions
-        .slice(0, config.settings.questionCount)
+        .slice(0, Math.min(config.settings.questionCount, MAX_SESSION_QUESTIONS))
         .map((q: any) => Number(q?.id))
         .filter(Boolean);
 
@@ -309,7 +318,7 @@ export function useQuizCreation(
 
       // For PRACTICE sessions, include questionCount
       if (config.type === 'PRACTICE') {
-        sessionData.questionCount = Math.min(questionIds.length, 100);
+        sessionData.questionCount = Math.min(questionIds.length, MAX_SESSION_QUESTIONS);
       }
 
       // For EXAM sessions, use fixed question types as per requirements (no questionCount needed)

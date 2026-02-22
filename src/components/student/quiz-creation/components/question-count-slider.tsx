@@ -33,6 +33,8 @@ import {
 } from '../hooks/use-question-calculation';
 import { QuestionCountSliderProps } from '../types';
 
+const MAX_SESSION_QUESTIONS = 1000;
+
 // Helper function to sanitize quiz title
 const sanitizeTitle = (title: string): string => {
   return title
@@ -53,6 +55,7 @@ export function QuestionCountSlider({
   onCreateQuiz,
   isCreating = false
 }: QuestionCountSliderProps) {
+  const maxSelectableQuestions = Math.min(availableQuestions, MAX_SESSION_QUESTIONS);
 
   const ranges = useQuestionRanges(availableQuestions);
   const timeEstimate = useTimeEstimate(questionCount);
@@ -110,9 +113,9 @@ export function QuestionCountSlider({
 
   // Handle slider change with validation
   const handleSliderChange = useCallback((value: number[]) => {
-    const newValue = Math.min(Math.max(1, value[0]), availableQuestions);
+    const newValue = Math.min(Math.max(1, value[0]), maxSelectableQuestions);
     onQuestionCountChange(newValue);
-  }, [availableQuestions, onQuestionCountChange]);
+  }, [maxSelectableQuestions, onQuestionCountChange]);
 
 
 
@@ -190,7 +193,7 @@ export function QuestionCountSlider({
               <Slider
                 value={[questionCount]}
                 onValueChange={handleSliderChange}
-                max={availableQuestions}
+                max={maxSelectableQuestions}
                 min={1}
                 step={1}
                 className="w-full group-hover:scale-[1.01] transition-transform duration-200"
@@ -214,7 +217,7 @@ export function QuestionCountSlider({
               <div className="flex flex-col items-center gap-1 group/label hover:scale-105 transition-transform duration-200">
                 <div className="h-2 w-2 rounded-full bg-primary/60" />
                 <span className="text-xs font-medium text-primary group-hover/label:text-primary/80 transition-colors">
-                  {availableQuestions} <span className="text-muted-foreground">(max)</span>
+                  {maxSelectableQuestions} <span className="text-muted-foreground">(max)</span>
                 </span>
               </div>
             </div>
@@ -240,23 +243,23 @@ export function QuestionCountSlider({
                       stroke="currentColor"
                       strokeWidth="4"
                       fill="none"
-                      strokeDasharray={`${(questionCount / availableQuestions) * 125.6} 125.6`}
+                      strokeDasharray={`${(questionCount / maxSelectableQuestions) * 125.6} 125.6`}
                       className="text-primary transition-all duration-300"
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
                     <span className="text-xs font-bold text-primary">
-                      {Math.round((questionCount / availableQuestions) * 100)}%
+                      {Math.round((questionCount / maxSelectableQuestions) * 100)}%
                     </span>
                   </div>
                 </div>
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-foreground">
-                  {questionCount} of {availableQuestions} questions selected
+                  {questionCount} of {maxSelectableQuestions} questions selected
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {availableQuestions - questionCount} questions remaining
+                  {maxSelectableQuestions - questionCount} questions remaining
                 </p>
               </div>
             </div>
