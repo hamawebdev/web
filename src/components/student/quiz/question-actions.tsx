@@ -173,8 +173,8 @@ export function QuestionActions({ onEditNote }: QuestionActionsProps) {
                   }
                   const { StudentService } = await import('@/lib/api-services');
                   const res = await StudentService.addQuestionToLabel(Number(questionId), Number(selectedLabelId));
-                  if (res?.success) {
-                    toast.success('Question added to label successfully');
+                  if (res?.success !== false && !res?.error) {
+                    toast.success(res?.message || 'Question added to label successfully');
                     await refreshLabels();
                     setShowLabelDialog(false);
                     setSelectedLabelId(null);
