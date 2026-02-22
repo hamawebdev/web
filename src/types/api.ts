@@ -1460,27 +1460,30 @@ export interface LabelFilterParams {
 
 // ==================== COURSE RESOURCES TYPES ====================
 
+// Course Resource type enum matching API values
+export type CourseResourceType = 'OFFICIAL_SUPPORT' | 'CHOICE_OF_TEAM' | 'VIDEO' | 'AUDIO' | 'OTHER';
+
 // Course Resource from API response
 export interface CourseResource {
   id: number;
-  type: 'PDF' | 'VIDEO' | 'SLIDE' | 'DOCUMENT' | 'LINK';
+  courseId: number;
+  type: CourseResourceType;
   title: string;
+  tag: string | null;
   description: string | null;
-  filePath?: string | null;
-  externalUrl?: string | null;
-  youtubeVideoId?: string | null;
-  isPaid: boolean;
-  price?: number | null;
-  downloadCount?: number;
+  filePath: string | null;
+  externalUrl: string | null;
+  youtubeVideoId: string | null;
   createdAt: string;
-  updatedAt: string;
 }
 
-// Course Resources API Response
+// Course Resources API Response - paginated structure
 export interface CourseResourcesResponse {
-  courseId: number;
-  courseName: string;
-  resources: CourseResource[];
+  items: CourseResource[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 // Extended Quiz Course with additional metadata for course selection

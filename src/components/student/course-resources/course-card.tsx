@@ -3,24 +3,17 @@
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
-  BookOpen,
-  CheckCircle,
   Video,
   Star,
   Headphones,
   FileText,
-  Download,
-  ExternalLink,
-  DollarSign,
   File
 } from 'lucide-react'
 import { ContentService } from '@/lib/api-services'
 import { CourseResource } from '@/types/api'
 import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
 import { LoadingSpinner } from '@/components/loading-states'
 
 interface CourseCardProps {
@@ -83,12 +76,13 @@ export function CourseCard({ course }: CourseCardProps) {
 
       if (response.success && response.data) {
         const d: any = response.data
-        const inner = d?.data?.data ?? d?.data ?? d
-        const fetchedResources = Array.isArray(inner?.resources) ? inner.resources : Array.isArray(inner) ? inner : []
+        // API response structure: { success: true, data: { items: [...], total, page, limit, totalPages }, meta }
+        // The apiClient already unwraps the outer structure, so response.data is the inner data object
+        const items = d?.items ?? d?.data?.items ?? []
 
         // Filter by type on client side as well to ensure correctness
-        const filteredResources = Array.isArray(fetchedResources)
-          ? fetchedResources.filter((r: CourseResource) => r.type === type)
+        const filteredResources = Array.isArray(items)
+          ? items.filter((r: CourseResource) => r.type === type)
           : []
 
         setResources(prev => ({ ...prev, [type]: filteredResources }))
@@ -112,11 +106,6 @@ export function CourseCard({ course }: CourseCardProps) {
   }
 
   const handleDownloadResource = (resource: CourseResource) => {
-    if (resource.isPaid && !resource.price) {
-      toast.error('This is a paid resource. Please purchase to access.')
-      return
-    }
-
     if (resource.filePath) {
       const link = document.createElement('a')
       link.href = resource.filePath
@@ -184,9 +173,9 @@ export function CourseCard({ course }: CourseCardProps) {
                           <span className="font-medium text-foreground group-hover:text-primary transition-colors">
                             {resource.title}
                           </span>
-                          {resource.isPaid && (
+                          {resource.tag && (
                             <Badge variant="outline" className="text-xs h-5 px-1.5 ml-2">
-                              {resource.price ? `$${resource.price}` : 'Premium'}
+                              {resource.tag}
                             </Badge>
                           )}
                         </div>

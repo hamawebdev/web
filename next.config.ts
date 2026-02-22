@@ -57,14 +57,14 @@ const nextConfig: NextConfig = {
   },
 
   // // Setup API proxy for local development to avoid CORS issues
-  // async rewrites() {
-  //   return [
-  //     {
-  //       source: "/api/v1/:path*",
-  //       destination: "https://med-adn.com/api/v1/:path*",
-  //     },
-  //   ];
-  // },
+  async rewrites() {
+    return [
+      {
+        source: "/api/v1/:path*",
+        destination: "https://med-adn.com/api/v1/:path*",
+      },
+    ];
+  },
 
   // Enhanced security headers for production
   async headers() {
