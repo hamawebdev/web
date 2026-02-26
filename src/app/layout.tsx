@@ -45,6 +45,12 @@ export const metadata: Metadata = {
     description: "Access 150k+ questions and 12k+ resources. The trusted choice for medical students across 10+ Algerian universities for Résidanat and daily studies.",
     url: "https://med-adn.com",
     siteName: "Med-ADN",
+    images: [
+      {
+        url: "/dashborad.webp",
+        alt: "Med-ADN dashboard preview",
+      },
+    ],
     locale: "en_US",
     type: "website",
   },
@@ -53,6 +59,7 @@ export const metadata: Metadata = {
     title: "Med-ADN - Ace Your Medical Exams in Algeria",
     description: "Join thousands of students using Med-ADN. 150k+ QCMs, 12k+ resources, and comprehensive tools for medical success.",
     creator: "@medadn",
+    images: ["/dashborad.webp"],
   },
   robots: {
     index: true,

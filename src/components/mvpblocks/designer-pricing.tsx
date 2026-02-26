@@ -102,10 +102,10 @@ export default function DesignerPricing() {
             <div className="mb-8">
               <div className="mb-2 flex items-center gap-3">
                 <span className="text-2xl text-muted-foreground line-through font-medium">
-                  6,500 DA
+                  1,800 DA
                 </span>
                 <span className="text-4xl font-bold tracking-tight lg:text-5xl text-primary">
-                  4,500 DA<span className="text-lg font-medium text-muted-foreground ml-1">/ year</span>
+                  1,200 DA<span className="text-lg font-medium text-muted-foreground ml-1">/ year</span>
                 </span>
               </div>
 
@@ -132,7 +132,7 @@ export default function DesignerPricing() {
               <li className="flex items-start gap-3">
                 <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
                 <span>
-                  <strong>150k+ Questions</strong> including QCMs & cases
+                  <strong>250k+ Questions</strong> including QCMs & cases
                 </span>
               </li>
               <li className="flex items-start gap-3">
