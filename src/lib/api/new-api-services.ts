@@ -706,6 +706,7 @@ export class NewApiService {
   /**
    * Get Residency Session Filters
    * GET /api/v1/quizzes/session-residency-filters
+   * Returns only: { universities: Array<{ id, name, examYears }> }
    */
   static async getResidencyFilters(): Promise<ApiResponse<any>> {
     try {
@@ -720,7 +721,6 @@ export class NewApiService {
         console.log('📥 [NewApiService] Residency filters response:', {
           success: response.success,
           universitiesCount: data.universities?.length || 0,
-          partsCount: data.parts?.length || 0
         });
         return {
           ...response,
@@ -732,6 +732,34 @@ export class NewApiService {
     } catch (error) {
       console.error('💥 [NewApiService] Get residency filters error:', error);
       handleApiError(error, 'get residency filters');
+    }
+  }
+
+  /**
+   * Get Residency Available Parts
+   * GET /api/v1/quizzes/residency-available-parts?universityId=X&examYear=Y
+   * Returns: { parts: string[], questionCount: number }
+   */
+  static async getResidencyAvailableParts(universityId: number, examYear: number): Promise<ApiResponse<any>> {
+    try {
+      const url = `/quizzes/residency-available-parts?universityId=${universityId}&examYear=${examYear}`;
+      console.log('🌐 [NewApiService] Getting residency available parts:', { universityId, examYear });
+
+      const response = await apiClient.get<any>(url);
+
+      if (response.success && response.data) {
+        const data = (response.data as any).data || response.data;
+        console.log('📥 [NewApiService] Residency available parts:', data);
+        return {
+          ...response,
+          data: data
+        };
+      }
+
+      return response;
+    } catch (error) {
+      console.error('💥 [NewApiService] Get residency available parts error:', error);
+      handleApiError(error, 'get residency available parts');
     }
   }
 

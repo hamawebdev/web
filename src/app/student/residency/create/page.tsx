@@ -16,21 +16,40 @@ import { useUserSubscriptions, selectEffectiveActiveSubscription } from '@/hooks
 import { QuizService } from '@/lib/api-services';
 import { NewApiService } from '@/lib/api/new-api-services';
 import { toast } from 'sonner';
-import { Stethoscope } from 'lucide-react';
+import { Stethoscope, Loader2 } from 'lucide-react';
+
+interface University {
+  id: number;
+  name: string;
+  examYears: number[];
+}
 
 export default function ResidencyCreatePage() {
 
-  // Residency Filters and Form State
-  const [filters, setFilters] = React.useState<{ universities: any[]; years: number[]; parts?: string[] } | null>(null);
+  // Universities loaded from the filters endpoint
+  const [universities, setUniversities] = React.useState<University[]>([]);
   const [filtersLoading, setFiltersLoading] = React.useState(false);
   const [filtersError, setFiltersError] = React.useState<string | null>(null);
 
-
+  // Form state
   const [selectedUniversityId, setSelectedUniversityId] = React.useState<string>('');
   const [selectedYear, setSelectedYear] = React.useState<string>('');
   const [selectedParts, setSelectedParts] = React.useState<string[]>([]);
   const [creating, setCreating] = React.useState(false);
 
+  // Parts loaded from the new endpoint (per university + year)
+  const [availableParts, setAvailableParts] = React.useState<string[]>([]);
+  const [partsLoading, setPartsLoading] = React.useState(false);
+  const [questionCount, setQuestionCount] = React.useState<number>(0);
+
+  // Derive available years from the selected university
+  const availableYears = React.useMemo(() => {
+    if (!selectedUniversityId) return [];
+    const uni = universities.find(u => String(u.id) === selectedUniversityId);
+    return (uni?.examYears || []).sort((a, b) => b - a);
+  }, [selectedUniversityId, universities]);
+
+  // Load universities on mount
   const loadFilters = React.useCallback(async () => {
     try {
       setFiltersLoading(true);
@@ -38,17 +57,7 @@ export default function ResidencyCreatePage() {
       const res = await NewApiService.getResidencyFilters();
       const data = (res?.data?.data) ?? res?.data;
       if (res?.success && data) {
-        // Extract all unique years from all universities' examYears arrays
-        const allYears = [...new Set(
-          (data.universities || [])
-            .flatMap((u: any) => u.examYears || [])
-        )].sort((a: number, b: number) => b - a);
-
-        setFilters({
-          universities: data.universities || [],
-          years: allYears,
-          parts: data.parts || [],
-        });
+        setUniversities(data.universities || []);
       } else {
         throw new Error(res?.error || 'Failed to load filters');
       }
@@ -60,6 +69,42 @@ export default function ResidencyCreatePage() {
   }, []);
 
   React.useEffect(() => { loadFilters(); }, [loadFilters]);
+
+  // When university changes, reset year & parts
+  const handleUniversityChange = React.useCallback((universityId: string) => {
+    setSelectedUniversityId(universityId);
+    setSelectedYear('');
+    setSelectedParts([]);
+    setAvailableParts([]);
+    setQuestionCount(0);
+  }, []);
+
+  // When year changes, fetch available parts from the new endpoint
+  const handleYearChange = React.useCallback(async (year: string) => {
+    setSelectedYear(year);
+    setSelectedParts([]);
+    setAvailableParts([]);
+    setQuestionCount(0);
+
+    if (!selectedUniversityId || !year) return;
+
+    try {
+      setPartsLoading(true);
+      const res = await NewApiService.getResidencyAvailableParts(
+        Number(selectedUniversityId),
+        Number(year)
+      );
+      const data = (res?.data?.data) ?? res?.data;
+      if (res?.success && data) {
+        setAvailableParts(data.parts || []);
+        setQuestionCount(data.questionCount || 0);
+      }
+    } catch (e) {
+      console.error('[Residency/Create] Error loading parts:', e);
+    } finally {
+      setPartsLoading(false);
+    }
+  }, [selectedUniversityId]);
 
   const router = useRouter();
   const { filters: quizFilters } = useQuizFilters();
@@ -74,7 +119,7 @@ export default function ResidencyCreatePage() {
 
       setCreating(true);
 
-      const selectedUni = filters?.universities?.find(u => String(u.id) === selectedUniversityId);
+      const selectedUni = universities.find(u => String(u.id) === selectedUniversityId);
       const uniName = selectedUni ? selectedUni.name : 'Unknown University';
       const autoTitle = `Residency - ${uniName} - ${selectedYear}`;
 
@@ -135,18 +180,19 @@ export default function ResidencyCreatePage() {
             {!filtersError && (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* University Select */}
                   <div className="space-y-2">
                     <Label>University</Label>
                     <Select
                       value={selectedUniversityId}
-                      onValueChange={setSelectedUniversityId}
-                      disabled={filtersLoading || !filters}
+                      onValueChange={handleUniversityChange}
+                      disabled={filtersLoading || universities.length === 0}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder={filtersLoading ? 'Loading...' : 'Select a university'} />
                       </SelectTrigger>
                       <SelectContent>
-                        {filters?.universities?.map((u: any) => (
+                        {universities.map((u) => (
                           <SelectItem key={u.id} value={String(u.id)}>
                             {u.name}
                           </SelectItem>
@@ -155,18 +201,25 @@ export default function ResidencyCreatePage() {
                     </Select>
                   </div>
 
+                  {/* Exam Year Select - filtered by selected university */}
                   <div className="space-y-2">
                     <Label>Exam Year</Label>
                     <Select
                       value={selectedYear}
-                      onValueChange={setSelectedYear}
-                      disabled={filtersLoading || !filters}
+                      onValueChange={handleYearChange}
+                      disabled={filtersLoading || !selectedUniversityId || availableYears.length === 0}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder={filtersLoading ? 'Loading...' : 'Select year'} />
+                        <SelectValue placeholder={
+                          !selectedUniversityId
+                            ? 'Select a university first'
+                            : availableYears.length === 0
+                              ? 'No years available'
+                              : 'Select year'
+                        } />
                       </SelectTrigger>
                       <SelectContent>
-                        {filters?.years?.map((y: number) => (
+                        {availableYears.map((y) => (
                           <SelectItem key={y} value={String(y)}>
                             {y}
                           </SelectItem>
@@ -175,21 +228,42 @@ export default function ResidencyCreatePage() {
                     </Select>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Parts (optional)</Label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {(filters?.parts || []).map((p: string) => (
-                        <label key={p} className="flex items-center gap-2">
-                          <Checkbox
-                            checked={selectedParts.includes(p)}
-                            onCheckedChange={(checked) => {
-                              setSelectedParts((prev) => (checked ? [...prev, p] : prev.filter((x) => x !== p)));
-                            }}
-                          />
-                          <span className="text-sm">{p}</span>
-                        </label>
-                      ))}
-                    </div>
+                  {/* Parts - loaded dynamically based on university + year */}
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>
+                      Parts (optional)
+                      {partsLoading && (
+                        <Loader2 className="inline-block ml-2 h-3 w-3 animate-spin" />
+                      )}
+                    </Label>
+                    {!selectedUniversityId || !selectedYear ? (
+                      <p className="text-sm text-muted-foreground">
+                        Select a university and year to see available parts.
+                      </p>
+                    ) : partsLoading ? (
+                      <p className="text-sm text-muted-foreground">Loading available parts...</p>
+                    ) : availableParts.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No parts available for this selection.</p>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {availableParts.map((p) => (
+                          <label key={p} className="flex items-center gap-2">
+                            <Checkbox
+                              checked={selectedParts.includes(p)}
+                              onCheckedChange={(checked) => {
+                                setSelectedParts((prev) => (checked ? [...prev, p] : prev.filter((x) => x !== p)));
+                              }}
+                            />
+                            <span className="text-sm">{p}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                    {questionCount > 0 && selectedYear && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {questionCount} question{questionCount !== 1 ? 's' : ''} available for this selection
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -216,4 +290,3 @@ export default function ResidencyCreatePage() {
     </div>
   );
 }
-
