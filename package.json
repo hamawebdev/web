@@ -55,7 +55,6 @@
   },
   "dependencies": {
     "@floating-ui/react": "^0.27.17",
-    "@frontextai/toolbar": "^0.6.12",
     "@hookform/resolvers": "^5.2.2",
     "@hugeicons/core-free-icons": "^3.1.1",
     "@hugeicons/react": "^1.1.4",
