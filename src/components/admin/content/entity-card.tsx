@@ -177,9 +177,9 @@ export function EntityCard({
           setPreviewUrl(null);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update image', error);
-      toast.error('Failed to update image');
+      toast.error(error?.error || error?.message || 'Failed to update image');
     } finally {
       setIsUploading(false);
     }
@@ -314,7 +314,8 @@ export function EntityCard({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  {(isUnit || isModule) && (
+                  {/* Only units can store a logo: the module update API has no image field */}
+                  {isUnit && (
                     <DropdownMenuItem
                       onClick={(e) => {
                         e.stopPropagation();

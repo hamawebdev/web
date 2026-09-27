@@ -53,14 +53,16 @@ export function useSpecialtyManagement() {
       if (response.success && response.data) {
         console.log('✅ Specialties fetched successfully:', response.data);
 
-        const { specialties, pagination } = response.data;
+        // Backend body: { items, total, page, limit, totalPages }
+        const d: any = response.data;
+        const specialties = d.items ?? d.specialties ?? [];
 
         setState(prev => ({
           ...prev,
-          specialties: specialties || [],
-          totalSpecialties: pagination?.total || 0,
-          currentPage: pagination?.page || 1,
-          totalPages: pagination?.totalPages || 1,
+          specialties,
+          totalSpecialties: d.total ?? d.pagination?.total ?? specialties.length,
+          currentPage: d.page ?? d.pagination?.page ?? page,
+          totalPages: d.totalPages ?? d.pagination?.totalPages ?? 1,
           loading: false,
           error: null,
           filters,

@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { loginSchema, type LoginFormData } from '@/lib/validations';
 import { AuthAPI } from '@/lib/auth-api';
 import { useAuth } from '@/hooks/use-auth';
@@ -31,9 +32,15 @@ export default function LoginForm1() {
           setSuccessMessage('Réinitialisation du mot de passe réussie ! Veuillez vous connecter avec votre nouveau mot de passe.');
           toast.success('Réinitialisation du mot de passe réussie !');
           break;
+        case 'password-changed':
+          setSuccessMessage('Mot de passe modifié. Veuillez vous reconnecter avec votre nouveau mot de passe.');
+          break;
         default:
           break;
       }
+    }
+    if (searchParams.get('error') === 'oauth_failed') {
+      setError('La connexion avec Google a échoué. Veuillez réessayer.');
     }
   }, [searchParams]);
 
@@ -119,6 +126,7 @@ export default function LoginForm1() {
           <div className="flex justify-center">
             <a
               href={AuthAPI.getGoogleAuthUrl()}
+              onClick={() => AuthAPI.beginGoogleSignIn()}
               aria-label="Sign in with Google"
               className="hover:bg-secondary active:bg-secondary/40 flex items-center justify-center rounded-lg border py-2.5 duration-150 w-full gap-2"
             >
@@ -211,9 +219,9 @@ export default function LoginForm1() {
           </form>
         </div>
         <div className="text-center">
-          <a href="#" className="hover:text-rose-600">
+          <Link href="/forgot-password" className="hover:text-rose-600">
             Forgot password?
-          </a>
+          </Link>
         </div>
       </div>
     </main>

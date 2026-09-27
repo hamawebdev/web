@@ -74,7 +74,6 @@ export function EditQuestionDialog({
   const [error, setError] = useState<string | null>(null);
   const [universities, setUniversities] = useState<University[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
-  const [examYears, setExamYears] = useState<number[]>([]);
   const [loadingData, setLoadingData] = useState(false);
 
   // Form state
@@ -85,8 +84,6 @@ export function EditQuestionDialog({
     courseId: question.courseId,
     universityId: question.universityId,
     yearLevel: question.yearLevel || '',
-    examYear: question.examYear,
-    isActive: question.isActive,
   });
 
   const [answers, setAnswers] = useState<Answer[]>(
@@ -110,8 +107,6 @@ export function EditQuestionDialog({
         courseId: question.courseId,
         universityId: question.universityId,
         yearLevel: question.yearLevel || '',
-        examYear: question.examYear,
-        isActive: question.isActive,
       });
       setAnswers(
         question.answers.map(answer => ({
@@ -132,7 +127,6 @@ export function EditQuestionDialog({
       if (response.success && response.data?.filters) {
         setUniversities(response.data.filters.universities || []);
         setCourses(response.data.filters.courses || []);
-        setExamYears(response.data.filters.examYears || []);
       }
     } catch (error) {
       console.error('Failed to load form data:', error);
@@ -145,8 +139,12 @@ export function EditQuestionDialog({
     setAnswers([...answers, { answerText: '', isCorrect: false, explanation: '' }]);
   };
 
+  // PUT /admin/questions/:id only updates answers that carry an id and creates
+  // the others; it never deletes. Only answers added in this dialog (no id yet)
+  // can therefore be removed, otherwise the UI would claim a deletion that the
+  // backend silently ignores.
   const removeAnswer = (index: number) => {
-    if (answers.length > 2) {
+    if (answers.length > 2 && answers[index]?.id === undefined) {
       setAnswers(answers.filter((_, i) => i !== index));
     }
   };
@@ -177,6 +175,12 @@ export function EditQuestionDialog({
       return;
     }
 
+    // Saved answers cannot be deleted through this endpoint, so they cannot be blanked either
+    if (answers.some(a => a.id !== undefined && a.answerText.trim() === '')) {
+      setError('Existing answers cannot be left empty');
+      return;
+    }
+
     const validAnswers = answers.filter(a => a.answerText.trim() !== '');
     if (validAnswers.length < 2) {
       setError('Please provide at least 2 answers');
@@ -202,8 +206,6 @@ export function EditQuestionDialog({
         courseId: formData.courseId,
         universityId: formData.universityId,
         yearLevel: formData.yearLevel || undefined,
-        examYear: formData.examYear,
-        isActive: formData.isActive,
         answers: validAnswers.map(answer => ({
           id: answer.id,
           answerText: answer.answerText,
@@ -325,7 +327,7 @@ export function EditQuestionDialog({
                 </div>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>University</Label>
                   <Select
@@ -371,40 +373,6 @@ export function EditQuestionDialog({
                     </SelectContent>
                   </Select>
                 </div>
-
-                <div className="space-y-2">
-                  <Label>Exam Year</Label>
-                  <Select
-                    value={formData.examYear?.toString() || 'none'}
-                    onValueChange={(value) => setFormData(prev => ({
-                      ...prev,
-                      examYear: value === 'none' ? undefined : parseInt(value)
-                    }))}
-                    disabled={loading}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select exam year" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No Exam Year</SelectItem>
-                      {examYears.map((year) => (
-                        <SelectItem key={year} value={year.toString()}>
-                          {year}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="isActive"
-                  checked={formData.isActive}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isActive: checked }))}
-                  disabled={loading}
-                />
-                <Label htmlFor="isActive">Active Question</Label>
               </div>
             </div>
 
@@ -429,6 +397,7 @@ export function EditQuestionDialog({
                   ? 'Select exactly one correct answer' 
                   : 'Select one or more correct answers'
                 }
+                {' '}Existing answers can be edited but not removed.
               </div>
 
               <div className="space-y-3">
@@ -436,7 +405,7 @@ export function EditQuestionDialog({
                   <div key={answer.id || index} className="border rounded-lg p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <Label className="text-sm font-medium">Answer {index + 1}</Label>
-                      {answers.length > 2 && (
+                      {answers.length > 2 && answer.id === undefined && (
                         <Button
                           type="button"
                           variant="ghost"

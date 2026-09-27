@@ -8,6 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { registerSchema, type RegisterFormData } from '@/lib/validations';
 import { AuthAPI } from '@/lib/auth-api';
+import { resetAuthCache } from '@/hooks/use-auth';
 import { toast } from 'sonner';
 
 export default function RegisterForm() {
@@ -41,6 +42,10 @@ export default function RegisterForm() {
                 password: data.password,
                 fullName: data.fullName.trim(),
             });
+
+            // Tokens were just stored: drop any cached "not authenticated" result
+            // so the dashboard guard reads the new session instead of redirecting to /login
+            resetAuthCache();
 
             toast.success('Compte créé avec succès !');
 
@@ -92,6 +97,7 @@ export default function RegisterForm() {
                     <div className="flex justify-center">
                         <a
                             href={AuthAPI.getGoogleAuthUrl()}
+                            onClick={() => AuthAPI.beginGoogleSignIn()}
                             aria-label="Sign in with Google"
                             className="hover:bg-secondary active:bg-secondary/40 flex items-center justify-center rounded-lg border py-2.5 duration-150 w-full gap-2"
                         >

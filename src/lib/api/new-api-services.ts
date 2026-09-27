@@ -6,7 +6,7 @@
  */
 
 import { apiClient } from '../api-client';
-import { ApiResponse } from '../api-client';
+import { ApiResponse, normalizeApiResponse } from '../api-client';
 
 // Error handling utilities
 export class ApiError extends Error {
@@ -311,7 +311,8 @@ export class NewApiService {
   static async createCard(payload: any): Promise<ApiResponse<any>> {
     try {
       console.log('🃏 [NewApiService] Creating card:', payload);
-      const response = await apiClient.post<any>('/students/cards', payload);
+      // The card endpoints reply with the raw card, not a { success, data } envelope
+      const response = normalizeApiResponse(await apiClient.post<any>('/students/cards', payload));
       return response;
     } catch (error) {
       console.error('💥 [NewApiService] Create card error:', error);
@@ -326,7 +327,7 @@ export class NewApiService {
   static async updateCard(cardId: number, payload: any): Promise<ApiResponse<any>> {
     try {
       console.log('🃏 [NewApiService] Updating card:', { cardId, payload });
-      const response = await apiClient.put<any>(`/students/cards/${cardId}`, payload);
+      const response = normalizeApiResponse(await apiClient.put<any>(`/students/cards/${cardId}`, payload));
       return response;
     } catch (error) {
       console.error('💥 [NewApiService] Update card error:', error);
@@ -341,7 +342,7 @@ export class NewApiService {
   static async deleteCard(cardId: number): Promise<ApiResponse<any>> {
     try {
       console.log('🃏 [NewApiService] Deleting card:', cardId);
-      const response = await apiClient.delete<any>(`/students/cards/${cardId}`);
+      const response = normalizeApiResponse(await apiClient.delete<any>(`/students/cards/${cardId}`));
       return response;
     } catch (error) {
       console.error('💥 [NewApiService] Delete card error:', error);
@@ -356,7 +357,7 @@ export class NewApiService {
   static async getCardById(cardId: number): Promise<ApiResponse<any>> {
     try {
       console.log('🃏 [NewApiService] Getting card by id:', cardId);
-      const response = await apiClient.get<any>(`/students/cards/${cardId}`);
+      const response = normalizeApiResponse(await apiClient.get<any>(`/students/cards/${cardId}`));
       return response;
     } catch (error) {
       console.error('💥 [NewApiService] Get card by id error:', error);
@@ -385,7 +386,7 @@ export class NewApiService {
       const url = `/students/cards/filter-by-unit-module?${queryParams.toString()}`;
       console.log('🃏 [NewApiService] Getting cards by unit/module:', params);
 
-      const response = await apiClient.get<any>(url);
+      const response = normalizeApiResponse<any>(await apiClient.get<any>(url));
 
       // Unwrap nested data if present
       if (response?.success && (response as any).data?.data) {
@@ -442,7 +443,7 @@ export class NewApiService {
   static async upsertCourseLayer(payload: { courseId: number; layerNumber: number; completed: boolean }): Promise<ApiResponse<any>> {
     try {
       console.log('🃏 [NewApiService] Upserting course layer:', payload);
-      const response = await apiClient.post<any>('/students/course-layers', payload);
+      const response = normalizeApiResponse(await apiClient.post<any>('/students/course-layers', payload));
       return response;
     } catch (error) {
       console.error('💥 [NewApiService] Upsert course layer error:', error);
@@ -459,7 +460,7 @@ export class NewApiService {
       const url = `/students/cards/${cardId}/courses/${courseId}`;
       console.log('🃏 [NewApiService] Adding course to card:', { cardId, courseId });
 
-      const response = await apiClient.post<any>(url);
+      const response = normalizeApiResponse(await apiClient.post<any>(url));
 
       console.log('📥 [NewApiService] Add course to card response:', {
         success: response.success,
@@ -484,7 +485,7 @@ export class NewApiService {
       const url = `/students/cards/${cardId}/courses/${courseId}`;
       console.log('🃏 [NewApiService] Removing course from card:', { cardId, courseId });
 
-      const response = await apiClient.delete<any>(url);
+      const response = normalizeApiResponse(await apiClient.delete<any>(url));
 
       console.log('📥 [NewApiService] Remove course from card response:', {
         success: response.success,
@@ -509,7 +510,7 @@ export class NewApiService {
       const url = `/students/cards/${cardId}/progress`;
       console.log('🃏 [NewApiService] Getting card progress:', cardId);
 
-      const response = await apiClient.get<any>(url);
+      const response = normalizeApiResponse<any>(await apiClient.get<any>(url));
 
       console.log('📥 [NewApiService] Card progress response:', {
         success: response.success,

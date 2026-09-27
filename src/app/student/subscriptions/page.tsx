@@ -128,6 +128,7 @@ export default function SubscriptionsPage() {
 
 // Empty state component
 function EmptySubscriptionsState() {
+  const router = useRouter();
   return (
     <Card>
       <CardContent className="flex items-center justify-center py-12">

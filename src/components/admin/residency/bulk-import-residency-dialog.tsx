@@ -220,8 +220,9 @@ export function BulkImportResidencyDialog({
       console.log('📥 Bulk import response:', response);
 
       if (response.success && response.data) {
-        // The API returns: { success: true, data: { questions: [...], totalCreated: 1 }, message: "..." }
-        const totalCreated = response.data.totalCreated;
+        // The backend replies with a raw { questions, totalCreated, message } body; the service
+        // wraps it so response.data is that body (apiClient already threw on any non-2xx).
+        const totalCreated = response.data.totalCreated ?? response.data.questions?.length ?? 0;
         console.log('✅ Total created:', totalCreated);
 
         setSuccess(`Successfully imported ${totalCreated} question(s)`);

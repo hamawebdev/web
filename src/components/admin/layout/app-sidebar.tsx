@@ -14,6 +14,10 @@ import { sidebarData } from './data/sidebar-data'
 import { User } from '@/types/auth'
 import { type NavGroup as NavGroupType } from './types'
 
+// Admin pages an EMPLOYEE can use: their backend routes are adminOrEmployee
+// (GET/POST/PUT/DELETE /admin/question-sources, GET/PUT /admin/questions/reports).
+const EMPLOYEE_ALLOWED_URLS = ['/admin/question-sources', '/admin/reports']
+
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   user?: User | null
 }
@@ -37,34 +41,15 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
       return sidebarData.navGroups;
     }
 
-    // For EMPLOYEE role, filter out specific items
+    // For EMPLOYEE role, show only the pages whose APIs are open to employees
+    // (adminOrEmployee on the backend); every other admin page loads ADMIN-only data and
+    // would only show 403 errors.
     if (user.role === 'EMPLOYEE') {
       console.log('🔍 AppSidebar: Filtering for EMPLOYEE role');
       const filtered = sidebarData.navGroups
         .map(group => {
-          console.log('🔍 AppSidebar: Processing group:', group.title);
-
-          // Filter out the entire "User Management" group for employees
-          if (group.title === 'User Management') {
-            console.log('🔍 AppSidebar: Hiding User Management group');
-            return null;
-          }
-
-          // For Content Management group, filter out "Question Sources"
-          if (group.title === 'Content Management') {
-            const filteredItems = group.items.filter(item => {
-              const shouldShow = item.title !== 'Question Sources';
-              console.log(`🔍 AppSidebar: Item "${item.title}" - ${shouldShow ? 'SHOW' : 'HIDE'}`);
-              return shouldShow;
-            });
-
-            return {
-              ...group,
-              items: filteredItems
-            };
-          }
-
-          return group;
+          const items = group.items.filter(item => EMPLOYEE_ALLOWED_URLS.includes(item.url));
+          return items.length > 0 ? { ...group, items } : null;
         })
         .filter(Boolean) as NavGroupType[];
 

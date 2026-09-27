@@ -5,6 +5,8 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useMemo } from 'react'
 import { useUserSubscriptions, selectEffectiveActiveSubscription } from '@/hooks/use-subscription'
+import { useStudentAuth } from '@/hooks/use-auth'
+import { Button } from '@/components/ui/button'
 
 interface SessionLayoutProps {
   children: React.ReactNode
@@ -13,7 +15,8 @@ interface SessionLayoutProps {
 export default function SessionLayout({ children }: SessionLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { subscriptions, loading } = useUserSubscriptions();
+  const { isAuthenticated, loading: authLoading, checkAndRedirect } = useStudentAuth();
+  const { subscriptions, loading, error, refresh } = useUserSubscriptions();
   const { effective } = selectEffectiveActiveSubscription(subscriptions);
   const hasActiveSubscription = !!effective;
 
@@ -25,19 +28,38 @@ export default function SessionLayout({ children }: SessionLayoutProps) {
     return pathname.startsWith('/student/subscriptions') || pathname.startsWith('/student/settings');
   }, [pathname]);
 
-  // Redirect non-subscribers away from protected student pages
+  // Every page under this layout requires a signed-in student
   useEffect(() => {
-    if (loading) return;
+    checkAndRedirect();
+  }, [checkAndRedirect]);
+
+  // Redirect non-subscribers away from protected student pages. A failed
+  // subscriptions request is not "no subscription": show a retry state instead.
+  useEffect(() => {
+    if (loading || error || authLoading || !isAuthenticated) return;
     if (!hasActiveSubscription && !subscriptionAllowed) {
       router.replace('/student/subscriptions/browse');
     }
-  }, [loading, hasActiveSubscription, subscriptionAllowed, router]);
+  }, [loading, error, authLoading, isAuthenticated, hasActiveSubscription, subscriptionAllowed, router]);
+
+  const subscriptionCheckFailed = !!error && !subscriptionAllowed;
 
   return (
     <TooltipProvider>
       <div className='min-h-screen w-full bg-background'>
-        {children}
+        {subscriptionCheckFailed ? <SubscriptionCheckFailed onRetry={refresh} /> : children}
       </div>
     </TooltipProvider>
+  )
+}
+
+function SubscriptionCheckFailed({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className='flex min-h-[50vh] flex-col items-center justify-center gap-4 p-6 text-center'>
+      <p className='text-muted-foreground'>
+        Impossible de vérifier votre abonnement pour le moment.
+      </p>
+      <Button onClick={onRetry}>Réessayer</Button>
+    </div>
   )
 }

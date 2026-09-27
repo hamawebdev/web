@@ -38,10 +38,69 @@ type ExtendedStudyPack = StudyPack & {
   }>;
 };
 
+// Admin list endpoints (/admin/study-packs, /admin/universities) default to 10 items per page
+// (max 100), so load every page instead of only the first one.
+const MAX_PAGES = 50;
+async function fetchAllPages(fetchPage: (page: number) => Promise<any>): Promise<any> {
+  const first: any = await fetchPage(1);
+  if (!Array.isArray(first?.items)) {
+    // Unexpected shape: hand it back unchanged so the caller's own checks apply
+    return first;
+  }
+  const items = [...first.items];
+  const totalPages = Math.min(Number(first.totalPages) || 1, MAX_PAGES);
+  for (let page = 2; page <= totalPages; page++) {
+    const next: any = await fetchPage(page);
+    if (Array.isArray(next?.items)) items.push(...next.items);
+  }
+  return { ...first, items };
+}
+
+/**
+ * GET /admin/content/filters returns units without their study pack. Its only link to the
+ * pack is the isResidency/yearLevel filter (pack type and yearNumber), so query it once per
+ * distinct (type, yearNumber) among the packs to learn which pack(s) each unit belongs to.
+ * Returns null when the lookup fails, so callers can fall back to the unfiltered list.
+ */
+async function loadUnitStudyPackIds(packs: StudyPack[]): Promise<Map<number, number[]> | null> {
+  const groups = new Map<string, { type?: string; yearNumber?: string | null; packIds: number[] }>();
+  packs.forEach(pack => {
+    const key = `${pack.type ?? ''}|${pack.yearNumber ?? ''}`;
+    const group = groups.get(key) ?? { type: pack.type, yearNumber: pack.yearNumber, packIds: [] };
+    group.packIds.push(pack.id);
+    groups.set(key, group);
+  });
+
+  try {
+    const unitPackIds = new Map<number, number[]>();
+    await Promise.all(Array.from(groups.values()).map(async group => {
+      const params = new URLSearchParams();
+      if (group.type) params.append('isResidency', String(group.type === 'RESIDENCY'));
+      if (group.yearNumber) params.append('yearLevel', group.yearNumber);
+      const query = params.toString();
+      const raw: any = await apiClient.get<any>(`/admin/content/filters${query ? `?${query}` : ''}`);
+      const unites: any[] = raw?.unites ?? raw?.data?.unites ?? [];
+      unites.forEach(unit => {
+        const ids = unitPackIds.get(unit.id) ?? [];
+        group.packIds.forEach(id => {
+          if (!ids.includes(id)) ids.push(id);
+        });
+        unitPackIds.set(unit.id, ids);
+      });
+    }));
+    return unitPackIds;
+  } catch (error) {
+    console.error('Failed to resolve the study pack of each unit:', error);
+    return null;
+  }
+}
+
 export function useQuestionImport() {
   const [loading, setLoading] = useState(false);
   const [filtersData, setFiltersData] = useState<QuestionFiltersResponse | null>(null);
   const [studyPacksData, setStudyPacksData] = useState<ExtendedStudyPack[]>([]);
+  // unit id -> ids of the study packs it belongs to (null when unknown)
+  const [unitStudyPackIds, setUnitStudyPackIds] = useState<Map<number, number[]> | null>(null);
   const [selection, setSelection] = useState<SelectionState>({});
   const [progress, setProgress] = useState<ImportProgress>({
     step: 'selecting',
@@ -62,8 +121,8 @@ export function useQuestionImport() {
       // Fetch content filters, study packs, and universities separately for better data freshness
       const [filtersResponse, studyPacksResponse, universitiesResponse] = await Promise.all([
         apiClient.get<QuestionFiltersResponse['data']>('/admin/content/filters'),
-        apiClient.get<{ studyPacks: StudyPack[] }>('/admin/study-packs'),
-        UniversityService.getUniversities()
+        fetchAllPages(page => apiClient.get<{ studyPacks: StudyPack[] }>(`/admin/study-packs?page=${page}&limit=100`)),
+        fetchAllPages(page => UniversityService.getUniversities({ page, limit: 100 }))
       ]);
 
       // Check validity of both responses
@@ -179,11 +238,14 @@ export function useQuestionImport() {
 
       // Handle study packs response (support both standard API response and canonical paginated response)
       const spResp = studyPacksResponse as any;
+      let loadedStudyPacks: ExtendedStudyPack[] = [];
       if (spResp?.success && spResp?.data?.studyPacks) {
-        setStudyPacksData(spResp.data.studyPacks);
+        loadedStudyPacks = spResp.data.studyPacks;
       } else if (spResp?.items && Array.isArray(spResp.items)) {
-        setStudyPacksData(spResp.items);
+        loadedStudyPacks = spResp.items;
       }
+      setStudyPacksData(loadedStudyPacks);
+      setUnitStudyPackIds(await loadUnitStudyPackIds(loadedStudyPacks));
 
       setProgress({
         step: 'selecting',
@@ -437,11 +499,19 @@ export function useQuestionImport() {
 
     // Filter units and independent modules by study pack
     if (selection.studyPack) {
-      filteredUnits = hierarchyData.units.filter(unit =>
-        unit.studyPackId === selection.studyPack!.id ||
-        unit.studyPackId === undefined ||
-        unit.studyPackId === null
-      );
+      const packId = selection.studyPack.id;
+      filteredUnits = hierarchyData.units
+        .filter(unit => {
+          if (unit.studyPackId !== undefined && unit.studyPackId !== null) {
+            return unit.studyPackId === packId;
+          }
+          // The content filters give units no studyPackId: use the per-pack lookup. Only when
+          // that lookup failed do we fall back to listing the unit under every pack.
+          return unitStudyPackIds ? (unitStudyPackIds.get(unit.id) ?? []).includes(packId) : true;
+        })
+        // Units shown under a pack belong to it: give them its id, which the unit update
+        // endpoint requires (PUT /admin/content/unites/:id validates studyPackId).
+        .map(unit => (unit.studyPackId ? unit : { ...unit, studyPackId: packId }));
       filteredIndependentModules = hierarchyData.independentModules.filter(module =>
         module.studyPackId === selection.studyPack!.id ||
         module.studyPackId === undefined ||
@@ -629,7 +699,7 @@ export function useQuestionImport() {
     });
 
     return result;
-  }, [filtersData, selection, hierarchyData]);
+  }, [filtersData, selection, hierarchyData, unitStudyPackIds]);
 
   // Update selection and progress
   const updateSelection = useCallback((key: keyof SelectionState, value: any) => {

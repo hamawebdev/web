@@ -11,7 +11,7 @@ import { logger, logHookOperation } from '@/lib/logger';
 export interface QuestionReport {
   id: number;
   questionId: number;
-  reportType: 'INCORRECT_ANSWER' | 'UNCLEAR_QUESTION' | 'TECHNICAL_ERROR' | 'CONTENT_ERROR' | 'OTHER';
+  reportType: 'INCORRECT_ANSWER' | 'TYPO' | 'UNCLEAR_QUESTION' | 'MISSING_INFO' | 'OTHER';
   description: string;
   status: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'REJECTED';
   createdAt: string;

@@ -97,16 +97,12 @@ export function CreateResourceForm({ course, onSubmit, onCancel, loading = false
       uploading: false
     }));
 
-    // Validate file type and size (expanded from test file)
-    const maxSize = 20 * 1024 * 1024; // 20MB
+    // Validate file type and size. The backend can only store PDFs (POST /admin/upload/pdf)
+    // and images (POST /admin/upload/image, max 10MB), so other formats are refused here.
+    const isImageFile = file.type.startsWith('image/');
+    const maxSize = (isImageFile ? 10 : 20) * 1024 * 1024; // 10MB for images, 20MB for PDFs
     const allowedTypes = [
       'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.ms-powerpoint',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      'text/plain',
-      'application/zip',
       'image/jpeg',
       'image/jpg',
       'image/png',
@@ -117,14 +113,14 @@ export function CreateResourceForm({ course, onSubmit, onCancel, loading = false
       'image/svg+xml'
     ];
 
-    const allowedExtensions = ['.pdf', '.doc', '.docx', '.ppt', '.pptx', '.txt', '.zip', '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp', '.svg'];
+    const allowedExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp', '.svg'];
     const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
 
     // Check file extension
     if (!allowedExtensions.includes(fileExtension)) {
       setFileUpload(prev => ({
         ...prev,
-        error: `Invalid file extension "${fileExtension}". Supported formats: PDF, DOC, DOCX, PPT, PPTX, TXT, ZIP, JPG, PNG, GIF, BMP, TIFF, WebP, SVG`,
+        error: `Invalid file extension "${fileExtension}". Supported formats: PDF, JPG, PNG, GIF, BMP, TIFF, WebP, SVG`,
         file: null
       }));
       return;
@@ -145,7 +141,7 @@ export function CreateResourceForm({ course, onSubmit, onCancel, loading = false
       const sizeMB = (file.size / 1024 / 1024).toFixed(2);
       setFileUpload(prev => ({
         ...prev,
-        error: `File size (${sizeMB}MB) exceeds the 20MB limit.`,
+        error: `File size (${sizeMB}MB) exceeds the ${isImageFile ? 10 : 20}MB limit.`,
         file: null
       }));
       return;
@@ -428,7 +424,7 @@ export function CreateResourceForm({ course, onSubmit, onCancel, loading = false
           <div className="space-y-2">
             <Label>File Upload</Label>
             <div className="text-sm text-muted-foreground mb-3">
-              Upload files (max 20MB). Supported formats: PDF, DOC, DOCX, PPT, PPTX, TXT, ZIP, JPG, PNG, GIF, BMP, TIFF, WebP, SVG
+              Upload a PDF (max 20MB) or an image (max 10MB). Supported formats: PDF, JPG, PNG, GIF, BMP, TIFF, WebP, SVG
             </div>
 
             <div className="space-y-3">
@@ -449,7 +445,7 @@ export function CreateResourceForm({ course, onSubmit, onCancel, loading = false
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.zip,.jpg,.jpeg,.png,.gif,.bmp,.tiff,.webp,.svg"
+                    accept=".pdf,.jpg,.jpeg,.png,.gif,.bmp,.tiff,.webp,.svg"
                     onChange={handleFileSelect}
                     className="hidden"
                   />

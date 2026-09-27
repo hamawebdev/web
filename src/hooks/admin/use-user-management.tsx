@@ -280,7 +280,7 @@ export function useUserManagement() {
         console.log('✅ User deleted successfully:', response.data);
 
         toast.success('Success', {
-          description: 'User deleted successfully',
+          description: 'User deactivated successfully',
         });
 
         // Refresh the user list

@@ -206,7 +206,7 @@ export function useQuestionManagement() {
         });
 
         // Refresh the question list
-        await fetchQuestions(state.currentPage);
+        await fetchQuestions(state.currentPage, 20, state.filters);
         
         return response.data;
       } else {
@@ -222,7 +222,7 @@ export function useQuestionManagement() {
       
       throw error;
     }
-  }, [fetchQuestions, state.currentPage]);
+  }, [fetchQuestions, state.currentPage, state.filters]);
 
   // Update question
   const updateQuestion = useCallback(async (questionId: number, questionData: UpdateQuestionRequest) => {
@@ -239,7 +239,7 @@ export function useQuestionManagement() {
         });
 
         // Refresh the question list
-        await fetchQuestions(state.currentPage);
+        await fetchQuestions(state.currentPage, 20, state.filters);
         
         return response.data;
       } else {
@@ -255,7 +255,7 @@ export function useQuestionManagement() {
       
       throw error;
     }
-  }, [fetchQuestions, state.currentPage]);
+  }, [fetchQuestions, state.currentPage, state.filters]);
 
   // Delete question
   const deleteQuestion = useCallback(async (questionId: number) => {
@@ -272,7 +272,7 @@ export function useQuestionManagement() {
         });
 
         // Refresh the question list
-        await fetchQuestions(state.currentPage);
+        await fetchQuestions(state.currentPage, 20, state.filters);
         
         return response.data;
       } else {
@@ -288,7 +288,7 @@ export function useQuestionManagement() {
       
       throw error;
     }
-  }, [fetchQuestions, state.currentPage]);
+  }, [fetchQuestions, state.currentPage, state.filters]);
 
   // Refresh questions (reload current page)
   const refreshQuestions = useCallback(async () => {
@@ -351,8 +351,10 @@ export function useQuestionManagement() {
 
       const responses = await Promise.all(promises);
 
-      // Check if all responses are successful
-      const allSuccessful = responses.every(response => response.success);
+      // apiClient throws on any non-2xx status, so every resolved response is a success.
+      // The image routes answer with a raw { id, images } body (no `success` flag), so only
+      // an explicit `success: false` counts as a failure here.
+      const allSuccessful = responses.every(response => response?.success !== false);
 
       if (allSuccessful) {
         console.log('✅ Question images updated successfully');
@@ -366,7 +368,7 @@ export function useQuestionManagement() {
 
         return responses;
       } else {
-        const failedResponses = responses.filter(response => !response.success);
+        const failedResponses = responses.filter(response => response?.success === false);
         throw new Error(failedResponses.map(r => r.error).join(', ') || 'Failed to update some images');
       }
     } catch (error) {
@@ -394,9 +396,10 @@ export function useQuestionManagement() {
   // Go to specific page
   const goToPage = useCallback((page: number) => {
     if (page >= 1 && page <= state.totalPages) {
-      fetchQuestions(page);
+      // fetchQuestions has no dependencies, so it must be given the active filters explicitly
+      fetchQuestions(page, 20, state.filters);
     }
-  }, [fetchQuestions, state.totalPages]);
+  }, [fetchQuestions, state.totalPages, state.filters]);
 
   return {
     // State

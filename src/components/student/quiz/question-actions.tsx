@@ -57,7 +57,8 @@ export function QuestionActions({ onEditNote }: QuestionActionsProps) {
         setLoadingNotes(true);
         const { StudentService } = await import('@/lib/api-services');
         const res = await StudentService.getQuestionNotes(Number(currentQuestion.id));
-        const notesArr = (res?.data?.data?.notes || res?.data?.notes || res?.data || []) as any[];
+        // The endpoint replies with the raw notes array (the service wraps it as { success, data })
+        const notesArr = (Array.isArray(res) ? res : (res?.data?.data?.notes || res?.data?.notes || res?.data || [])) as any[];
         if (!cancelled) setQuestionNotes(Array.isArray(notesArr) ? notesArr : []);
       } catch (e) {
         if (!cancelled) setQuestionNotes([]);

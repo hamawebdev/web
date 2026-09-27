@@ -39,6 +39,8 @@ const resetSchema = z.object({
     .email('Veuillez entrer une adresse e-mail valide'),
   code: z
     .string()
+    .trim()
+    .toUpperCase()
     .length(6, 'Le code doit comporter exactement 6 caractères')
     .regex(/^[A-Z0-9]+$/, 'Le code ne doit contenir que des lettres et des chiffres'),
   newPassword: z

@@ -43,9 +43,9 @@ const REPORT_TYPES = [
     description: 'Spelling mistake or typographical error'
   },
   {
-    value: 'INAPPROPRIATE',
-    label: 'Inappropriate content',
-    description: 'Offensive or inappropriate content'
+    value: 'MISSING_INFO',
+    label: 'Missing information',
+    description: 'The question or its answers are missing information needed to answer'
   },
   {
     value: 'OTHER',

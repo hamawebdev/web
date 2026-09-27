@@ -105,13 +105,23 @@ function StudentSessionRunnerContent() {
         for (const answer of answersArr) {
           const qid = String(answer.questionId);
           if (qid) {
-            if (answer.selectedAnswerId) {
+            // Single choice attempts come back as { selectedAnswerId }, multiple choice ones as
+            // { selectedAnswerIds: [...] } and QROC ones as { textAnswer }
+            const multiIds = Array.isArray(answer.selectedAnswerIds)
+              ? answer.selectedAnswerIds.filter((id: any) => id !== null && id !== undefined)
+              : [];
+            const hasText = typeof answer.textAnswer === 'string' && answer.textAnswer.trim().length > 0;
+            if (answer.selectedAnswerId || multiIds.length > 0 || hasText) {
               // This is an answered question
               answeredQuestionIds.add(answer.questionId);
               map[qid] = {
                 questionId: qid,
-                selectedOptions: [String(answer.selectedAnswerId)],
-                isCorrect: answer.isCorrect,
+                selectedOptions: multiIds.length > 0
+                  ? multiIds.map((id: any) => String(id))
+                  : (answer.selectedAnswerId ? [String(answer.selectedAnswerId)] : []),
+                ...(hasText ? { textAnswer: answer.textAnswer } : {}),
+                // The API omits isCorrect when it is false
+                isCorrect: answer.isCorrect === true,
                 timeSpent: 0,
                 isBookmarked: false,
                 notes: '',
@@ -119,7 +129,7 @@ function StudentSessionRunnerContent() {
                 answeredAt: answer.answeredAt,
                 locked: true, // Lock previously submitted answers so they cannot be changed
               };
-            } else {
+            } else if (!map[qid]) {
               // This is an unanswered question (only has questionId)
               map[qid] = {
                 questionId: qid,

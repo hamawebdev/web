@@ -6,6 +6,8 @@ import { LoginRequest } from '@/types/api';
 import { getOrCreateDeviceFingerprint } from './device-fingerprint';
 import { API_BASE_URL } from './config';
 
+const GOOGLE_SIGN_IN_PENDING_KEY = 'google_sign_in_pending';
+
 // Authentication class that integrates with the Medical Education Platform API
 export class AuthAPI {
   /**
@@ -205,7 +207,14 @@ export class AuthAPI {
       console.log('🔐 AuthAPI.getCurrentUser: Error occurred', error);
       // Don't clear tokens here — the ApiClient interceptor already handles
       // 401 errors (token refresh or clearing). Clearing again causes race conditions.
-      return null;
+      const status = error?.statusCode;
+      if (status === 401 || status === 403 || !apiClient.isAuthenticated()) {
+        // The session is really gone (or was never valid)
+        return null;
+      }
+      // Temporary failure (network error, timeout, 5xx) with the session still
+      // stored: let the caller retry instead of treating the user as logged out.
+      throw new Error(error?.error || error?.message || 'Failed to fetch user profile');
     }
   }
 
@@ -247,6 +256,34 @@ export class AuthAPI {
     } finally {
       // Always clear tokens locally
       apiClient.clearTokens();
+      AuthAPI.clearUserScopedStorage();
+    }
+  }
+
+  /**
+   * Remove data that belongs to the signed-out user so the next person using
+   * this browser does not inherit it (profile copy, course trackers, quiz state).
+   */
+  static clearUserScopedStorage(): void {
+    if (typeof window === 'undefined') return;
+    try {
+      const exactKeys = [
+        'auth_user',
+        'suivi_cours_tracked_courses',
+        'suivi_cours_storage_metadata',
+        'quiz_storage_metadata',
+      ];
+      const prefixes = ['quiz_session_', 'quiz_ui_state_', 'quiz_progress_', 'readingTodo:'];
+      const toRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (exactKeys.includes(key) || prefixes.some(p => key.startsWith(p)))) {
+          toRemove.push(key);
+        }
+      }
+      toRemove.forEach(key => localStorage.removeItem(key));
+    } catch (error) {
+      console.warn('Failed to clear user-scoped storage:', error);
     }
   }
 
@@ -370,7 +407,8 @@ export class AuthAPI {
       case 'ADMIN':
         return '/admin/content/';
       case 'EMPLOYEE':
-        return '/admin/content';
+        // /admin/content needs ADMIN-only APIs; question sources is open to employees
+        return '/admin/question-sources';
       default:
         return '/';
     }
@@ -388,6 +426,35 @@ export class AuthAPI {
    */
   static getGoogleAuthUrl(): string {
     return `${API_BASE_URL}/auth/google`;
+  }
+
+  /**
+   * Mark that this tab started a Google sign-in. The OAuth callback only accepts
+   * tokens when this marker exists, so a link carrying someone else's tokens
+   * (login CSRF) cannot sign a visitor into another account.
+   * sessionStorage is per tab and per origin and survives the round trip through
+   * the API and Google in the same tab.
+   */
+  static beginGoogleSignIn(): void {
+    try {
+      sessionStorage.setItem(GOOGLE_SIGN_IN_PENDING_KEY, String(Date.now()));
+    } catch (error) {
+      console.warn('Could not record Google sign-in start:', error);
+    }
+  }
+
+  /**
+   * Read and clear the marker set by beginGoogleSignIn. Returns true only when
+   * this tab started a Google sign-in within the last 15 minutes.
+   */
+  static consumeGoogleSignInPending(): boolean {
+    try {
+      const startedAt = Number(sessionStorage.getItem(GOOGLE_SIGN_IN_PENDING_KEY));
+      sessionStorage.removeItem(GOOGLE_SIGN_IN_PENDING_KEY);
+      return Number.isFinite(startedAt) && startedAt > 0 && Date.now() - startedAt < 15 * 60 * 1000;
+    } catch {
+      return false;
+    }
   }
 
 }

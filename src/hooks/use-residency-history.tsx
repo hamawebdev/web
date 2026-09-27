@@ -74,21 +74,28 @@ export function useResidencyHistory(): UseResidencyHistoryResult {
       }
 
       // Extract sessions from response
-      const sessions = response.data?.data?.sessions || response.data?.sessions || [];
+      // The API returns the sessions array itself; older shapes nested it under `sessions`
+      const payload: any = response.data;
+      const sessions = Array.isArray(payload)
+        ? payload
+        : (payload?.sessions || payload?.data?.sessions || (Array.isArray(payload?.data) ? payload.data : []));
       
       console.log('🩺 [useResidencyHistory] Sessions fetched:', {
         count: sessions.length,
         sessions: sessions.slice(0, 2) // Log first 2 for debugging
       });
 
-      // Calculate summary statistics
+      // Calculate summary statistics. The API sends `score` (null until a session is completed)
+      const scores: number[] = sessions
+        .map((s: ResidencySession) => s.score ?? s.percentage)
+        .filter((v: unknown): v is number => typeof v === 'number' && Number.isFinite(v));
       const summary = {
         totalSessions: sessions.length,
         completedSessions: sessions.filter((s: ResidencySession) => s.status === 'COMPLETED').length,
         inProgressSessions: sessions.filter((s: ResidencySession) => s.status === 'IN_PROGRESS').length,
         notStartedSessions: sessions.filter((s: ResidencySession) => s.status === 'NOT_STARTED').length,
-        averageScore: sessions.length > 0
-          ? Math.round(sessions.reduce((sum: number, s: ResidencySession) => sum + s.percentage, 0) / sessions.length)
+        averageScore: scores.length > 0
+          ? Math.round(scores.reduce((sum, v) => sum + v, 0) / scores.length)
           : 0
       };
 

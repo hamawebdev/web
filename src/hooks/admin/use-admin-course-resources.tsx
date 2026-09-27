@@ -59,7 +59,8 @@ export interface AdminContentFilters {
 export interface Unit {
   id: number;
   name: string;
-  studyPack: {
+  // Not returned by GET /admin/content/filters
+  studyPack?: {
     id: number;
     name: string;
     yearNumber: string;
@@ -225,9 +226,11 @@ export function useAdminCourseResources(): UseAdminCourseResourcesResult {
 
       console.log('🔍 [AdminCourseResources] Fetching filters for year:', yearLevel);
 
-      const response = await AdminCourseResourcesService.getAdminContentFilters({
-        yearLevel
-      });
+      // Residency packs have no yearNumber (selectYear passes 'RESIDENCY'), which is not a
+      // YearLevel value: ask for residency content instead of an invalid yearLevel filter.
+      const response = await AdminCourseResourcesService.getAdminContentFilters(
+        yearLevel === 'RESIDENCY' ? { isResidency: true } : { yearLevel }
+      );
 
       console.log('📊 [AdminCourseResources] API Response:', {
         success: response.success,

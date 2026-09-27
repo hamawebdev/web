@@ -114,21 +114,20 @@ export function useQuestionReportsManagement() {
       });
 
       if (response.success && response.data) {
-        const reportsData = response.data.data || response.data.reports || [];
+        // Backend body: { items, total, page, limit, totalPages }; each item carries the
+        // admin's reply as `adminNotes`, which the UI reads as `adminResponse`.
+        const d: any = response.data;
+        const rawReports: any[] = d.items ?? d.data ?? d.reports ?? [];
+        const reportsData = rawReports.map(report => ({
+          ...report,
+          adminResponse: report.adminResponse ?? report.adminNotes ?? null,
+        })) as AdminQuestionReport[];
         setReports(reportsData);
 
-        // Handle pagination
-        if (response.data.pagination) {
-          setTotalReports(response.data.pagination.total);
-          setTotalPages(response.data.pagination.totalPages);
-          setCurrentPage(response.data.pagination.currentPage);
-        } else {
-          // Fallback for simple array response
-          setTotalReports(reportsData.length);
-          const limit = filters.limit || 10;
-          setTotalPages(Math.ceil(reportsData.length / limit));
-          setCurrentPage(filters.page || 1);
-        }
+        const limit = filters.limit || 10;
+        setTotalReports(d.total ?? d.pagination?.total ?? reportsData.length);
+        setTotalPages(d.totalPages ?? d.pagination?.totalPages ?? Math.ceil(reportsData.length / limit));
+        setCurrentPage(d.page ?? d.pagination?.currentPage ?? filters.page ?? 1);
       } else {
         throw new Error(response.error?.message || 'Failed to fetch question reports');
       }
@@ -183,7 +182,10 @@ export function useQuestionReportsManagement() {
         throw new Error(response.error?.message || 'Failed to review report');
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to review report';
+      // apiClient rejects with { success: false, error } objects, not Error instances
+      const errorMessage = err instanceof Error
+        ? err.message
+        : (typeof (err as any)?.error === 'string' ? (err as any).error : 'Failed to review report');
       toast.error(errorMessage);
       throw err;
     }

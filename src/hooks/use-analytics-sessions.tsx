@@ -40,7 +40,17 @@ export function useAnalyticsSessions({
         throw new Error(response.error || 'Failed to fetch analytics sessions');
       }
 
-      return response.data;
+      // The endpoint returns a flat array of { id, title, type, status, score, ... };
+      // older shapes wrapped it as { sessions: [...] }
+      const payload: any = response.data;
+      const list = Array.isArray(payload)
+        ? payload
+        : (payload?.sessions || (Array.isArray(payload?.data) ? payload.data : payload?.data?.sessions) || []);
+      return list.map((session: any) => (
+        session && !session.stats && typeof session.score === 'number'
+          ? { ...session, stats: { accuracy: `${session.score}%` } }
+          : session
+      ));
     },
     enabled,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -81,7 +91,7 @@ export function useAnalyticsSessions({
     }
   }, [queryError, data]);
 
-  const sessions = data?.sessions || [];
+  const sessions = Array.isArray(data) ? data : (data?.sessions || []);
   const isEmpty = sessions.length === 0;
 
   return {
@@ -103,7 +113,7 @@ export function useSessionTypeState(defaultType: SessionType = 'PRACTICE') {
     if (typeof window !== 'undefined' && !isInitialized) {
       try {
         const stored = localStorage.getItem('analytics-session-type');
-        if (stored && ['PRACTICE', 'EXAM', 'RESIDENCY'].includes(stored)) {
+        if (stored && ['PRACTICE', 'EXAM'].includes(stored)) {
           setSessionType(stored as SessionType);
         }
       } catch (error) {

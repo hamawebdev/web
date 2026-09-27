@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useRef, useState, Suspense } from 'react';
+import { useRouter } from 'next/navigation';
 import { AuthAPI } from '@/lib/auth-api';
+import { resetAuthCache } from '@/hooks/use-auth';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
@@ -18,26 +19,54 @@ export default function AuthCallbackPage() {
   );
 }
 
+/**
+ * The API delivers the OAuth result in the URL fragment (#accessToken=...&refreshToken=...),
+ * which browsers never send to a server or put in a Referer header. Older API versions
+ * used the query string, so fall back to it when the fragment carries nothing.
+ */
+function readCallbackParams(): URLSearchParams {
+  const fromFragment = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  if (fromFragment.has('accessToken') || fromFragment.has('refreshToken') || fromFragment.has('error')) {
+    return fromFragment;
+  }
+  return new URLSearchParams(window.location.search);
+}
+
 function AuthCallbackContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [isProcessing, setIsProcessing] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // The callback must be processed once (the URL is scrubbed below, and React may
+  // re-run effects), so a second run can never re-store the tokens
+  const handledRef = useRef(false);
 
   useEffect(() => {
+    if (handledRef.current) return;
+    handledRef.current = true;
+
     const handleOAuthCallback = async () => {
       try {
-        const accessToken = searchParams.get('accessToken');
-        const refreshToken = searchParams.get('refreshToken');
-        const isNewUser = searchParams.get('isNewUser') === 'true';
-        const errorParam = searchParams.get('error');
+        const params = readCallbackParams();
+        const accessToken = params.get('accessToken');
+        const refreshToken = params.get('refreshToken');
+        const isNewUser = params.get('isNewUser') === 'true';
+        const errorParam = params.get('error');
+
+        // Remove the tokens from the address bar and browser history right away,
+        // so the tokenized URL cannot be replayed from history later
+        if (window.location.hash || window.location.search) {
+          window.history.replaceState(null, '', '/auth/callback');
+        }
+
+        // Only accept tokens for a sign-in this tab started (see AuthAPI.beginGoogleSignIn)
+        const signInStartedHere = AuthAPI.consumeGoogleSignInPending();
 
         // Handle OAuth errors
         if (errorParam) {
           setError('Authentication failed. Please try again.');
           toast.error('Authentication failed. Please try again.');
           setTimeout(() => {
-            router.push('/login?error=oauth_failed');
+            router.replace('/login?error=oauth_failed');
           }, 2000);
           return;
         }
@@ -47,13 +76,23 @@ function AuthCallbackContent() {
           setError('Invalid authentication response. Please try again.');
           toast.error('Invalid authentication response. Please try again.');
           setTimeout(() => {
-            router.push('/login?error=oauth_failed');
+            router.replace('/login?error=oauth_failed');
+          }, 2000);
+          return;
+        }
+
+        if (!signInStartedHere) {
+          setError('This sign-in link was not started from this browser. Please sign in again.');
+          toast.error('This sign-in link was not started from this browser. Please sign in again.');
+          setTimeout(() => {
+            router.replace('/login?error=oauth_failed');
           }, 2000);
           return;
         }
 
         // Store tokens
         AuthAPI.setTokens(accessToken, refreshToken);
+        resetAuthCache();
 
         // Get user profile
         const user = await AuthAPI.getCurrentUser();
@@ -62,7 +101,7 @@ function AuthCallbackContent() {
           setError('Failed to retrieve user profile. Please try again.');
           toast.error('Failed to retrieve user profile. Please try again.');
           setTimeout(() => {
-            router.push('/login?error=oauth_failed');
+            router.replace('/login?error=oauth_failed');
           }, 2000);
           return;
         }
@@ -76,13 +115,13 @@ function AuthCallbackContent() {
 
         // Redirect based on user role
         const redirectPath = AuthAPI.getRedirectPath(user.role);
-        router.push(redirectPath);
+        router.replace(redirectPath);
       } catch (err: any) {
         console.error('OAuth callback error:', err);
         setError(err.message || 'Authentication failed. Please try again.');
         toast.error(err.message || 'Authentication failed. Please try again.');
         setTimeout(() => {
-          router.push('/login?error=oauth_failed');
+          router.replace('/login?error=oauth_failed');
         }, 2000);
       } finally {
         setIsProcessing(false);
@@ -90,7 +129,7 @@ function AuthCallbackContent() {
     };
 
     handleOAuthCallback();
-  }, [searchParams, router]);
+  }, [router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">

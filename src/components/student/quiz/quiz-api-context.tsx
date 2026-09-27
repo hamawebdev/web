@@ -855,6 +855,7 @@ export function ApiQuizProvider({
               selectedAnswerId: answer.selectedOptions?.[0],
               selectedAnswerIds: answer.selectedOptions,
               textAnswer: answer.textAnswer,
+              isCorrect: answer.isCorrect,
               timeSpent: answer.timeSpent || 0
             };
           });

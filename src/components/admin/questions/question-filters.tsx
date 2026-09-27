@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -41,7 +41,8 @@ interface StudyPack {
 interface Unit {
   id: number;
   name: string;
-  studyPack: {
+  // Not returned by GET /admin/content/filters (units carry no study pack there)
+  studyPack?: {
     id: number;
     name: string;
     yearNumber: string;
@@ -161,46 +162,52 @@ export default function QuestionFilters({
     loadFilterData();
   }, []);
 
-  // Map Year Level to Study Pack ID
-  const getStudyPackIdFromYearLevel = (yearLevel: string | undefined): number | undefined => {
-    if (!yearLevel) return undefined;
-    const yearMap: Record<string, number> = {
-      'ONE': 1,
-      'TWO': 2,
-      'THREE': 3,
-      'FOUR': 4,
-      'FIVE': 5,
-      'SIX': 6,
-      'SEVEN': 7
+  // Units of the selected year. The content filters endpoint returns units without their
+  // study pack, so they cannot be matched to a pack on the client; ask the backend for the
+  // units whose study pack has this yearNumber instead.
+  const [yearUnits, setYearUnits] = useState<Unit[]>([]);
+  useEffect(() => {
+    if (!filters.yearLevel) {
+      setYearUnits([]);
+      return;
+    }
+
+    let cancelled = false;
+    setYearUnits([]);
+    AdminService.getQuestionContentFilters({ yearLevel: filters.yearLevel, isResidency: false })
+      .then(response => {
+        if (!cancelled) setYearUnits((response?.data?.unites as Unit[] | undefined) ?? []);
+      })
+      .catch(error => {
+        if (cancelled) return;
+        console.error('Failed to load units for the selected year:', error);
+        setYearUnits([]);
+        toast.error('Erreur', { description: 'Impossible de charger les unités de cette année.' });
+      });
+
+    return () => {
+      cancelled = true;
     };
-    return yearMap[yearLevel];
-  };
+  }, [filters.yearLevel]);
+
+  // Independent modules of the selected year (matched on their study pack's yearNumber)
+  const getIndependentModulesForYear = useCallback(
+    (yearLevel: string) => independentModules.filter(m => m.studyPack?.yearNumber === yearLevel),
+    [independentModules]
+  );
 
   // Update available units and independent modules when year level changes
   useEffect(() => {
     if (filters.yearLevel) {
-      const studyPackId = getStudyPackIdFromYearLevel(filters.yearLevel);
-
-      if (studyPackId) {
-        // Filter units for this year
-        const filteredUnits = units.filter(u => u.studyPack.id === studyPackId);
-        setAvailableUnits(filteredUnits);
-
-        // Filter independent modules for this year
-        const filteredIndependentModules = independentModules.filter(m => m.studyPackId === studyPackId);
-        setAvailableModules(filteredIndependentModules);
-      } else {
-        setAvailableUnits([]);
-        setAvailableModules([]);
-      }
-
+      setAvailableUnits(yearUnits);
+      setAvailableModules(getIndependentModulesForYear(filters.yearLevel));
       setAvailableCourses([]);
     } else {
       setAvailableUnits([]);
       setAvailableModules([]);
       setAvailableCourses([]);
     }
-  }, [filters.yearLevel, units, independentModules]);
+  }, [filters.yearLevel, yearUnits, getIndependentModulesForYear]);
 
   // Update available modules when unit changes (modules within a unit)
   useEffect(() => {
@@ -215,13 +222,9 @@ export default function QuestionFilters({
       setAvailableCourses([]);
     } else if (filters.yearLevel && !filters.unitId) {
       // If year is selected but no unit, show independent modules for that year
-      const studyPackId = getStudyPackIdFromYearLevel(filters.yearLevel);
-      if (studyPackId) {
-        const filteredIndependentModules = independentModules.filter(m => m.studyPackId === studyPackId);
-        setAvailableModules(filteredIndependentModules);
-      }
+      setAvailableModules(getIndependentModulesForYear(filters.yearLevel));
     }
-  }, [filters.unitId, filters.yearLevel, units, independentModules]);
+  }, [filters.unitId, filters.yearLevel, units, getIndependentModulesForYear]);
 
   // Update available courses when module changes
   useEffect(() => {

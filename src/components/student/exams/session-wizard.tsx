@@ -40,8 +40,6 @@ import { cn } from "@/lib/utils";
 import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import useMeasure from "react-use-measure";
 
-const UNIVERSITY_ID = 1;
-
 export type ExamSessionPayload = {
   title: string;
   module?: string;
@@ -436,7 +434,6 @@ export function ExamSessionWizard({
         sessionType: 'EXAM' as const,
         questionTypes: ['SINGLE_CHOICE', 'MULTIPLE_CHOICE', 'QROC'] as Array<'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'QROC'>,
         years: (selectedYear && selectedYear !== 'ALL') ? [Number(selectedYear)] : undefined,
-        universityIds: [UNIVERSITY_ID],
         questionSourceIds: [Number(selectedSource)]
       };
 

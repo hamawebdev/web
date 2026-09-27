@@ -61,7 +61,7 @@ function QuizErrorFallback({ error, resetError }: QuizErrorFallbackProps) {
         color: 'text-red-500',
         canRetry: false,
         primaryAction: 'Log In',
-        primaryActionFn: () => router.push('/auth/login')
+        primaryActionFn: () => router.push('/login')
       };
     }
     

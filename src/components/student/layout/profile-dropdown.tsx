@@ -3,7 +3,6 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -26,15 +25,14 @@ import {
   University
 } from 'lucide-react'
 import { UserCircle } from '@solar-icons/react'
-import { toast } from 'sonner'
 import { SettingsService } from '@/lib/api-services'
-import { apiClient } from '@/lib/api-client'
+import { useAuth } from '@/hooks/use-auth'
 import type { UserProfile } from '@/types/api'
 
 export function StudentProfileDropdown() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const router = useRouter()
+  const { logout } = useAuth()
 
   // Load user profile data
   useEffect(() => {
@@ -58,17 +56,10 @@ export function StudentProfileDropdown() {
     loadProfile()
   }, [])
 
-  // Handle logout
+  // Handle logout: revokes the refresh token on the server, clears the local
+  // session and user data, resets the cached auth state and goes to /login
   const handleLogout = async () => {
-    try {
-      // Clear tokens and redirect
-      apiClient.clearTokens()
-      toast.success('Logged out successfully')
-      router.push('/login')
-    } catch (error) {
-      console.error('Logout error:', error)
-      toast.error('Error logging out')
-    }
+    await logout()
   }
 
   // Get user initials for avatar fallback

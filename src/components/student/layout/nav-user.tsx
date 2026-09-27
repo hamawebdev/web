@@ -3,7 +3,6 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import {
   Bell,
   ChevronsUpDown,
@@ -30,16 +29,15 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar'
-import { toast } from 'sonner'
 import { SettingsService } from '@/lib/api-services'
-import { apiClient } from '@/lib/api-client'
+import { useAuth } from '@/hooks/use-auth'
 import type { UserProfile } from '@/types/api'
 
 export function NavUser() {
   const { isMobile } = useSidebar()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const router = useRouter()
+  const { logout } = useAuth()
 
   // Load user profile data
   useEffect(() => {
@@ -63,16 +61,10 @@ export function NavUser() {
     loadProfile()
   }, [])
 
-  // Handle logout
+  // Handle logout: revokes the refresh token on the server, clears the local
+  // session and user data, resets the cached auth state and goes to /login
   const handleLogout = async () => {
-    try {
-      apiClient.clearTokens()
-      toast.success('Logged out successfully')
-      router.push('/login')
-    } catch (error) {
-      console.error('Logout error:', error)
-      toast.error('Error logging out')
-    }
+    await logout()
   }
 
   // Get user initials for avatar fallback
@@ -196,7 +188,7 @@ export function NavUser() {
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
-                <Link href='/student/subscription'>
+                <Link href='/student/subscriptions/browse'>
                   <Sparkles className='mr-2 size-4' />
                   Upgrade to Pro
                 </Link>
@@ -208,7 +200,7 @@ export function NavUser() {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href='/student/subscription'>
+                <Link href='/student/subscriptions'>
                   <CreditCard className='mr-2 size-4' />
                   Billing
                 </Link>

@@ -231,7 +231,7 @@ export default function TodosPage() {
           type: c.type || 'OTHER',
           dueDate: c.dueDate,
           courseIds: c.courseIds || [],
-          courses: c.courses || [],
+          courses: c.courses || (c.course ? [c.course] : []),
           estimatedTime: c.estimatedTime,
           tags: c.tags || [],
           createdAt: c.createdAt || new Date().toISOString(),
@@ -279,11 +279,14 @@ export default function TodosPage() {
           // Show only completed todos
           apiParams.includeCompleted = true
           apiParams.status = 'COMPLETED'
+        } else if (selectedStatus === 'OVERDUE') {
+          // OVERDUE is not a stored status (TodoStatus is PENDING | IN_PROGRESS | COMPLETED):
+          // fetch the open todos and keep the overdue ones client-side (todo.isOverdue)
+          apiParams.includeCompleted = false
         } else {
-          // Show specific status (PENDING, IN_PROGRESS, OVERDUE)
-          // For OVERDUE, we might need completed todos to determine overdue status
+          // Show specific status (PENDING, IN_PROGRESS)
           apiParams.status = selectedStatus
-          apiParams.includeCompleted = selectedStatus === 'OVERDUE'
+          apiParams.includeCompleted = false
         }
 
         const response = await StudentService.getTodos(apiParams)
@@ -307,7 +310,11 @@ export default function TodosPage() {
             console.log('🔍 Processing todo:', todo.id, todo.title, 'courses:', todo.courses)
 
             // Ensure courses have the expected structure for display
-            const normalizedCourses = (todo.courses || []).map((course: any) => {
+            // The API links a todo to a single `course`; `courses` is kept for older shapes
+            const rawCourses = Array.isArray(todo.courses) && todo.courses.length > 0
+              ? todo.courses
+              : ((todo as any).course ? [(todo as any).course] : [])
+            const normalizedCourses = rawCourses.map((course: any) => {
               console.log('🔍 Processing course:', course)
               return {
                 id: course.id,
@@ -356,14 +363,22 @@ export default function TodosPage() {
             const current = p.currentPage ?? p.page ?? page ?? 1
             const lim = p.limit ?? limit ?? 12
             const totalItems = p.total ?? p.totalItems ?? 0
-            const totalPages = p.totalPages ?? (lim ? Math.ceil(totalItems / lim) : 1)
+            // The API sends { currentPage, totalItems (items on this page), hasMore } without a
+            // grand total: derive the page count from hasMore instead of from totalItems
+            const hasMore = typeof p.hasMore === 'boolean' ? p.hasMore : undefined
+            const totalPages = p.totalPages
+              ?? (p.total === undefined && hasMore !== undefined
+                ? (hasMore ? current + 1 : current)
+                : (lim ? Math.ceil(totalItems / lim) : 1))
             setPagination({
               page: current,
               totalPages,
               total: totalItems,
               limit: lim,
               hasPrev: current > 1,
-              hasNext: current < totalPages,
+              hasNext: hasMore ?? (current < totalPages),
+              // Without a grand total the page count and total are only lower bounds
+              totalKnown: p.total !== undefined || p.totalPages !== undefined || hasMore === undefined,
             })
           } else {
             // Fallback: unknown total, only know current page
@@ -410,6 +425,12 @@ export default function TodosPage() {
 
       // Client-side completed visibility (only applies when status filter is 'ALL')
       if (selectedStatus === 'ALL' && !showCompleted && todo.status === 'COMPLETED') return false
+
+      // Overdue filter is client-side: the API has no OVERDUE status
+      if (selectedStatus === 'OVERDUE') {
+        const overdue = todo.isOverdue ?? (!!todo.dueDate && new Date(todo.dueDate) < new Date() && todo.status !== 'COMPLETED')
+        if (!overdue) return false
+      }
 
       // Search by title/description (defensive)
       const t = (todo.title ?? '').toLowerCase()
@@ -948,7 +969,6 @@ export default function TodosPage() {
                         <SelectItem value="PENDING">Pending</SelectItem>
                         <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
                         <SelectItem value="COMPLETED">Completed</SelectItem>
-                        <SelectItem value="OVERDUE">Overdue</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1268,7 +1288,9 @@ export default function TodosPage() {
       {pagination && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-6 border-t">
           <div className="text-sm text-muted-foreground text-center sm:text-left">
-            Page {pagination.page} of {pagination.totalPages || 1} • {pagination.total} total tasks
+            {pagination.totalKnown === false
+              ? <>Page {pagination.page} • {pagination.total} tasks on this page</>
+              : <>Page {pagination.page} of {pagination.totalPages || 1} • {pagination.total} total tasks</>}
           </div>
           <div className="flex gap-2">
             <Button

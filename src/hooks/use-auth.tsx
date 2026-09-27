@@ -5,11 +5,28 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { User, LoginData, AuthState, convertApiUserToLegacy } from '@/types/auth';
 import AuthAPI from '@/lib/auth-api';
+import { AUTH_LOGOUT_EVENT } from '@/lib/api-client';
 import { toast } from 'sonner';
 
 // Module-level cache to prevent duplicate /auth/profile calls across components
 let cachedAuthResult: { user: User | null; isAuthenticated: boolean } | null = null;
 let initializePromise: Promise<User | null> | null = null;
+
+/**
+ * Forget the cached auth result. Call it whenever the stored tokens change
+ * outside useAuth().login (registration, OAuth callback, logout, password change)
+ * so the next initializeAuth reads the real session again.
+ */
+export function resetAuthCache() {
+  cachedAuthResult = null;
+  initializePromise = null;
+}
+
+// The API client fires AUTH_LOGOUT_EVENT when the refresh token is rejected and
+// the tokens are cleared; drop the cached user so guards stop trusting it.
+if (typeof window !== 'undefined') {
+  window.addEventListener(AUTH_LOGOUT_EVENT, resetAuthCache);
+}
 
 // Custom hook for authentication management
 export function useAuth() {
@@ -25,6 +42,13 @@ export function useAuth() {
 
   // Initialize authentication state (API only)
   const initializeAuth = useCallback(async () => {
+    // A cached result is only valid while it still matches the stored tokens:
+    // tokens stored after a cached "logged out" (registration, OAuth) or cleared
+    // after a cached "logged in" (logout, expired session) invalidate it.
+    if (cachedAuthResult && cachedAuthResult.isAuthenticated !== AuthAPI.isAuthenticated()) {
+      resetAuthCache();
+    }
+
     // Return cached result if available to avoid duplicate network calls
     if (cachedAuthResult) {
       setAuthState(prev => ({
@@ -83,13 +107,15 @@ export function useAuth() {
       const result = await initializePromise;
       return result;
     } catch (error) {
+      // Temporary failure (network, timeout, 5xx) while the tokens are still stored:
+      // do not cache "not authenticated", so the next call retries the profile.
       console.error('🔐 useAuth.initializeAuth: Auth initialization error:', error);
-      cachedAuthResult = { isAuthenticated: false, user: null };
+      cachedAuthResult = null;
       setAuthState({
         isAuthenticated: false,
         user: null,
         loading: false,
-        error: error instanceof Error ? error.message : 'Authentication error',
+        error: (error as any)?.message || (error as any)?.error || 'Authentication error',
       });
     } finally {
       isInitializingRef.current = false;
@@ -145,7 +171,9 @@ export function useAuth() {
     try {
       setAuthState(prev => ({ ...prev, loading: true }));
 
+      resetAuthCache();
       await AuthAPI.logout();
+      resetAuthCache();
 
       setAuthState({
         isAuthenticated: false,
@@ -159,6 +187,7 @@ export function useAuth() {
     } catch (error) {
       console.error('Logout error:', error);
       // Even if logout fails, clear local state
+      resetAuthCache();
       setAuthState({
         isAuthenticated: false,
         user: null,
@@ -230,6 +259,20 @@ export function useAuth() {
     setAuthState(prev => ({ ...prev, error: null }));
   }, []);
 
+  // When the API client ends the session (refresh token rejected), reflect it here
+  useEffect(() => {
+    const handleSessionEnded = () => {
+      setAuthState({
+        isAuthenticated: false,
+        user: null,
+        loading: false,
+        error: null,
+      });
+    };
+    window.addEventListener(AUTH_LOGOUT_EVENT, handleSessionEnded);
+    return () => window.removeEventListener(AUTH_LOGOUT_EVENT, handleSessionEnded);
+  }, []);
+
   // Manual initialization - call initializeAuth when needed
   // No automatic initialization on mount
 
@@ -247,9 +290,18 @@ export function useAuth() {
 
 // Hook for checking if user has specific role (manual check, no automatic redirects)
 export function useRequireAuth(requiredRole?: User['role']) {
-  const { isAuthenticated, user, loading, initializeAuth } = useAuth();
+  const { isAuthenticated, user, loading, error, initializeAuth } = useAuth();
   const router = useRouter();
   const [initialized, setInitialized] = useState(false);
+
+  // The session ended while on a protected page (refresh token rejected): go to login
+  useEffect(() => {
+    const handleSessionEnded = () => {
+      router.replace('/login');
+    };
+    window.addEventListener(AUTH_LOGOUT_EVENT, handleSessionEnded);
+    return () => window.removeEventListener(AUTH_LOGOUT_EVENT, handleSessionEnded);
+  }, [router]);
 
   // Initialize auth on mount (only once)
   useEffect(() => {
@@ -265,6 +317,11 @@ export function useRequireAuth(requiredRole?: User['role']) {
   const checkAndRedirect = useCallback(() => {
     if (!loading && initialized) {
       if (!isAuthenticated) {
+        // A temporary profile-fetch failure with tokens still stored is not a logout
+        if (error && AuthAPI.isAuthenticated()) {
+          console.warn('🔐 useRequireAuth: Could not verify the session right now, not redirecting');
+          return;
+        }
         console.log('🔐 useRequireAuth: User not authenticated, redirecting to login');
         router.push('/login');
         return;
@@ -278,7 +335,7 @@ export function useRequireAuth(requiredRole?: User['role']) {
         return;
       }
     }
-  }, [isAuthenticated, user, loading, requiredRole, router, initialized]);
+  }, [isAuthenticated, user, loading, error, requiredRole, router, initialized]);
 
   return { isAuthenticated, user, loading, checkAndRedirect };
 }

@@ -55,6 +55,9 @@ export function EditActivationCodeDialog({
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // The duration type and a day-based duration cannot be changed through the update endpoint
+  const isMonthsCode = (activationCode?.durationType || 'MONTHS') === 'MONTHS';
+
   // Load study packs when dialog opens
   useEffect(() => {
     if (open) {
@@ -128,6 +131,13 @@ export function EditActivationCodeDialog({
     }
   };
 
+  // Whether the selected study packs differ from the code's current packs
+  const studyPacksChanged = (): boolean => {
+    const original = (activationCode?.studyPacks?.map(sp => sp.id) || []).slice().sort((a, b) => a - b);
+    const selected = (formData.studyPackIds || []).slice().sort((a, b) => a - b);
+    return original.length !== selected.length || original.some((id, i) => id !== selected[i]);
+  };
+
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
@@ -160,6 +170,9 @@ export function EditActivationCodeDialog({
 
     if (!formData.studyPackIds || formData.studyPackIds.length === 0) {
       newErrors.studyPackIds = 'Au moins un Study Pack doit être sélectionné';
+    } else if (studyPacksChanged() && formData.studyPackIds.length !== 1) {
+      // The update endpoint only takes a single studyPackId, which replaces all current packs
+      newErrors.studyPackIds = 'Lors de la modification, un seul Study Pack peut être défini (il remplace les packs actuels). Créez un nouveau code pour plusieurs packs.';
     }
 
     setErrors(newErrors);
@@ -179,17 +192,16 @@ export function EditActivationCodeDialog({
       // Convert date to ISO string with time
       const expiryDateTime = new Date(formData.expiresAt + 'T23:59:59.999Z');
 
+      // Only send what PUT /admin/activation-codes/:id applies (updateActivationCodeSchema);
+      // anything else is stripped by the backend while the request still succeeds.
       const codeData: UpdateActivationCodeRequest = {
-        description: formData.description?.trim() || undefined,
-        durationType: formData.durationType,
         maxUses: formData.maxUses,
-        expiresAt: expiryDateTime.toISOString(),
-        studyPackIds: formData.studyPackIds,
+        expiryDate: expiryDateTime.toISOString(),
         isActive: formData.isActive,
-        ...(formData.durationType === 'MONTHS'
-          ? { durationMonths: formData.durationMonths }
-          : { durationDays: formData.durationDays }
-        ),
+        ...(isMonthsCode ? { durationMonths: formData.durationMonths } : {}),
+        ...(studyPacksChanged() && formData.studyPackIds?.length === 1
+          ? { studyPackId: formData.studyPackIds[0] }
+          : {}),
       };
 
       await onUpdateCode(activationCode.id, codeData);
@@ -247,7 +259,11 @@ export function EditActivationCodeDialog({
               value={formData.description || ''}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               rows={3}
+              disabled
             />
+            <p className="text-xs text-muted-foreground">
+              The description cannot be changed after the code is created.
+            </p>
           </div>
 
           {/* Duration Type and Duration */}
@@ -258,7 +274,7 @@ export function EditActivationCodeDialog({
                 <Clock className="inline h-4 w-4 mr-1" />
                 Duration Type
               </Label>
-              <Select value={formData.durationType} onValueChange={handleDurationTypeChange}>
+              <Select value={formData.durationType} onValueChange={handleDurationTypeChange} disabled>
                 <SelectTrigger>
                   <SelectValue placeholder="Select duration type" />
                 </SelectTrigger>
@@ -293,12 +309,15 @@ export function EditActivationCodeDialog({
                   }}
                   placeholder={formData.durationType === 'MONTHS' ? '1-60 months' : '1-1825 days'}
                   className={errors.duration ? 'border-red-500' : ''}
+                  disabled={!isMonthsCode}
                 />
                 {errors.duration && (
                   <p className="text-sm text-red-500">{errors.duration}</p>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  {formData.durationType === 'MONTHS' ? 'Range: 1-60 months' : 'Range: 1-1825 days (5 years)'}
+                  {isMonthsCode
+                    ? 'Range: 1-60 months'
+                    : 'A duration in days cannot be changed after the code is created.'}
                 </p>
               </div>
 
@@ -357,6 +376,9 @@ export function EditActivationCodeDialog({
           {/* Study Packs */}
           <div className="space-y-2">
             <Label>Study Packs *</Label>
+            <p className="text-xs text-muted-foreground">
+              Selecting a different pack replaces the code&apos;s current packs; only one pack can be set here.
+            </p>
             {studyPacksLoading ? (
               <div className="flex items-center justify-center py-4 border rounded-md bg-muted/50">
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />

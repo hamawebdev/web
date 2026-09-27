@@ -58,14 +58,19 @@ export function BulkFileUpload({ files, onFilesChange, disabled, questionSources
     return undefined;
   }, []);
 
-  // Extract source from filename (RATT = sourceId 4, otherwise Session normal = sourceId 6)
-  const extractSource = useCallback((filename: string): { sourceId: number; sourceName: string } => {
-    const hasRATT = /RATT/i.test(filename);
-    if (hasRATT) {
-      return { sourceId: 4, sourceName: 'RATT' };
-    }
-    return { sourceId: 6, sourceName: 'Session normal' };
-  }, []);
+  // Guess the question source from the filename (RATT files -> the "RATT"/"Rattrapage" source, anything
+  // else -> the "Session normal(e)" source), matching the loaded sources by name. Source ids
+  // are database ids and differ between environments, so they are never hard-coded. When no
+  // source matches, sourceId stays undefined and the wizard asks the admin to pick one.
+  const extractSource = useCallback((filename: string): { sourceId?: number; sourceName?: string } => {
+    const normalize = (value: string) =>
+      value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const isRatt = /ratt/i.test(filename);
+    const matches = (name: string) =>
+      isRatt ? /\bratt/.test(normalize(name)) : /session\s*normale?\b/.test(normalize(name));
+    const source = questionSources.find(s => matches(s.name));
+    return source ? { sourceId: source.id, sourceName: source.name } : {};
+  }, [questionSources]);
 
   // Generate unique ID for file
   const generateFileId = useCallback(() => {

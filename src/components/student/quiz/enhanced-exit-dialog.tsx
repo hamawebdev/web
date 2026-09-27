@@ -127,6 +127,7 @@ export function EnhancedExitDialog({
           selectedAnswerId: answer.selectedOptions?.[0],
           selectedAnswerIds: answer.selectedOptions,
           textAnswer: answer.textAnswer,
+          isCorrect: answer.isCorrect,
           timeSpent: answer.timeSpent || 0
         };
       });
@@ -168,6 +169,8 @@ export function EnhancedExitDialog({
           questionId: Number(answer.questionId),
           ...(typeof answer.selectedAnswerId === 'number' ? { selectedAnswerId: answer.selectedAnswerId }
             : (Array.isArray(answer.selectedAnswerIds) && answer.selectedAnswerIds.length ? { selectedAnswerIds: answer.selectedAnswerIds } : {})),
+          ...(answer.textAnswer ? { textAnswer: answer.textAnswer } : {}),
+          ...(typeof answer.isCorrect === 'boolean' ? { isCorrect: answer.isCorrect } : {}),
           timeSpent: answer.timeSpent,
         };
       }).filter(entry => (

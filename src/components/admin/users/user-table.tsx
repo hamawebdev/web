@@ -267,7 +267,7 @@ export function UserTable({
                         className="text-destructive"
                       >
                         <UserX className="mr-2 h-4 w-4" />
-                        Delete User
+                        Deactivate User
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -430,7 +430,8 @@ export function UserTable({
         />
       )}
 
-      {/* Delete User Confirmation */}
+      {/* Deactivate User Confirmation. DELETE /admin/users/:id only sets isActive=false:
+          the account and its data are kept and it can be re-activated from Edit User. */}
       <AlertDialog
         open={!!(deleteUser || deactivateUser)}
         onOpenChange={(open) => {
@@ -442,10 +443,11 @@ export function UserTable({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete User</AlertDialogTitle>
+            <AlertDialogTitle>Deactivate User</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to permanently delete {(deleteUser || deactivateUser)?.fullName}? 
-              This action cannot be undone.
+              Are you sure you want to deactivate {(deleteUser || deactivateUser)?.fullName}?
+              They will no longer be able to sign in. The account and its data are kept, and it
+              can be re-activated later.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -454,7 +456,7 @@ export function UserTable({
               onClick={handleDeleteUser}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              Deactivate
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -791,7 +791,8 @@ export interface CreateTodoRequest {
   type: TodoType;
   priority: TodoPriority;
   dueDate?: string;
-  courseIds?: number[]; // Multiple course IDs
+  courseId?: number; // The API stores a single course per todo
+  courseIds?: number[]; // Legacy: only the first ID is sent (as courseId)
   quizId?: number;
   estimatedTime?: number;
   tags?: string[];
@@ -861,7 +862,7 @@ export interface QuestionReport {
   id: number;
   questionId: number;
   userId: number;
-  reportType: 'INCORRECT_ANSWER' | 'UNCLEAR_QUESTION' | 'TECHNICAL_ISSUE' | 'OTHER';
+  reportType: 'INCORRECT_ANSWER' | 'TYPO' | 'UNCLEAR_QUESTION' | 'MISSING_INFO' | 'OTHER';
   description: string;
   status: 'PENDING' | 'REVIEWED' | 'RESOLVED';
   createdAt: string;
@@ -871,7 +872,7 @@ export interface QuestionReport {
 
 export interface QuestionReportRequest {
   questionId: number;
-  reportType: 'INCORRECT_ANSWER' | 'UNCLEAR_QUESTION' | 'TECHNICAL_ISSUE' | 'OTHER';
+  reportType: 'INCORRECT_ANSWER' | 'TYPO' | 'UNCLEAR_QUESTION' | 'MISSING_INFO' | 'OTHER';
   description: string;
 }
 
@@ -882,7 +883,7 @@ export interface QuestionReportResponse {
 
 export interface QuestionReportsFilters {
   questionId?: number;
-  reportType?: 'INCORRECT_ANSWER' | 'UNCLEAR_QUESTION' | 'TECHNICAL_ISSUE' | 'OTHER';
+  reportType?: 'INCORRECT_ANSWER' | 'TYPO' | 'UNCLEAR_QUESTION' | 'MISSING_INFO' | 'OTHER';
   status?: 'PENDING' | 'REVIEWED' | 'RESOLVED';
   limit?: number;
   offset?: number;
@@ -1827,6 +1828,12 @@ export interface UpdateActivationCodeRequest {
   expiresAt?: string;
   studyPackIds?: number[];
   isActive?: boolean;
+  // Fields PUT /admin/activation-codes/:id actually applies (updateActivationCodeSchema):
+  // expiryDate (ISO datetime), maxUses, durationMonths, isActive and a single studyPackId
+  // that replaces all of the code's packs. description, durationType, durationDays,
+  // expiresAt and studyPackIds are stripped by the backend on update.
+  expiryDate?: string;
+  studyPackId?: number;
 }
 
 export interface ActivationCodeFilters {
@@ -2207,6 +2214,7 @@ export interface UpdateResidencyQuestionRequest {
   universityId?: number;
   metadata?: string;
   questionAnswers?: Array<{
+    id?: number;
     answerText: string;
     isCorrect: boolean;
   }>;
@@ -2263,8 +2271,9 @@ export interface BulkResidencyQuestionResponse {
 export interface CreateStudyPackRequest {
   name: string;
   description: string;
-  type: 'YEAR';
-  yearNumber: 'ONE' | 'TWO' | 'THREE' | 'FOUR' | 'FIVE' | 'SIX' | 'SEVEN';
+  // Backend PackType enum; RESIDENCY packs have no yearNumber
+  type: 'YEAR' | 'RESIDENCY';
+  yearNumber?: 'ONE' | 'TWO' | 'THREE' | 'FOUR' | 'FIVE' | 'SIX' | 'SEVEN';
   pricePerMonth: number;
   pricePerYear: number;
 }
@@ -2272,7 +2281,7 @@ export interface CreateStudyPackRequest {
 export interface UpdateStudyPackRequest {
   name?: string;
   description?: string;
-  type?: 'YEAR' | 'MODULE' | 'COURSE';
+  type?: 'YEAR' | 'RESIDENCY';
   yearNumber?: 'ONE' | 'TWO' | 'THREE' | 'FOUR' | 'FIVE' | 'SIX' | 'SEVEN';
   pricePerMonth?: number;
   pricePerYear?: number;
@@ -2280,7 +2289,8 @@ export interface UpdateStudyPackRequest {
 }
 
 // Study Pack validation helpers
-export const STUDY_PACK_TYPES = ['YEAR', 'MODULE', 'COURSE'] as const;
+// Must match the backend Prisma PackType enum
+export const STUDY_PACK_TYPES = ['YEAR', 'RESIDENCY'] as const;
 export const YEAR_NUMBERS = ['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN'] as const;
 
 export type StudyPackType = typeof STUDY_PACK_TYPES[number];

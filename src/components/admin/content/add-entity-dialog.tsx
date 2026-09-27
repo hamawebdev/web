@@ -58,10 +58,14 @@ const independentModuleSchema = z.object({
 const studyPackSchema = z.object({
   name: z.string().min(1, 'Study pack name is required'),
   description: z.string().min(1, 'Description is required'),
-  type: z.enum(['YEAR', 'MODULE', 'COURSE']),
-  yearNumber: z.enum(['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN']),
+  // Backend PackType enum: YEAR packs need a year number, RESIDENCY packs have none
+  type: z.enum(['YEAR', 'RESIDENCY']),
+  yearNumber: z.enum(['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN']).optional(),
   pricePerMonth: z.number().min(0, 'Monthly price must be positive'),
   pricePerYear: z.number().min(0, 'Yearly price must be positive'),
+}).refine(data => data.type !== 'YEAR' || !!data.yearNumber, {
+  message: 'Year number is required for a year study pack',
+  path: ['yearNumber'],
 });
 
 type EntityType = 'university' | 'studyPack' | 'unit' | 'module' | 'course' | 'independentModule';
@@ -110,7 +114,7 @@ export function AddEntityDialog({
       description: '',
       country: '',
       city: '',
-      type: 'YEAR' as const,
+      type: 'YEAR' as 'YEAR' | 'RESIDENCY',
       yearNumber: 'ONE' as const,
       pricePerMonth: 0,
       pricePerYear: 0,
@@ -185,7 +189,7 @@ export function AddEntityDialog({
             name: data.name,
             description: data.description,
             type: data.type,
-            yearNumber: data.yearNumber,
+            yearNumber: data.type === 'RESIDENCY' ? undefined : data.yearNumber,
             pricePerMonth: data.pricePerMonth,
             pricePerYear: data.pricePerYear,
           });
@@ -350,8 +354,7 @@ export function AddEntityDialog({
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <option value="YEAR">Year</option>
-                        <option value="MODULE">Module</option>
-                        <option value="COURSE">Course</option>
+                        <option value="RESIDENCY">Residency</option>
                       </select>
                     </FormControl>
                     <FormMessage />
@@ -360,7 +363,7 @@ export function AddEntityDialog({
               />
             )}
 
-            {entityInfo.fields.includes('yearNumber') && (
+            {entityInfo.fields.includes('yearNumber') && form.watch('type') !== 'RESIDENCY' && (
               <FormField
                 control={form.control}
                 name="yearNumber"

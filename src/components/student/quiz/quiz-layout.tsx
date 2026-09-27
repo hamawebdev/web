@@ -304,6 +304,7 @@ export function QuizLayout() {
               selectedAnswerId: answer.selectedOptions?.[0],
               selectedAnswerIds: answer.selectedOptions,
               textAnswer: answer.textAnswer,
+              isCorrect: answer.isCorrect,
               timeSpent: answer.timeSpent || 0
             };
           });
@@ -346,6 +347,7 @@ export function QuizLayout() {
               ...(typeof answer.selectedAnswerId === 'number' ? { selectedAnswerId: answer.selectedAnswerId }
                 : (Array.isArray(answer.selectedAnswerIds) && answer.selectedAnswerIds.length ? { selectedAnswerIds: answer.selectedAnswerIds } : {})),
               ...(answer.textAnswer ? { textAnswer: answer.textAnswer } : {}),
+              ...(typeof answer.isCorrect === 'boolean' ? { isCorrect: answer.isCorrect } : {}),
               timeSpent: answer.timeSpent,
             };
           }).filter(entry => (
@@ -770,6 +772,7 @@ export function QuizLayout() {
                       selectedAnswerId: answer.selectedOptions?.[0],
                       selectedAnswerIds: answer.selectedOptions,
                       textAnswer: answer.textAnswer,
+                      isCorrect: answer.isCorrect,
                       timeSpent: answer.timeSpent || 0
                     };
                   });
@@ -812,6 +815,7 @@ export function QuizLayout() {
                       ...(typeof answer.selectedAnswerId === 'number' ? { selectedAnswerId: answer.selectedAnswerId }
                         : (Array.isArray(answer.selectedAnswerIds) && answer.selectedAnswerIds.length ? { selectedAnswerIds: answer.selectedAnswerIds } : {})),
                       ...(answer.textAnswer ? { textAnswer: answer.textAnswer } : {}),
+                      ...(typeof answer.isCorrect === 'boolean' ? { isCorrect: answer.isCorrect } : {}),
                       timeSpent: answer.timeSpent,
                     };
                   }).filter(entry => (

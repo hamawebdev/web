@@ -42,7 +42,9 @@ import {
   XCircle,
   Image as ImageIcon
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { AdminQuestion, UpdateQuestionRequest } from '@/types/api';
+import { AdminService } from '@/lib/api-services';
 import { EditQuestionDialog } from './edit-question-dialog';
 import { ViewQuestionDialog } from './view-question-dialog';
 import { UpdateExplanationDialog } from './update-explanation-dialog';
@@ -96,6 +98,35 @@ export function QuestionTable({
   const truncateText = (text: string, maxLength: number = 100) => {
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
+  };
+
+  // The list endpoint (GET /admin/questions) returns no answers or explanation,
+  // so load the full question (answers with their ids) before opening a dialog.
+  const openWithDetails = async (
+    question: AdminQuestion,
+    open: (question: AdminQuestion) => void
+  ) => {
+    try {
+      setActionLoading(question.id);
+      const response: any = await AdminService.getQuestion(question.id);
+      const full = response?.data ?? response;
+      if (!full || !Array.isArray(full.answers)) {
+        throw new Error('Invalid question response');
+      }
+      open({
+        ...question,
+        explanation: full.explanation ?? question.explanation,
+        answers: full.answers,
+        questionImages: full.images ?? question.questionImages,
+      });
+    } catch (error) {
+      console.error('Failed to load question details:', error);
+      toast.error('Error', {
+        description: 'Failed to load the question details. Please try again.',
+      });
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const handleDeleteQuestion = async () => {
@@ -300,15 +331,15 @@ export function QuestionTable({
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={() => setViewingQuestion(question)}>
+                      <DropdownMenuItem onClick={() => openWithDetails(question, setViewingQuestion)}>
                         <Eye className="mr-2 h-4 w-4" />
                         View Details
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setEditingQuestion(question)}>
+                      <DropdownMenuItem onClick={() => openWithDetails(question, setEditingQuestion)}>
                         <Edit className="mr-2 h-4 w-4" />
                         Edit Question
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setUpdatingExplanation(question)}>
+                      <DropdownMenuItem onClick={() => openWithDetails(question, setUpdatingExplanation)}>
                         <FileText className="mr-2 h-4 w-4" />
                         Update Explanation
                       </DropdownMenuItem>

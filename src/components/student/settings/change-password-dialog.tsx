@@ -7,7 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 import { AuthService } from '@/lib/api-services';
+import { AuthAPI } from '@/lib/auth-api';
+import { resetAuthCache } from '@/hooks/use-auth';
 
 interface ChangePasswordDialogProps {
   open: boolean;
@@ -18,6 +21,7 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const router = useRouter();
 
   const currentPasswordError = useMemo(() => {
     if (!currentPassword) return 'Current password is required';
@@ -43,6 +47,11 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
         setCurrentPassword('');
         setNewPassword('');
         onOpenChange(false);
+        // The backend revokes every refresh token on a password change, so the
+        // stored session can no longer be refreshed: end it now and sign in again
+        await AuthAPI.logout();
+        resetAuthCache();
+        router.replace('/login?message=password-changed');
       } else {
         toast.error(res.error || 'Failed to change password');
       }

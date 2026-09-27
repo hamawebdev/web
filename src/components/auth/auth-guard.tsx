@@ -129,7 +129,7 @@ export function AuthGuard({
     const getDashboardPath = (userRole: string) => {
       switch (userRole) {
         case 'ADMIN': return '/admin/content/';
-        case 'EMPLOYEE': return '/admin/content/';
+        case 'EMPLOYEE': return '/admin/question-sources';
         case 'STUDENT': return '/student/dashboard';
         default: return '/';
       }

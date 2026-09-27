@@ -148,9 +148,10 @@ export function useResidencyManagement() {
 
       const response = await ResidencyQuestionsService.getResidencyQuestion(id);
 
+      // The service wraps the raw question body, so response.data is the question itself
       if (response.success && response.data) {
         console.log('✅ Residency question fetched successfully:', response.data);
-        return response.data.data;
+        return response.data;
       } else {
         throw new Error(response.error || 'Failed to fetch residency question');
       }
@@ -171,6 +172,7 @@ export function useResidencyManagement() {
     try {
       console.log('🔄 Creating residency question:', questionData);
 
+      // apiClient throws on non-2xx; the service wraps the raw 201 body as { success, data }
       const response = await ResidencyQuestionsService.createResidencyQuestion(questionData);
 
       if (response.success && response.data) {
@@ -179,11 +181,14 @@ export function useResidencyManagement() {
         toast.success('Success', {
           description: 'Residency question created successfully',
         });
+        if (response.imageUploadError) {
+          toast.warning('Images not saved', { description: response.imageUploadError });
+        }
 
         // Refresh the question list
-        await fetchQuestions(state.currentPage);
+        await fetchQuestions(state.currentPage, 20, state.filters);
         
-        return response.data.data;
+        return response.data;
       } else {
         throw new Error(response.error || 'Failed to create residency question');
       }
@@ -197,7 +202,7 @@ export function useResidencyManagement() {
 
       throw error;
     }
-  }, [fetchQuestions, state.currentPage]);
+  }, [fetchQuestions, state.currentPage, state.filters]);
 
   // Update residency question
   const updateQuestion = useCallback(async (id: number, questionData: UpdateResidencyQuestionRequest) => {
@@ -212,11 +217,14 @@ export function useResidencyManagement() {
         toast.success('Success', {
           description: 'Residency question updated successfully',
         });
+        if (response.imageUploadError) {
+          toast.warning('Images not saved', { description: response.imageUploadError });
+        }
 
         // Refresh the question list
         await refreshQuestions();
         
-        return response.data.data;
+        return response.data;
       } else {
         throw new Error(response.error || 'Failed to update residency question');
       }
@@ -273,9 +281,9 @@ export function useResidencyManagement() {
   // Go to specific page
   const goToPage = useCallback((page: number) => {
     if (page >= 1 && page <= state.totalPages) {
-      fetchQuestions(page);
+      fetchQuestions(page, 20, state.filters);
     }
-  }, [fetchQuestions, state.totalPages]);
+  }, [fetchQuestions, state.totalPages, state.filters]);
 
   return {
     // State

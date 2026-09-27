@@ -34,6 +34,7 @@ interface EditResidencyQuestionDialogProps {
 }
 
 interface Answer {
+  id?: number; // set for answers loaded from the server
   answerText: string;
   isCorrect: boolean;
 }
@@ -64,6 +65,8 @@ export function EditResidencyQuestionDialog({
     { answerText: '', isCorrect: false },
     { answerText: '', isCorrect: false },
   ]);
+  // Answers as loaded, to detect whether the admin changed them
+  const [initialAnswers, setInitialAnswers] = useState<Answer[]>([]);
 
   // Image upload state
   const [questionImages, setQuestionImages] = useState<ImageFile[]>([]);
@@ -102,12 +105,13 @@ export function EditResidencyQuestionDialog({
         metadata: question.metadata || '',
       });
 
-      setAnswers(
-        question.question.questionAnswers.map(a => ({
-          answerText: a.answerText,
-          isCorrect: a.isCorrect,
-        }))
-      );
+      const loadedAnswers = question.question.questionAnswers.map(a => ({
+        id: a.id,
+        answerText: a.answerText,
+        isCorrect: a.isCorrect,
+      }));
+      setAnswers(loadedAnswers);
+      setInitialAnswers(loadedAnswers);
 
       // Clear images - user will need to re-upload if they want to change them
       setQuestionImages([]);
@@ -172,6 +176,15 @@ export function EditResidencyQuestionDialog({
       return;
     }
 
+    // The backend syncs answers by id (answers students already chose can't be removed),
+    // so only send them when they changed, keeping the ids of existing answers.
+    const answersChanged =
+      validAnswers.length !== initialAnswers.length ||
+      validAnswers.some((answer, i) =>
+        answer.answerText !== initialAnswers[i].answerText ||
+        answer.isCorrect !== initialAnswers[i].isCorrect
+      );
+
     try {
       setLoading(true);
 
@@ -182,10 +195,13 @@ export function EditResidencyQuestionDialog({
         examYear: formData.examYear,
         universityId: formData.universityId,
         metadata: formData.metadata || undefined,
-        questionAnswers: validAnswers.map(answer => ({
-          answerText: answer.answerText,
-          isCorrect: answer.isCorrect,
-        })),
+        questionAnswers: answersChanged
+          ? validAnswers.map(answer => ({
+              id: answer.id,
+              answerText: answer.answerText,
+              isCorrect: answer.isCorrect,
+            }))
+          : undefined,
         questionImages: questionImages.length > 0 ? questionImages : undefined,
         questionExplanationImages: explanationImages.length > 0 ? explanationImages : undefined,
       };

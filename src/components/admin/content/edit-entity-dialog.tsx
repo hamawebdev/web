@@ -35,7 +35,8 @@ const universitySchema = z.object({
 const studyPackSchema = z.object({
   name: z.string().min(1, 'Study pack name is required'),
   description: z.string().min(1, 'Description is required'),
-  yearNumber: z.enum(['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN']),
+  // Optional: residency packs have no year number (the field is hidden for them)
+  yearNumber: z.enum(['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN']).optional(),
   pricePerMonth: z.number().min(0, 'Monthly price must be positive'),
   pricePerYear: z.number().min(0, 'Yearly price must be positive'),
 });
@@ -69,8 +70,9 @@ interface University extends BaseEntity {
 }
 
 interface StudyPack extends BaseEntity {
-  type: 'YEAR' | 'MODULE' | 'COURSE';
-  yearNumber: string;
+  // Backend PackType enum
+  type: 'YEAR' | 'RESIDENCY';
+  yearNumber: string | null;
   pricePerMonth: number;
   pricePerYear: number;
   description: string;
@@ -154,7 +156,7 @@ export function EditEntityDialog({
         formData.city = university.city;
       } else if (entityType === 'studyPack') {
         const studyPack = entity as StudyPack;
-        formData.yearNumber = studyPack.yearNumber;
+        formData.yearNumber = studyPack.yearNumber ?? undefined;
         formData.pricePerMonth = studyPack.pricePerMonth || 0;
         formData.pricePerYear = studyPack.pricePerYear || 0;
       }
@@ -221,11 +223,12 @@ export function EditEntityDialog({
           });
           break;
         case 'studyPack':
+          // The pack type cannot be edited here: leave it out so a RESIDENCY pack is never
+          // turned into a YEAR pack, and never send a year number for residency packs.
           result = await AdminContentService.updateStudyPack(entity.id, {
             name: data.name,
             description: data.description,
-            type: 'YEAR',
-            yearNumber: data.yearNumber,
+            yearNumber: (entity as StudyPack).type === 'RESIDENCY' ? undefined : data.yearNumber,
             pricePerMonth: data.pricePerMonth,
             pricePerYear: data.pricePerYear,
           });
@@ -352,7 +355,7 @@ export function EditEntityDialog({
             )}
 
 
-            {entityInfo.fields.includes('yearNumber') && (
+            {entityInfo.fields.includes('yearNumber') && (entity as StudyPack | null)?.type !== 'RESIDENCY' && (
               <FormField
                 control={form.control}
                 name="yearNumber"

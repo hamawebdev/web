@@ -58,7 +58,7 @@ export async function validateQuizSessionAccess(
         reason: 'Only students can access quiz sessions',
         shouldRedirect: true,
         redirectPath: user.role === 'ADMIN' ? '/admin/content/' :
-                     user.role === 'EMPLOYEE' ? '/admin/content' : '/'
+                     user.role === 'EMPLOYEE' ? '/admin/question-sources' : '/'
       };
     }
 

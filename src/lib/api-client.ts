@@ -27,12 +27,32 @@ export const AUTH_TOKEN_STORAGE_KEY = 'auth_token';
 const TOKEN_STORAGE_KEY = AUTH_TOKEN_STORAGE_KEY;
 const REFRESH_TOKEN_STORAGE_KEY = 'refresh_token';
 
+/** Window event fired when the session ends because the refresh token was rejected. */
+export const AUTH_LOGOUT_EVENT = 'auth:logout';
+
 // API Response interface
 export interface ApiResponse<T = any> {
   success: boolean;
   data: T;
   message?: string;
   error?: string;
+}
+
+/**
+ * Some backend endpoints reply with the raw payload (`res.json(result)`) instead of
+ * the `{ success, data }` envelope. apiClient only resolves on 2xx, so a resolved
+ * body without a boolean `success` is a successful call: wrap it so callers can
+ * keep checking `response.success` and reading `response.data`.
+ */
+export function normalizeApiResponse<T = any>(body: any): ApiResponse<T> {
+  if (body && typeof body === 'object' && !Array.isArray(body) && typeof body.success === 'boolean') {
+    return body as ApiResponse<T>;
+  }
+  return {
+    success: true,
+    data: body as T,
+    ...(body && typeof body === 'object' && typeof body.message === 'string' ? { message: body.message } : {}),
+  };
 }
 
 // Error response interface
@@ -227,8 +247,15 @@ class ApiClient {
 
         // Handle 401 (expired token) and targeted 403 (stale subscription claims) with token refresh
         if (needs401Refresh || needsSubscription403Refresh) {
-          // If already refreshing, queue this request
+          // If already refreshing, queue this request. Flag it first so the replay
+          // after the refresh cannot trigger yet another refresh.
           if (this.isRefreshing) {
+            if (needs401Refresh) {
+              originalRequest._retry = true;
+            }
+            if (needsSubscription403Refresh) {
+              originalRequest._subscriptionRetry = true;
+            }
             return new Promise((resolve, reject) => {
               this.failedQueue.push({ resolve, reject, config: originalRequest });
             });
@@ -250,10 +277,15 @@ class ApiClient {
           }
 
           this.isRefreshing = true;
+          // The refresh token actually sent to /auth/refresh (may differ from the one read
+          // above if another tab rotated it while this tab waited for the refresh lock).
+          let usedRefreshToken = refreshToken;
 
           try {
             console.log(`🔄 [ApiClient] Refreshing access token after ${statusCode} response...`);
-            const tokens = await this.refreshAccessToken(refreshToken);
+            const tokens = await this.refreshWithCrossTabLock(refreshToken, (sent) => {
+              usedRefreshToken = sent;
+            });
             console.log('✅ [ApiClient] Token refreshed successfully');
 
             // Process queued requests with new token
@@ -266,13 +298,42 @@ class ApiClient {
           } catch (refreshError: any) {
             console.error('❌ [ApiClient] Token refresh failed:', refreshError.message);
 
+            // Another tab may have rotated the refresh token while this refresh was in
+            // flight (the backend keeps one rotating token per user). In that case the
+            // stored tokens are fresh: use them instead of wiping them.
+            const storedRefreshToken = this.getStoredRefreshToken();
+            const storedAccessToken = this.getStoredToken();
+            if (
+              !refreshError?.isSessionEnded &&
+              storedRefreshToken &&
+              storedAccessToken &&
+              storedRefreshToken !== usedRefreshToken
+            ) {
+              this.processQueue(null, storedAccessToken);
+              originalRequest.headers = originalRequest.headers || {};
+              originalRequest.headers.Authorization = `Bearer ${storedAccessToken}`;
+              return this.client(originalRequest);
+            }
+
             // Process queued requests with error
             this.processQueue(refreshError, null);
+
+            // Only a definitive rejection of the refresh token (400/401/403) ends the
+            // session. Network errors, timeouts and 5xx keep the tokens so the next
+            // request can retry the refresh once the API is reachable again.
+            const refreshStatus = refreshError?.response?.status;
+            const refreshTokenRejected =
+              refreshError?.isSessionEnded ||
+              refreshStatus === 400 ||
+              refreshStatus === 401 ||
+              refreshStatus === 403;
 
             // For 401 failures, clear tokens. For 403 subscription refresh failures,
             // keep the existing session and return the original forbidden error.
             if (needs401Refresh) {
-              this.handleAuthError();
+              if (refreshTokenRejected) {
+                this.handleAuthError();
+              }
               return Promise.reject(refreshError);
             }
 
@@ -301,11 +362,52 @@ class ApiClient {
     this.failedQueue = [];
   }
 
+  /**
+   * Serialize refreshes across tabs. Every tab shares one refresh token in
+   * localStorage and the backend rotates it on each refresh, so two tabs refreshing
+   * with the same token would make the second one fail and log both out.
+   * Inside the lock, the stored token is re-read: if another tab already rotated it,
+   * its fresh access token is reused instead of refreshing again.
+   */
+  private async refreshWithCrossTabLock(
+    staleRefreshToken: string,
+    onSend: (refreshToken: string) => void
+  ): Promise<{ accessToken: string; refreshToken?: string }> {
+    const run = async () => {
+      const currentRefreshToken = this.getStoredRefreshToken();
+      if (!currentRefreshToken) {
+        // Another tab ended the session while this one waited.
+        const ended: any = new Error('Session ended');
+        ended.isSessionEnded = true;
+        throw ended;
+      }
+      if (currentRefreshToken !== staleRefreshToken) {
+        const currentAccessToken = this.getStoredToken();
+        if (currentAccessToken) {
+          return { accessToken: currentAccessToken, refreshToken: currentRefreshToken };
+        }
+      }
+      onSend(currentRefreshToken);
+      return this.refreshAccessToken(currentRefreshToken);
+    };
+
+    const locks = typeof navigator !== 'undefined' ? (navigator as any).locks : undefined;
+    if (locks?.request) {
+      return locks.request('medadn-auth-refresh', run);
+    }
+    return run();
+  }
+
   private async refreshAccessToken(refreshToken: string): Promise<{ accessToken: string; refreshToken?: string }> {
     const response = await axios.post(
       `${API_CONFIG.baseURL}/auth/refresh`,
       { refreshToken },
-      { headers: { 'Content-Type': 'application/json' } }
+      {
+        headers: { 'Content-Type': 'application/json' },
+        // Without a timeout a hung refresh keeps isRefreshing set and every later
+        // 401 request waits in failedQueue forever.
+        timeout: API_CONFIG.timeout,
+      }
     );
 
     const tokens = response.data?.data?.tokens;
@@ -330,9 +432,12 @@ class ApiClient {
     console.log('🚨 API Client: Handling authentication error, clearing tokens');
     this.clearStoredTokens();
     // Do NOT hard-redirect to /login here.
-    // React auth guards (checkAndRedirect) will detect the cleared tokens
-    // and redirect the user through the React router, which allows
+    // Notify the React auth layer (use-auth) instead: it resets its cached auth
+    // state and the route guards redirect through the React router, which allows
     // proper handling of post-payment and other flows.
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event(AUTH_LOGOUT_EVENT));
+    }
   }
 
   // Token management methods

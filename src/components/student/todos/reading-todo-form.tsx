@@ -226,7 +226,9 @@ export function ReadingTodoForm({ onBack, onTodoCreated }: ReadingTodoFormProps)
     }
 
     setSelectedCourse(newCourse);
-    setSelectedCourses(prev => [...prev, newCourse]);
+    // A todo is linked to a single course on the backend (courseId), so a new pick
+    // replaces the current one instead of being added to a list that would be dropped
+    setSelectedCourses([newCourse]);
     setStep('details');
   };
 
@@ -287,7 +289,7 @@ export function ReadingTodoForm({ onBack, onTodoCreated }: ReadingTodoFormProps)
         type: 'READING',
         priority: todoData.priority,
         dueDate: todoData.dueDate,
-        courseIds: todoData.courseIds,
+        courseId: selectedCourses[0]?.id,
         estimatedTime: todoData.estimatedTime,
         tags: todoData.tags
       });
@@ -725,7 +727,7 @@ export function ReadingTodoForm({ onBack, onTodoCreated }: ReadingTodoFormProps)
                       className="gap-2"
                     >
                       <Plus className="h-4 w-4" />
-                      Add Another Course
+                      Change Course
                     </Button>
                   </CardTitle>
                 </CardHeader>

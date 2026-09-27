@@ -29,8 +29,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ChevronLeft, ChevronRight, MoreHorizontal, Eye, Edit, Trash2, Image as ImageIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MoreHorizontal, Eye, Edit, Trash2, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { ResidencyQuestion } from '@/types/api';
+import { ResidencyQuestionsService } from '@/lib/api-services';
 import { ViewResidencyQuestionDialog } from './view-residency-question-dialog';
 import { EditResidencyQuestionDialog } from './edit-residency-question-dialog';
 
@@ -56,6 +58,47 @@ export function ResidencyQuestionsTable({
   const [viewingQuestion, setViewingQuestion] = useState<ResidencyQuestion | null>(null);
   const [editingQuestion, setEditingQuestion] = useState<ResidencyQuestion | null>(null);
   const [deleteQuestion, setDeleteQuestion] = useState<ResidencyQuestion | null>(null);
+  const [loadingDetailsId, setLoadingDetailsId] = useState<number | null>(null);
+
+  // GET /admin/residency-questions returns every row with empty questionAnswers and images,
+  // so load the full question before opening View or Edit (otherwise the answers would
+  // have to be re-typed from memory and would replace the stored answer key).
+  const openWithDetails = async (
+    row: ResidencyQuestion,
+    open: (question: ResidencyQuestion) => void
+  ) => {
+    try {
+      setLoadingDetailsId(row.id);
+      const response = await ResidencyQuestionsService.getResidencyQuestion(row.id);
+      const full: any = response?.data;
+      if (!full || !Array.isArray(full.questionAnswers)) {
+        throw new Error('Invalid residency question response');
+      }
+      open({
+        ...row,
+        part: full.part ?? row.part,
+        examYear: full.examYear ?? row.examYear,
+        universityId: full.universityId ?? row.universityId,
+        metadata: full.metadata ?? row.metadata,
+        university: full.university ?? row.university,
+        question: {
+          ...row.question,
+          questionText: full.questionText ?? row.question.questionText,
+          explanation: full.explanation ?? row.question.explanation,
+          questionAnswers: full.questionAnswers,
+          questionImages: full.questionImages ?? [],
+          questionExplanationImages: full.questionExplanationImages ?? [],
+        },
+      });
+    } catch (error) {
+      console.error('Error loading residency question details:', error);
+      toast.error('Error', {
+        description: 'Failed to load the question details. Please try again.',
+      });
+    } finally {
+      setLoadingDetailsId(null);
+    }
+  };
 
   const getPartLabel = (part: string) => {
     switch (part) {
@@ -186,19 +229,27 @@ export function ResidencyQuestionsTable({
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
+                      <Button
+                        variant="ghost"
+                        className="h-8 w-8 p-0"
+                        disabled={loadingDetailsId === question.id}
+                      >
                         <span className="sr-only">Open menu</span>
-                        <MoreHorizontal className="h-4 w-4" />
+                        {loadingDetailsId === question.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <MoreHorizontal className="h-4 w-4" />
+                        )}
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => setViewingQuestion(question)}>
+                      <DropdownMenuItem onClick={() => openWithDetails(question, setViewingQuestion)}>
                         <Eye className="mr-2 h-4 w-4" />
                         View
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setEditingQuestion(question)}>
+                      <DropdownMenuItem onClick={() => openWithDetails(question, setEditingQuestion)}>
                         <Edit className="mr-2 h-4 w-4" />
                         Edit
                       </DropdownMenuItem>

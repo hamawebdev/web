@@ -11,7 +11,7 @@ export default function PaymentFailurePage() {
 
     const handleRetryPayment = () => {
         // Navigate back to the subscription/pricing page to retry
-        router.push('/student/subscription');
+        router.push('/student/subscriptions/browse');
     };
 
     const handleGoBack = () => {

@@ -83,7 +83,7 @@ export function SessionWizard({
   const { filters: sessionFilters, loading: sessionFiltersLoading, error: sessionFiltersError, refetch: refetchSessionFilters } = useQuizSessionFilters();
   const { questionCount: availableQuestionCount, totalQuestionCount, loading: questionCountLoading, error: questionCountError, refetch: refetchQuestionCount } = useQuestionCount();
 
-  // University selection logic removed - hardcoded to universityId 1
+  // No university filter: questions from every university (and those without one) are eligible
 
 
   // Step 1
@@ -416,7 +416,6 @@ export function SessionWizard({
     questionTypes: mappedTypes.length > 0 ? mappedTypes as Array<'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'QROC'> : undefined,
     years: quizYears.length > 0 ? quizYears : undefined,
     questionSourceIds: quizSourceIds.length > 0 ? quizSourceIds : undefined,
-    universityIds: [1],
     rotations: [], // Always empty for practice sessions
     ...(repetitionOnly ? { repetitionCountMin: 1 } : {}),
   }), [selectedCourseIdsNum, mappedTypes, quizYears, quizSourceIds, repetitionOnly]);
@@ -518,7 +517,6 @@ export function SessionWizard({
       }) as Array<'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'QROC'>,
       questionSourceIds: quizSourceIds.length ? quizSourceIds : undefined,
       years: quizYears.length ? quizYears : undefined,
-      universityIds: [1],
       rotations: [], // Always empty for practice sessions
       ...(repetitionOnly ? { repetitionCountMin: 1 } : {}),
     };
@@ -534,7 +532,6 @@ export function SessionWizard({
         types,
         quizSourceIds,
         quizYears: quizYears.length ? quizYears : undefined,
-        universityIds: [1],
         rotations: [], // Always empty for practice sessions
       },
 

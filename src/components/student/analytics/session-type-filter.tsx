@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client';
 
-import { Filter, BookOpen, GraduationCap, Stethoscope } from 'lucide-react';
+import { Filter, BookOpen, GraduationCap } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { SessionType } from '@/types/api';
@@ -28,14 +28,8 @@ const SESSION_TYPE_OPTIONS = [
     description: 'Sessions d\'examen',
     icon: GraduationCap,
     color: 'text-green-600'
-  },
-  {
-    value: 'RESIDENCY' as SessionType,
-    label: 'Résidanat',
-    description: 'Sessions de résidanat',
-    icon: Stethoscope,
-    color: 'text-purple-600'
   }
+  // No RESIDENCY option: GET /quiz-sessions/type/:type only accepts PRACTICE, EXAM and REMEDIAL
 ];
 
 export function SessionTypeFilter({ 

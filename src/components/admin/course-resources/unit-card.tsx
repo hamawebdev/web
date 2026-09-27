@@ -25,9 +25,12 @@ export function UnitCard({ unit, onClick }: UnitCardProps) {
           {unit.name}
           <ChevronRight className="h-4 w-4 ml-auto text-muted-foreground group-hover:text-primary transition-colors" />
         </CardTitle>
-        <CardDescription className="text-sm">
-          {unit.studyPack.name} - Year {unit.studyPack.yearNumber}
-        </CardDescription>
+        {/* GET /admin/content/filters does not include the unit's study pack */}
+        {unit.studyPack && (
+          <CardDescription className="text-sm">
+            {unit.studyPack.name} - Year {unit.studyPack.yearNumber}
+          </CardDescription>
+        )}
       </CardHeader>
       <CardContent className="p-4 pt-0">
         <div className="flex items-center justify-between">
@@ -35,12 +38,14 @@ export function UnitCard({ unit, onClick }: UnitCardProps) {
             <Badge variant="secondary" className="text-xs">
               Unit
             </Badge>
-            <Badge variant="outline" className="text-xs">
-              {unit.studyPack.type}
-            </Badge>
+            {unit.studyPack?.type && (
+              <Badge variant="outline" className="text-xs">
+                {unit.studyPack.type}
+              </Badge>
+            )}
           </div>
           <div className="text-sm text-muted-foreground">
-            {unit.modules.length} module{unit.modules.length !== 1 ? 's' : ''}
+            {(unit.modules?.length ?? 0)} module{(unit.modules?.length ?? 0) !== 1 ? 's' : ''}
           </div>
         </div>
       </CardContent>

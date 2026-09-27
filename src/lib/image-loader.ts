@@ -9,6 +9,7 @@
  *   https://<any-host>/api/(v1/)media/... -> {API_ORIGIN}/api/v1/media/... (records saved under a previous API host)
  *   https://<backend-host>/uploads/<type>/<file> -> {API_ORIGIN}/api/v1/media/<type>/<file>
  *     (backend-host: the current API or app host, or a legacy med-adn.com host that used to serve the API)
+ *   <type>_<name>.<ext> (a bare upload file name)   -> {API_ORIGIN}/api/v1/media/<type>/<type>_<name>.<ext>
  * Anything else (external URLs, data:/blob: URLs, local /public assets) is returned unchanged.
  */
 
@@ -22,6 +23,12 @@ export interface ImageLoaderProps {
 
 const MEDIA_PATH = /^\/api\/(?:v1\/)?media\//;
 const UPLOADS_PATH = /^\/uploads\/([^/]+)\/(.+)$/;
+/**
+ * Some backend routes store only the file name (they strip directories from imagePath, e.g.
+ * question explanation images). Uploads are named `<fileType>_<timestamp>-<random>.<ext>`, so
+ * the prefix gives the media folder that serves the file.
+ */
+const BARE_UPLOAD_FILENAME = /^(images|pdfs|logos|explanations|study-packs)_[^/\\?#\s]+$/;
 
 /** Domain the API used to share with the web app (API base was https://med-adn.com/api/v1). */
 const LEGACY_API_DOMAIN = 'med-adn.com';
@@ -114,6 +121,11 @@ function resolveKnownPath(value: string): string | null {
 
   if (value.startsWith('/api/v1/')) {
     return `${API_ORIGIN}${value}`;
+  }
+
+  const bareUpload = value.match(BARE_UPLOAD_FILENAME);
+  if (bareUpload) {
+    return `${API_ORIGIN}/api/v1/media/${bareUpload[1]}/${value}`;
   }
 
   return null;

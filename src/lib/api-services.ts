@@ -1,7 +1,7 @@
 // @ts-nocheck
-import { apiClient } from './api-client';
+import { apiClient, normalizeApiResponse } from './api-client';
 import { logServiceCall } from './logger';
-import { API_BASE_URL } from './config';
+import { API_BASE_URL, API_ORIGIN } from './config';
 import {
   ApiResponse,
   LoginRequest,
@@ -1031,7 +1031,8 @@ export class StudentService {
    * Get notes for a specific question
    */
   static async getQuestionNotes(questionId: number): Promise<ApiResponse<any[]>> {
-    return apiClient.get<any[]>(`/students/questions/${questionId}/notes`);
+    // The endpoint replies with the raw notes array
+    return normalizeApiResponse<any[]>(await apiClient.get<any[]>(`/students/questions/${questionId}/notes`));
   }
 
   // Note: getContentFilters has been moved to NewApiService for better organization
@@ -1228,7 +1229,11 @@ export class StudentService {
       type: mapUpper(todoData.type),
       priority: mapUpper(todoData.priority),
       dueDate: todoData.dueDate ? new Date(todoData.dueDate).toISOString() : undefined,
-      courseIds: todoData.courseIds, // Send multiple course IDs as per new API
+      // The API links a todo to one course (courseId) and strips unknown keys such as courseIds
+      courseId: (() => {
+        const id = Number(todoData.courseId ?? todoData.courseIds?.[0]);
+        return Number.isInteger(id) && id > 0 ? id : undefined;
+      })(),
       quizId: todoData.quizId,
       estimatedTime: todoData.estimatedTime,
       tags: todoData.tags,
@@ -1255,7 +1260,7 @@ export class StudentService {
       priority: mapUpper(todoData.priority),
       status: mapUpper(todoData.status),
       dueDate: todoData.dueDate ? new Date(todoData.dueDate).toISOString() : undefined,
-      courseIds: todoData.courseIds, // Send multiple course IDs as per new API
+      // No course field: PUT /students/todos/:id cannot change a todo's course
       estimatedTime: todoData.estimatedTime,
       tags: todoData.tags,
     };
@@ -1286,7 +1291,10 @@ export class StudentService {
    * Report an issue with a question
    */
   static async reportQuestion(questionId: number, reportData: QuestionReportRequest): Promise<ApiResponse<QuestionReportResponse>> {
-    return apiClient.post<QuestionReportResponse>(`/students/questions/${questionId}/report`, reportData);
+    // The endpoint replies 201 with the raw report object
+    return normalizeApiResponse<QuestionReportResponse>(
+      await apiClient.post<QuestionReportResponse>(`/students/questions/${questionId}/report`, reportData)
+    );
   }
 
   /**
@@ -1308,7 +1316,8 @@ export class StudentService {
    * Get details of a specific report
    */
   static async getReportDetails(reportId: number): Promise<ApiResponse<QuestionReport>> {
-    return apiClient.get<QuestionReport>(`/students/reports/${reportId}`);
+    // The endpoint replies with the raw report object
+    return normalizeApiResponse<QuestionReport>(await apiClient.get<QuestionReport>(`/students/reports/${reportId}`));
   }
 
   // ==================== ANALYTICS ENDPOINTS ====================
@@ -1463,7 +1472,10 @@ export class StudentService {
    * GET /api/v1/quiz-sessions/type/{SESSION_TYPE}
    */
   static async getQuizSessionsByType(sessionType: SessionType): Promise<ApiResponse<AnalyticsSessionsResponse>> {
-    return apiClient.get<AnalyticsSessionsResponse>(`/quiz-sessions/type/${sessionType}`);
+    // The endpoint replies with the raw sessions array
+    return normalizeApiResponse<AnalyticsSessionsResponse>(
+      await apiClient.get<AnalyticsSessionsResponse>(`/quiz-sessions/type/${sessionType}`)
+    );
   }
 }
 
@@ -2291,8 +2303,8 @@ export class AdminService {
   static async getUsers(params: PaginationParams & {
     search?: string;
     role?: string;
-    universityId?: number; // deprecated in docs; kept for backward compatibility
-    university?: number;   // docs-compliant param name
+    universityId?: number;
+    university?: number;   // alias of universityId (the UI filter state uses this name)
     isActive?: boolean;
   } = {}): Promise<ApiResponse<{
     users?: ApiUser[];
@@ -2308,11 +2320,10 @@ export class AdminService {
     if (params.limit) queryParams.append('limit', params.limit.toString());
     if (params.search) queryParams.append('search', params.search);
     if (params.role) queryParams.append('role', params.role);
-    if (params.university !== undefined) {
-      queryParams.append('university', params.university.toString());
-    } else if (params.universityId) {
-      // map old name to new docs param for compatibility
-      queryParams.append('university', params.universityId.toString());
+    // GET /admin/users reads req.query.universityId (a `university` param is ignored)
+    const universityId = params.universityId ?? params.university;
+    if (universityId !== undefined && universityId !== null) {
+      queryParams.append('universityId', universityId.toString());
     }
     if (params.isActive !== undefined) queryParams.append('isActive', params.isActive.toString());
 
@@ -2340,28 +2351,31 @@ export class AdminService {
     specialtyId?: number;
     currentYear?: string;
   }): Promise<ApiResponse<ApiUser>> {
-    return apiClient.post<ApiUser>('/admin/users', userData);
+    // The backend replies with the raw user object (201, no success/data envelope)
+    return normalizeApiResponse<ApiUser>(await apiClient.post<ApiUser>('/admin/users', userData));
   }
 
   /**
    * Update user
    */
   static async updateUser(userId: number, userData: Partial<ApiUser>): Promise<ApiResponse<ApiUser>> {
-    return apiClient.put<ApiUser>(`/admin/users/${userId}`, userData);
+    // The backend replies with the raw user object (no success/data envelope)
+    return normalizeApiResponse<ApiUser>(await apiClient.put<ApiUser>(`/admin/users/${userId}`, userData));
   }
 
   /**
-   * Deactivate user (docs-compliant: set isActive=false via PUT)
+   * Deactivate user (set isActive=false via PUT)
    */
   static async deactivateUser(userId: number): Promise<ApiResponse<ApiUser>> {
-    return apiClient.put<ApiUser>(`/admin/users/${userId}`, { isActive: false });
+    return normalizeApiResponse<ApiUser>(await apiClient.put<ApiUser>(`/admin/users/${userId}`, { isActive: false }));
   }
 
   /**
-   * Delete user (permanent) - DELETE /admin/users/{id}
+   * DELETE /admin/users/{id}. Despite the verb this only deactivates the account
+   * (isActive=false) on the backend; it replies with a raw { message } body.
    */
-  static async deleteUser(userId: number): Promise<ApiResponse<{ success: boolean; message?: string }>> {
-    return apiClient.delete<{ success: boolean; message?: string }>(`/admin/users/${userId}`);
+  static async deleteUser(userId: number): Promise<ApiResponse<{ message?: string }>> {
+    return normalizeApiResponse<{ message?: string }>(await apiClient.delete<any>(`/admin/users/${userId}`));
   }
 
 
@@ -2623,19 +2637,32 @@ export class AdminService {
    * Update question explanation with images
    */
   static async updateQuestionExplanation(questionId: number, explanationData: UpdateQuestionExplanationRequest): Promise<ApiResponse<{ success: boolean; message: string; imageCount: number }>> {
-    const formData = new FormData();
-    formData.append('explanation', explanationData.explanation);
+    // PUT /admin/questions/:id/explanation only parses JSON. Upload any files first through
+    // POST /admin/upload/question-explanation (multipart field `explanationImages`, response
+    // `{ files: [{ filename, url, ... }] }` with no data envelope), then send their media URLs.
+    let explanationImages: Array<{ imagePath: string }> | undefined;
 
-    if (explanationData.explanationImages) {
+    if (explanationData.explanationImages && explanationData.explanationImages.length > 0) {
+      const formData = new FormData();
       explanationData.explanationImages.forEach(image => {
         formData.append('explanationImages', image);
       });
+
+      const uploaded: any = await apiClient.post<any>('/admin/upload/question-explanation', formData);
+      const files: any[] = uploaded?.files ?? uploaded?.data?.files ?? [];
+      explanationImages = files
+        .map(file => file?.url || (file?.filename ? `/uploads/explanations/${file.filename}` : ''))
+        .filter(Boolean)
+        .map(imagePath => ({ imagePath }));
+
+      if (explanationImages.length === 0) {
+        throw new Error('Explanation image upload returned no files');
+      }
     }
 
-    return apiClient.put<{ success: boolean; message: string; imageCount: number }>(`/admin/questions/${questionId}/explanation`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+    return apiClient.put<{ success: boolean; message: string; imageCount: number }>(`/admin/questions/${questionId}/explanation`, {
+      explanation: explanationData.explanation,
+      ...(explanationImages ? { explanationImages } : {}),
     });
   }
 
@@ -2765,17 +2792,24 @@ export class AdminService {
     if (params.userId) queryParams.append('userId', params.userId.toString());
     if (params.search) queryParams.append('search', params.search);
 
-    // Updated to match new API documentation: GET /admin/questions/reports
+    // GET /admin/questions/reports replies with a raw { items, total, page, limit, totalPages }
+    // body (no success/data envelope); wrap it so `response.data` is that body.
     const url = queryParams.toString() ? `/admin/questions/reports?${queryParams.toString()}` : '/admin/questions/reports';
-    return apiClient.get<PaginatedResponse<AdminQuestionReport>>(url);
+    return normalizeApiResponse<PaginatedResponse<AdminQuestionReport>>(await apiClient.get<any>(url));
   }
 
   /**
    * Review question report
    */
   static async reviewQuestionReport(reportId: number, reviewData: ReviewQuestionReportRequest): Promise<ApiResponse<AdminQuestionReport>> {
-    // Updated to match new API documentation: PUT /admin/questions/reports/{id}
-    return apiClient.put<AdminQuestionReport>(`/admin/questions/reports/${reportId}`, reviewData);
+    // PUT /admin/questions/reports/{id} expects { status, adminNotes } (reviewQuestionReportSchema)
+    // and replies with the raw updated report.
+    return normalizeApiResponse<AdminQuestionReport>(
+      await apiClient.put<any>(`/admin/questions/reports/${reportId}`, {
+        status: reviewData.action,
+        adminNotes: reviewData.response,
+      })
+    );
   }
 
   // ==================== FILE UPLOAD MANAGEMENT ====================
@@ -3216,8 +3250,12 @@ export class AdminContentService {
     if (!studyPackData.type || !STUDY_PACK_TYPES.includes(studyPackData.type)) {
       throw new Error(`Type is required and must be one of: ${STUDY_PACK_TYPES.join(', ')}`);
     }
-    if (!studyPackData.yearNumber || !YEAR_NUMBERS.includes(studyPackData.yearNumber)) {
-      throw new Error(`YearNumber is required and must be one of: ${YEAR_NUMBERS.join(', ')}`);
+    // Year packs need a year; residency packs have none
+    if (studyPackData.type === 'YEAR' && (!studyPackData.yearNumber || !YEAR_NUMBERS.includes(studyPackData.yearNumber))) {
+      throw new Error(`YearNumber is required for YEAR packs and must be one of: ${YEAR_NUMBERS.join(', ')}`);
+    }
+    if (studyPackData.yearNumber !== undefined && !YEAR_NUMBERS.includes(studyPackData.yearNumber)) {
+      throw new Error(`YearNumber must be one of: ${YEAR_NUMBERS.join(', ')} when provided`);
     }
     if (typeof studyPackData.pricePerMonth !== 'number' || studyPackData.pricePerMonth <= 0) {
       throw new Error('PricePerMonth is required and must be a positive number');
@@ -3481,8 +3519,13 @@ export class AdminContentService {
   }
 
   /**
-   * Update a unit including optional logo file via multipart/form-data
-   * Uses: PUT /admin/content/unites/:id with field name `logo`
+   * Update a unit's logo.
+   *
+   * PUT /admin/content/unites/:id only parses JSON (createUniteSchema: studyPackId and name
+   * required, logoUrl must be an absolute URL). Upload the file first through
+   * POST /admin/upload/logo (multipart field `logo`, raw `{ uploadedFiles: [{ url }] }` reply),
+   * then send its absolute media URL. The unit route also replies with a raw object, which is
+   * wrapped here so callers can check `success` and read `data.logoUrl`.
    */
   static async updateUnitLogo(params: {
     unitId: number;
@@ -3491,25 +3534,43 @@ export class AdminContentService {
     description?: string;
     logo?: File;
   }): Promise<ApiResponse<any>> {
-    const formData = new FormData();
-    formData.append('studyPackId', String(params.studyPackId));
-    formData.append('name', params.name);
-    if (params.description) formData.append('description', params.description);
-    if (params.logo) formData.append('logo', params.logo);
+    if (!params.studyPackId) {
+      throw new Error('The unit study pack is unknown, so its image cannot be updated.');
+    }
 
-    return apiClient.put<any>(`/admin/content/unites/${params.unitId}`, formData, {
-      headers: {
-        // Don't set Content-Type - let browser handle it for FormData
-      },
-    });
+    let logoUrl: string | undefined;
+    if (params.logo) {
+      const formData = new FormData();
+      formData.append('logo', params.logo);
+      const uploaded: any = await apiClient.post<any>('/admin/upload/logo', formData);
+      const uploadedFiles: any[] = uploaded?.uploadedFiles ?? uploaded?.data?.uploadedFiles ?? [];
+      const url: string | undefined = uploadedFiles[0]?.url;
+      if (!url) {
+        throw new Error('Logo upload returned no file URL');
+      }
+      logoUrl = /^https?:\/\//i.test(url) ? url : `${API_ORIGIN}${url.startsWith('/') ? '' : '/'}${url}`;
+    }
+
+    const payload: any = {
+      studyPackId: params.studyPackId,
+      name: params.name,
+      ...(params.description ? { description: params.description } : {}),
+      ...(logoUrl ? { logoUrl } : {}),
+    };
+
+    return normalizeApiResponse<any>(
+      await apiClient.put<any>(`/admin/content/unites/${params.unitId}`, payload)
+    );
   }
 
   /**
-   * Update a module including optional logo file via multipart/form-data
-   * Uses: PUT /admin/content/modules/:id with field name `logo`
-   * Either uniteId or studyPackId must be supplied according to API docs.
+   * Update a module's logo.
+   *
+   * Not supported by the API: PUT /admin/content/modules/:id only parses JSON, its schema
+   * (createModuleSchema) has no logo/image field and the service only updates the name.
+   * Fail clearly instead of sending a request that cannot store the image.
    */
-  static async updateModuleLogo(params: {
+  static async updateModuleLogo(_params: {
     moduleId: number;
     name: string;
     description?: string;
@@ -3517,25 +3578,7 @@ export class AdminContentService {
     studyPackId?: number;
     logo?: File;
   }): Promise<ApiResponse<any>> {
-    const formData = new FormData();
-
-    const hasUnite = typeof params.uniteId === 'number' && !Number.isNaN(params.uniteId);
-    const hasSP = typeof params.studyPackId === 'number' && !Number.isNaN(params.studyPackId);
-
-    // API requires exactly one of uniteId OR studyPackId. Prefer uniteId when both provided.
-    if (hasUnite) {
-      formData.append('uniteId', String(params.uniteId));
-    } else if (hasSP) {
-      formData.append('studyPackId', String(params.studyPackId));
-    }
-
-    formData.append('name', params.name);
-    if (params.description) formData.append('description', params.description);
-    if (params.logo) formData.append('logo', params.logo);
-
-    return apiClient.put<any>(`/admin/content/modules/${params.moduleId}`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    throw new Error('Module images are not supported by the API yet.');
   }
 
 
@@ -3823,8 +3866,9 @@ export class AdminCourseResourcesService {
         deepNestedData: !!response.data?.data?.data
       });
 
-      // Handle nested response structure: { success, data: { success, data: { unites, independentModules } } }
-      const actualData = response.data?.data?.data || response.data?.data || response.data;
+      // The backend replies with the raw { unites } body (no success/data envelope); also accept
+      // wrapped shapes ({ success, data: {...} }, possibly nested) should that change.
+      const actualData = response?.data?.data?.data ?? response?.data?.data ?? response?.data ?? response ?? {};
 
       console.log('🔍 [AdminCourseResourcesService] Extracted data:', {
         unitesCount: actualData?.unites?.length || 0,
@@ -3835,8 +3879,8 @@ export class AdminCourseResourcesService {
       return {
         success: true,
         data: {
-          unites: actualData.unites || [],
-          independentModules: actualData.independentModules || []
+          unites: actualData?.unites ?? [],
+          independentModules: actualData?.independentModules ?? []
         }
       };
     } catch (error) {
@@ -3892,139 +3936,24 @@ export class AdminCourseResourcesService {
     console.log('🔍 [API] Has file:', !!file, file?.name);
 
     if (file) {
-      // Use FormData for file uploads
-      console.log('📤 [API] Using FormData for file upload');
+      // POST /admin/content/resources only parses JSON. Upload the file first through the
+      // multipart upload routes, then create the resource with the file's media URL.
+      console.log('📤 [API] Uploading resource file before creating the resource');
 
-      const formData = new FormData();
-
-      // Add the file
-      formData.append('file', file);
-
-      // Add all the resource data fields (improved from test file pattern)
-      formData.append('type', cleanData.type);
-      formData.append('title', cleanData.title);
-      formData.append('courseId', cleanData.courseId.toString());
-
-      // Add optional fields only if they have values (matching test file logic)
-      if (cleanData.description) formData.append('description', cleanData.description);
-      if (cleanData.externalUrl) formData.append('externalUrl', cleanData.externalUrl);
-      if (cleanData.youtubeVideoId) formData.append('youtubeVideoId', cleanData.youtubeVideoId);
-      if (cleanData.isPaid) formData.append('isPaid', cleanData.isPaid.toString());
-      if (cleanData.price && cleanData.isPaid) formData.append('price', cleanData.price.toString());
-
-      // Use XMLHttpRequest for progress tracking with correct API base URL
-      const token = localStorage.getItem('auth_token'); // Use correct token key from api-client
-
-
-      // Check if token is available
-      if (!token) {
-        console.error('❌ [API] No authentication token available for file upload');
-        return Promise.resolve({
+      let fileUrl: string;
+      try {
+        fileUrl = await AdminCourseResourcesService.uploadResourceFile(file, onProgress);
+      } catch (error) {
+        return {
           success: false,
-          error: 'Authentication token not found. Please log in again.',
+          error: handleApiError(error),
           data: null
-        });
+        };
       }
 
-      return new Promise((resolve) => {
-        const xhr = new XMLHttpRequest();
-
-        // Track upload progress
-        if (onProgress) {
-          xhr.upload.addEventListener('progress', (event) => {
-            if (event.lengthComputable) {
-              const progress = Math.round((event.loaded / event.total) * 100);
-              onProgress(progress);
-            }
-          });
-        }
-
-        xhr.addEventListener('load', () => {
-          try {
-            const result = JSON.parse(xhr.responseText);
-
-            console.log('📥 [API] XMLHttpRequest response:', {
-              status: xhr.status,
-              statusText: xhr.statusText,
-              hasResult: !!result,
-              resultKeys: result ? Object.keys(result) : []
-            });
-
-            if (xhr.status >= 200 && xhr.status < 300) {
-              resolve({
-                success: true,
-                data: result,
-                error: null
-              });
-            } else {
-              // Enhanced error handling for different response structures
-              let errorMessage = 'Failed to create resource';
-
-              if (result?.error?.message) {
-                errorMessage = result.error.message;
-              } else if (result?.error && typeof result.error === 'string') {
-                errorMessage = result.error;
-              } else if (result?.message) {
-                errorMessage = result.message;
-              } else if (xhr.status === 401) {
-                errorMessage = 'Authentication failed. Please log in again.';
-              } else if (xhr.status === 403) {
-                errorMessage = 'Access denied. You do not have permission to perform this action.';
-              } else if (xhr.status === 413) {
-                errorMessage = 'File too large. Please select a smaller file.';
-              } else if (xhr.status === 415) {
-                errorMessage = 'Unsupported file type. Please select a supported file format.';
-              }
-
-              console.error('❌ [API] XMLHttpRequest error response:', {
-                status: xhr.status,
-                statusText: xhr.statusText,
-                errorMessage,
-                result
-              });
-
-              resolve({
-                success: false,
-                error: errorMessage,
-                data: null
-              });
-            }
-          } catch (error) {
-            console.error('❌ [API] Failed to parse XMLHttpRequest response:', error);
-            resolve({
-              success: false,
-              error: 'Invalid response from server',
-              data: null
-            });
-          }
-        });
-
-        xhr.addEventListener('error', () => {
-          console.error('❌ [API] XMLHttpRequest network error');
-          resolve({
-            success: false,
-            error: 'Network error occurred. Please check your connection and try again.',
-            data: null
-          });
-        });
-
-        xhr.addEventListener('timeout', () => {
-          console.error('❌ [API] XMLHttpRequest timeout');
-          resolve({
-            success: false,
-            error: 'Request timeout. Please try again.',
-            data: null
-          });
-        });
-
-        // Construct the correct URL: base URL + endpoint path
-        const fullUrl = `${API_BASE_URL}/admin/content/resources`;
-        console.log('📤 [API] FormData upload URL:', fullUrl);
-
-        xhr.open('POST', fullUrl);
-        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-        // Don't set Content-Type header - let browser set it with boundary for FormData
-        xhr.send(formData);
+      return apiClient.post<any>('/admin/content/resources', {
+        ...cleanData,
+        filePath: fileUrl
       });
     } else {
       // Use JSON for requests without files
@@ -4049,6 +3978,42 @@ export class AdminCourseResourcesService {
         };
       }>('/admin/content/resources', cleanData);
     }
+  }
+
+  /**
+   * Upload a course resource file and return its media URL (/api/v1/media/<type>/<file>).
+   *
+   * The backend stores uploads only through POST /admin/upload/pdf (multipart field `pdfs`,
+   * PDF only) and POST /admin/upload/image (field `images`, images only); both reply with a raw
+   * `{ uploadedFiles: [{ filename, path, size, url }] }` body. `path` is a server filesystem
+   * path and must not be stored. Other document formats have no upload route.
+   */
+  static async uploadResourceFile(file: File, onProgress?: (progress: number) => void): Promise<string> {
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    const isImage = file.type.startsWith('image/');
+    if (!isPdf && !isImage) {
+      throw new Error('Only PDF and image files can be uploaded as course resources.');
+    }
+
+    const formData = new FormData();
+    formData.append(isPdf ? 'pdfs' : 'images', file);
+
+    const raw: any = await apiClient.post<any>(isPdf ? '/admin/upload/pdf' : '/admin/upload/image', formData, {
+      // Large files can take longer than the default 30 s request timeout
+      timeout: 10 * 60 * 1000,
+      onUploadProgress: (event: any) => {
+        if (onProgress && event?.total) {
+          onProgress(Math.round((event.loaded / event.total) * 100));
+        }
+      },
+    });
+
+    const uploadedFiles: any[] = raw?.uploadedFiles ?? raw?.data?.uploadedFiles ?? [];
+    const url: string | undefined = uploadedFiles[0]?.url;
+    if (!url) {
+      throw new Error('File upload returned no file URL');
+    }
+    return url;
   }
 
   /**
@@ -4463,8 +4428,10 @@ export class UniversityService {
     if (params.limit) queryParams.append('limit', params.limit.toString());
     if (params.search) queryParams.append('search', params.search);
 
+    // The specialty routes reply with raw bodies (list: { items, total, page, limit, totalPages };
+    // create/update: the specialty; delete: { message }) with no success/data envelope.
     const url = queryParams.toString() ? `/admin/specialties?${queryParams.toString()}` : '/admin/specialties';
-    return apiClient.get<PaginatedResponse<Specialty>>(url);
+    return normalizeApiResponse<PaginatedResponse<Specialty>>(await apiClient.get<any>(url));
   }
 
   /**
@@ -4473,7 +4440,7 @@ export class UniversityService {
   static async createSpecialty(specialtyData: {
     name: string;
   }): Promise<ApiResponse<Specialty>> {
-    return apiClient.post<Specialty>('/admin/specialties', specialtyData);
+    return normalizeApiResponse<Specialty>(await apiClient.post<Specialty>('/admin/specialties', specialtyData));
   }
 
   /**
@@ -4482,14 +4449,14 @@ export class UniversityService {
   static async updateSpecialty(specialtyId: number, updateData: {
     name?: string;
   }): Promise<ApiResponse<Specialty>> {
-    return apiClient.put<Specialty>(`/admin/specialties/${specialtyId}`, updateData);
+    return normalizeApiResponse<Specialty>(await apiClient.put<Specialty>(`/admin/specialties/${specialtyId}`, updateData));
   }
 
   /**
    * Delete specialty
    */
-  static async deleteSpecialty(specialtyId: number): Promise<ApiResponse<{ success: boolean; message: string }>> {
-    return apiClient.delete<{ success: boolean; message: string }>(`/admin/specialties/${specialtyId}`);
+  static async deleteSpecialty(specialtyId: number): Promise<ApiResponse<{ message: string }>> {
+    return normalizeApiResponse<{ message: string }>(await apiClient.delete<any>(`/admin/specialties/${specialtyId}`));
   }
 }
 
@@ -4719,231 +4686,132 @@ export class ResidencyQuestionsService {
   /**
    * Get a single residency question by ID
    * GET /api/v1/admin/residency-questions/:id
+   *
+   * The backend replies with the raw, flat question object
+   * ({ id, questionText, part, explanation, examYear, universityId, university, metadata,
+   * questionAnswers, questionImages, questionExplanationImages, createdAt }) and no
+   * success/data envelope, so it is wrapped here: `response.data` is that object.
    */
-  static async getResidencyQuestion(id: number): Promise<ApiResponse<{ data: ResidencyQuestion }>> {
-    return apiClient.get<{ data: ResidencyQuestion }>(`/admin/residency-questions/${id}`);
+  static async getResidencyQuestion(id: number): Promise<ApiResponse<any>> {
+    return normalizeApiResponse<any>(await apiClient.get<any>(`/admin/residency-questions/${id}`));
   }
 
   /**
-   * Create a new residency question with images
+   * The residency create/update routes only parse JSON and have no image fields, so images
+   * are attached afterwards through the multipart routes shared with regular questions
+   * (PUT /admin/image/:id/question-images and /explanation-images), which replace the
+   * question's current images. Returns a message when an upload fails so the caller can
+   * report it without treating the already-saved question as a failure (a retry would
+   * create a duplicate).
+   */
+  private static async replaceResidencyImages(
+    questionId: number,
+    questionImages?: File[],
+    explanationImages?: File[]
+  ): Promise<string | undefined> {
+    const onlyFiles = (list?: File[]) => (Array.isArray(list) ? list.filter(img => img instanceof File) : []);
+    const questionFiles = onlyFiles(questionImages);
+    const explanationFiles = onlyFiles(explanationImages);
+    const failures: string[] = [];
+
+    if (questionFiles.length > 0) {
+      try {
+        await AdminService.updateQuestionImages(questionId, questionFiles);
+      } catch (error) {
+        failures.push(`question images (${handleApiError(error)})`);
+      }
+    }
+
+    if (explanationFiles.length > 0) {
+      try {
+        await AdminService.updateQuestionExplanationImages(questionId, explanationFiles);
+      } catch (error) {
+        failures.push(`explanation images (${handleApiError(error)})`);
+      }
+    }
+
+    return failures.length > 0
+      ? `The question was saved, but uploading ${failures.join(' and ')} failed. Edit the question to add them again.`
+      : undefined;
+  }
+
+  /**
+   * Create a new residency question, then attach its images
    * POST /api/v1/admin/residency-questions
+   *
+   * The backend replies with the raw created question (201, no success/data envelope);
+   * it is wrapped so `response.data` is the created question. `imageUploadError` is set
+   * when the question was created but its images could not be uploaded.
    */
-  static async createResidencyQuestion(questionData: CreateResidencyQuestionRequest): Promise<ApiResponse<{ data: ResidencyQuestion; message: string }>> {
-    // Debug logging
-    console.log('🔍 [createResidencyQuestion] Input data:', {
-      hasQuestionImages: !!questionData.questionImages,
-      questionImagesLength: questionData.questionImages?.length,
-      questionImagesType: Array.isArray(questionData.questionImages) ? 'array' : typeof questionData.questionImages,
-      questionImagesFirstItem: questionData.questionImages?.[0],
-      questionImagesFirstItemIsFile: questionData.questionImages?.[0] instanceof File,
-      hasExplanationImages: !!questionData.questionExplanationImages,
-      explanationImagesLength: questionData.questionExplanationImages?.length,
-      explanationImagesType: Array.isArray(questionData.questionExplanationImages) ? 'array' : typeof questionData.questionExplanationImages,
-      explanationImagesFirstItem: questionData.questionExplanationImages?.[0],
-      explanationImagesFirstItemIsFile: questionData.questionExplanationImages?.[0] instanceof File,
-    });
+  static async createResidencyQuestion(questionData: CreateResidencyQuestionRequest): Promise<ApiResponse<any> & { imageUploadError?: string }> {
+    const payload: any = {
+      questionText: questionData.questionText,
+      part: questionData.part,
+      explanation: questionData.explanation,
+      examYear: questionData.examYear,
+      universityId: questionData.universityId,
+      metadata: questionData.metadata,
+      questionAnswers: questionData.questionAnswers,
+    };
 
-    // Check if we have valid images (must be arrays with File objects)
-    const hasValidImages = (Array.isArray(questionData.questionImages) && questionData.questionImages.length > 0 && questionData.questionImages.some(img => img instanceof File)) ||
-      (Array.isArray(questionData.questionExplanationImages) && questionData.questionExplanationImages.length > 0 && questionData.questionExplanationImages.some(img => img instanceof File));
+    // Remove undefined fields
+    Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
 
-    console.log('🔍 [createResidencyQuestion] hasValidImages:', hasValidImages);
+    const response = normalizeApiResponse<any>(
+      await apiClient.post<any>('/admin/residency-questions', payload)
+    );
 
-    if (!hasValidImages) {
-      // No valid images - send as JSON with proper types
-      console.log('📤 [createResidencyQuestion] Sending as JSON (no valid images)');
-      const payload = {
-        questionText: questionData.questionText,
-        part: questionData.part,
-        explanation: questionData.explanation,
-        examYear: questionData.examYear,
-        universityId: questionData.universityId,
-        metadata: questionData.metadata,
-        questionAnswers: questionData.questionAnswers, // Keep as array with boolean types
-      };
-
-      // Remove undefined fields
-      Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
-
-      return apiClient.post<{ data: ResidencyQuestion; message: string }>('/admin/residency-questions', payload);
-    }
-
-    console.log('📤 [createResidencyQuestion] Sending as FormData (has valid images)');
-
-    // Has valid images - use FormData
-    const formData = new FormData();
-
-    // Add text fields
-    formData.append('questionText', questionData.questionText);
-    formData.append('part', questionData.part);
-
-    if (questionData.explanation) {
-      formData.append('explanation', questionData.explanation);
-    }
-    if (questionData.examYear) {
-      formData.append('examYear', questionData.examYear.toString());
-    }
-    if (questionData.universityId) {
-      formData.append('universityId', questionData.universityId.toString());
-    }
-    if (questionData.metadata) {
-      formData.append('metadata', questionData.metadata);
-    }
-
-    // Add answers using array notation (matching the documented curl example)
-    if (questionData.questionAnswers && questionData.questionAnswers.length > 0) {
-      questionData.questionAnswers.forEach((answer, index) => {
-        formData.append(`questionAnswers[${index}][answerText]`, answer.answerText);
-        formData.append(`questionAnswers[${index}][isCorrect]`, answer.isCorrect.toString());
-      });
-    }
-
-    // Add question images - append multiple times for array
-    if (questionData.questionImages && questionData.questionImages.length > 0) {
-      console.log('📎 [createResidencyQuestion] Adding question images:', questionData.questionImages.length);
-      questionData.questionImages.forEach((image, index) => {
-        console.log(`  Image ${index}:`, {
-          isFile: image instanceof File,
-          name: image instanceof File ? image.name : 'NOT A FILE',
-          size: image instanceof File ? image.size : 'N/A',
-          type: image instanceof File ? image.type : typeof image,
-          altText: (image as any).altText,
-        });
-        // Only append if it's actually a File object
-        if (image instanceof File) {
-          formData.append('questionImages', image);
-        } else {
-          console.warn('⚠️ Skipping non-File object in questionImages:', image);
-        }
-      });
-    }
-
-    // Add explanation images - append multiple times for array
-    if (questionData.questionExplanationImages && questionData.questionExplanationImages.length > 0) {
-      console.log('📎 [createResidencyQuestion] Adding explanation images:', questionData.questionExplanationImages.length);
-      questionData.questionExplanationImages.forEach((image, index) => {
-        console.log(`  Image ${index}:`, {
-          isFile: image instanceof File,
-          name: image instanceof File ? image.name : 'NOT A FILE',
-          size: image instanceof File ? image.size : 'N/A',
-          type: image instanceof File ? image.type : typeof image,
-          altText: (image as any).altText,
-        });
-        // Only append if it's actually a File object
-        if (image instanceof File) {
-          formData.append('questionExplanationImages', image);
-        } else {
-          console.warn('⚠️ Skipping non-File object in explanationImages:', image);
-        }
-      });
-    }
-
-    // Log FormData contents
-    console.log('📋 [createResidencyQuestion] FormData contents:');
-    for (const [key, value] of formData.entries()) {
-      if (value instanceof File) {
-        console.log(`  ${key}: File(${value.name}, ${value.size} bytes, ${value.type})`);
-      } else {
-        console.log(`  ${key}: ${value}`);
+    const createdId = response.data?.id;
+    if (createdId) {
+      const imageUploadError = await ResidencyQuestionsService.replaceResidencyImages(
+        createdId,
+        questionData.questionImages,
+        questionData.questionExplanationImages
+      );
+      if (imageUploadError) {
+        return { ...response, imageUploadError };
       }
     }
 
-    console.log('🚀 [createResidencyQuestion] Sending FormData request...');
-
-    // Don't set Content-Type header - let the browser set it automatically with the correct boundary
-    return apiClient.post<{ data: ResidencyQuestion; message: string }>('/admin/residency-questions', formData, {
-      headers: {
-        // Explicitly don't set Content-Type - let browser handle it for FormData
-      }
-    });
+    return response;
   }
 
   /**
-   * Update a residency question with optional new images
+   * Update a residency question, then replace its images when new ones are given
    * PUT /api/v1/admin/residency-questions/:id
+   *
+   * Same raw-body handling as createResidencyQuestion.
    */
-  static async updateResidencyQuestion(id: number, questionData: UpdateResidencyQuestionRequest): Promise<ApiResponse<{ data: ResidencyQuestion; message: string }>> {
-    // Check if we have valid images (must be arrays with File objects)
-    const hasValidImages = (Array.isArray(questionData.questionImages) && questionData.questionImages.length > 0 && questionData.questionImages.some(img => img instanceof File)) ||
-      (Array.isArray(questionData.questionExplanationImages) && questionData.questionExplanationImages.length > 0 && questionData.questionExplanationImages.some(img => img instanceof File));
+  static async updateResidencyQuestion(id: number, questionData: UpdateResidencyQuestionRequest): Promise<ApiResponse<any> & { imageUploadError?: string }> {
+    const payload: any = {};
 
-    if (!hasValidImages) {
-      // No valid images - send as JSON with proper types
-      const payload: any = {};
+    if (questionData.questionText) payload.questionText = questionData.questionText;
+    if (questionData.explanation !== undefined) payload.explanation = questionData.explanation;
+    if (questionData.part) payload.part = questionData.part;
+    if (questionData.examYear !== undefined) payload.examYear = questionData.examYear;
+    if (questionData.universityId !== undefined) payload.universityId = questionData.universityId;
+    if (questionData.metadata !== undefined) payload.metadata = questionData.metadata;
+    if (questionData.questionAnswers) payload.questionAnswers = questionData.questionAnswers; // Keep as array with boolean types
 
-      if (questionData.questionText) payload.questionText = questionData.questionText;
-      if (questionData.explanation !== undefined) payload.explanation = questionData.explanation;
-      if (questionData.part) payload.part = questionData.part;
-      if (questionData.examYear !== undefined) payload.examYear = questionData.examYear;
-      if (questionData.universityId !== undefined) payload.universityId = questionData.universityId;
-      if (questionData.metadata !== undefined) payload.metadata = questionData.metadata;
-      if (questionData.questionAnswers) payload.questionAnswers = questionData.questionAnswers; // Keep as array with boolean types
+    const response = normalizeApiResponse<any>(
+      await apiClient.put<any>(`/admin/residency-questions/${id}`, payload)
+    );
 
-      return apiClient.put<{ data: ResidencyQuestion; message: string }>(`/admin/residency-questions/${id}`, payload);
-    }
+    const imageUploadError = await ResidencyQuestionsService.replaceResidencyImages(
+      id,
+      questionData.questionImages,
+      questionData.questionExplanationImages
+    );
 
-    // Has valid images - use FormData
-    const formData = new FormData();
-
-    // Add text fields if provided
-    if (questionData.questionText) {
-      formData.append('questionText', questionData.questionText);
-    }
-    if (questionData.explanation !== undefined) {
-      formData.append('explanation', questionData.explanation);
-    }
-    if (questionData.part) {
-      formData.append('part', questionData.part);
-    }
-    if (questionData.examYear !== undefined) {
-      formData.append('examYear', questionData.examYear.toString());
-    }
-    if (questionData.universityId !== undefined) {
-      formData.append('universityId', questionData.universityId.toString());
-    }
-    if (questionData.metadata !== undefined) {
-      formData.append('metadata', questionData.metadata);
-    }
-
-    // Add answers using array notation if provided (matching the documented curl example)
-    if (questionData.questionAnswers && questionData.questionAnswers.length > 0) {
-      questionData.questionAnswers.forEach((answer, index) => {
-        formData.append(`questionAnswers[${index}][answerText]`, answer.answerText);
-        formData.append(`questionAnswers[${index}][isCorrect]`, answer.isCorrect.toString());
-      });
-    }
-
-    // Add new question images if provided - append multiple times for array
-    if (questionData.questionImages && questionData.questionImages.length > 0) {
-      questionData.questionImages.forEach((image) => {
-        // Only append if it's actually a File object
-        if (image instanceof File) {
-          formData.append('questionImages', image);
-        }
-      });
-    }
-
-    // Add new explanation images if provided - append multiple times for array
-    if (questionData.questionExplanationImages && questionData.questionExplanationImages.length > 0) {
-      questionData.questionExplanationImages.forEach((image) => {
-        // Only append if it's actually a File object
-        if (image instanceof File) {
-          formData.append('questionExplanationImages', image);
-        }
-      });
-    }
-
-    // Don't set Content-Type header - let the browser set it automatically with the correct boundary
-    return apiClient.put<{ data: ResidencyQuestion; message: string }>(`/admin/residency-questions/${id}`, formData, {
-      headers: {
-        // Explicitly don't set Content-Type - let browser handle it for FormData
-      }
-    });
+    return imageUploadError ? { ...response, imageUploadError } : response;
   }
 
   /**
    * Bulk create residency questions
    * POST /api/v1/admin/residency-questions/bulk
+   *
+   * The backend replies with the raw { questions, totalCreated, message } body (201);
+   * it is wrapped so `response.data.totalCreated` is available.
    */
   static async bulkCreateResidencyQuestions(bulkData: BulkResidencyQuestionRequest): Promise<ApiResponse<BulkResidencyQuestionResponse & { message: string }>> {
     console.log('📤 [bulkCreateResidencyQuestions] Sending bulk request:', {
@@ -4953,15 +4821,21 @@ export class ResidencyQuestionsService {
       questionCount: bulkData.questions.length
     });
 
-    return apiClient.post<BulkResidencyQuestionResponse & { message: string }>('/admin/residency-questions/bulk', bulkData);
+    return normalizeApiResponse<BulkResidencyQuestionResponse & { message: string }>(
+      await apiClient.post<any>('/admin/residency-questions/bulk', bulkData)
+    );
   }
 
   /**
    * Delete a residency question
    * DELETE /api/v1/admin/residency-questions/:id
+   *
+   * The backend replies with a raw { message } body; it is wrapped as a success.
    */
   static async deleteResidencyQuestion(id: number): Promise<ApiResponse<{ message: string }>> {
-    return apiClient.delete<{ message: string }>(`/admin/residency-questions/${id}`);
+    return normalizeApiResponse<{ message: string }>(
+      await apiClient.delete<any>(`/admin/residency-questions/${id}`)
+    );
   }
 }
 
