@@ -140,6 +140,16 @@ export function CreateResidencyQuestionDialog({
       return;
     }
 
+    // Residency sessions are selected by university and exam year
+    if (!formData.universityId) {
+      setError('Please select a university');
+      return;
+    }
+    if (!formData.examYear || formData.examYear < 1900 || formData.examYear > 2100) {
+      setError('Please enter a valid exam year');
+      return;
+    }
+
     const validAnswers = answers.filter(a => a.answerText.trim() !== '');
     if (validAnswers.length < 2) {
       setError('Please provide at least 2 answers');
@@ -248,17 +258,16 @@ export function CreateResidencyQuestionDialog({
 
           {/* University */}
           <div className="space-y-2">
-            <Label htmlFor="university">University (Optional)</Label>
+            <Label htmlFor="university">University *</Label>
             <Select
-              value={formData.universityId?.toString() || 'none'}
-              onValueChange={(value) => setFormData({ ...formData, universityId: value === 'none' ? undefined : parseInt(value) })}
+              value={formData.universityId?.toString() || ''}
+              onValueChange={(value) => setFormData({ ...formData, universityId: parseInt(value) })}
               disabled={loading || loadingData}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select university" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">None</SelectItem>
                 {universities.map((university) => (
                   <SelectItem key={university.id} value={university.id.toString()}>
                     {university.name}
@@ -270,7 +279,7 @@ export function CreateResidencyQuestionDialog({
 
           {/* Exam Year */}
           <div className="space-y-2">
-            <Label htmlFor="examYear">Exam Year (Optional)</Label>
+            <Label htmlFor="examYear">Exam Year *</Label>
             <Input
               id="examYear"
               type="number"
