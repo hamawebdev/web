@@ -5,13 +5,12 @@ const isProduction = process.env.NODE_ENV === 'production';
 const nextConfig: NextConfig = {
   output: "standalone",
 
-
-  // TypeScript: allow builds to complete even with type errors
+  // The codebase still has pre-existing type and lint errors (run `npm run type-check`
+  // and `npm run lint`); they are tracked separately so they do not block deploys.
   typescript: {
     ignoreBuildErrors: true,
   },
 
-  // Disable ESLint during builds to avoid blocking on lint errors
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -19,25 +18,20 @@ const nextConfig: NextConfig = {
   // Compression
   compress: true,
 
-  // Image optimization configuration
+  // Do not advertise the framework in responses
+  poweredByHeader: false,
+
+  // Images: API media is rendered with plain <img> tags; optimisation stays disabled.
   images: {
-    unoptimized: true, // Disable all image optimization to avoid issues with API-served images
-    domains: ['med-adn.com', 'localhost'], // Allow these domains for image optimization
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'med-adn.com',
-        pathname: '/api/**',
-      },
-      {
-        protocol: 'http',
-        hostname: 'localhost',
+        hostname: 'api.med-adn.com',
         pathname: '/api/**',
       },
     ],
   },
-
-
 
   // Redirect common typos to the correct routes
   async redirects() {
@@ -52,16 +46,6 @@ const nextConfig: NextConfig = {
         source: "/admin/quetions/:path*",
         destination: "/admin/questions/:path*",
         permanent: false,
-      },
-    ];
-  },
-
-  // // Setup API proxy for local development to avoid CORS issues
-  async rewrites() {
-    return [
-      {
-        source: "/api/v1/:path*",
-        destination: "https://med-adn.com/api/v1/:path*",
       },
     ];
   },

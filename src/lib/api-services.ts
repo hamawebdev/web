@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { apiClient } from './api-client';
 import { logServiceCall } from './logger';
+import { API_BASE_URL } from './config';
 import {
   ApiResponse,
   LoginRequest,
@@ -2851,13 +2852,11 @@ export class AdminService {
   }
 
   /**
-   * Upload logo images
+   * Upload a logo image (backend accepts one file in the 'logo' field)
    */
-  static async uploadLogos(logos: File[]): Promise<ApiResponse<LogoUploadResponse>> {
+  static async uploadLogo(logo: File): Promise<ApiResponse<LogoUploadResponse>> {
     const formData = new FormData();
-    logos.forEach(logo => {
-      formData.append('logos', logo);
-    });
+    formData.append('logo', logo);
 
     return apiClient.post<LogoUploadResponse>('/admin/upload/logo', formData, {
       headers: {
@@ -3915,13 +3914,7 @@ export class AdminCourseResourcesService {
 
       // Use XMLHttpRequest for progress tracking with correct API base URL
       const token = localStorage.getItem('auth_token'); // Use correct token key from api-client
-      const API_BASE_URL = 'https://med-cortex.com/api/v1';
 
-      console.log('🔐 [API] Token retrieval for file upload:', {
-        hasToken: !!token,
-        tokenPreview: token ? `${token.substring(0, 20)}...` : 'none',
-        tokenKey: 'auth_token'
-      });
 
       // Check if token is available
       if (!token) {

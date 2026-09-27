@@ -10,6 +10,8 @@
  */
 
 import { QuizService } from './api-services';
+import { AUTH_TOKEN_STORAGE_KEY } from './api-client';
+import { API_BASE_URL } from './config';
 import { toast } from 'sonner';
 
 export type SessionStatus = 'IN_PROGRESS' | 'COMPLETED';
@@ -260,30 +262,43 @@ export class SessionStatusManager {
 
     // Only update if there are unanswered questions
     if (answeredQuestions < totalQuestions && answeredQuestions > 0) {
-      // Use navigator.sendBeacon for reliable delivery during page unload
-      const data = JSON.stringify({ status: 'IN_PROGRESS' });
-      const url = `/api/students/quiz-sessions/${sessionId}/status`;
+      // PATCH /api/v1/students/quiz-sessions/:sessionId/status on the API origin with the
+      // Bearer token. sendBeacon cannot do this (POST only, no Authorization header), so use
+      // a keepalive fetch, which the browser lets outlive the page during unload.
+      const body = JSON.stringify({ status: 'IN_PROGRESS' });
+      const url = `${API_BASE_URL}/students/quiz-sessions/${sessionId}/status`;
 
-      if (navigator.sendBeacon) {
+      let token: string | null = null;
+      try {
+        token = typeof window !== 'undefined' ? window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY) : null;
+      } catch {
+        token = null;
+      }
+
+      if (!token) {
+        console.warn(`⚠️ [SessionStatusManager] No auth token; skipping unload status update for session ${sessionId}`);
+        return;
+      }
+
+      if (typeof fetch === 'function') {
         try {
-          const headers = {
-            'Content-Type': 'application/json',
-          };
-
-          // Create a blob with proper headers for sendBeacon
-          const blob = new Blob([data], { type: 'application/json' });
-          const success = navigator.sendBeacon(url, blob);
-
-          if (success) {
-            console.log(`📡 [SessionStatusManager] Beacon sent for session ${sessionId} status update`);
-          } else {
-            console.warn(`⚠️ [SessionStatusManager] Beacon failed for session ${sessionId}`);
-          }
+          fetch(url, {
+            method: 'PATCH',
+            keepalive: true,
+            headers: {
+              Authorization: 'Bearer ' + token,
+              'Content-Type': 'application/json',
+            },
+            body,
+          }).catch((error) => {
+            console.warn(`⚠️ [SessionStatusManager] Keepalive status update failed for session ${sessionId}:`, error instanceof Error ? error.message : error);
+          });
+          console.log(`📡 [SessionStatusManager] Keepalive status update sent for session ${sessionId}`);
         } catch (error) {
-          console.warn(`⚠️ [SessionStatusManager] Failed to send beacon:`, error);
+          console.warn(`⚠️ [SessionStatusManager] Failed to send keepalive status update:`, error instanceof Error ? error.message : error);
         }
       } else {
-        // Fallback for browsers without sendBeacon support
+        // Fallback for environments without fetch
         this.setInProgress(sessionId, { silent: true, retryCount: 0 });
       }
     }

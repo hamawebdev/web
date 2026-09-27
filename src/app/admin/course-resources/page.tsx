@@ -34,6 +34,7 @@ import { BookManagementList } from '@/components/admin/course-resources/book-man
 import { AddBookModal } from '@/components/admin/course-resources/add-book-modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { LoadingSpinner } from '@/components/loading-states';
+import { resolveMediaUrl } from '@/lib/image-loader';
 
 /**
  * Admin Course Resources Management Page
@@ -42,45 +43,46 @@ import { LoadingSpinner } from '@/components/loading-states';
  * Uses only the endpoints defined in COURSE_RESOURCES_ADMIN_API_DOCUMENTATION.md
  */
 export default function AdminCourseResourcesPage() {
-  try {
+  // Hooks must run unconditionally and in the same order on every render,
+  // so they live outside the try block that guards the render logic below.
+  const [resourceToDelete, setResourceToDelete] = useState<{ id: number, title: string } | null>(null);
+  const [addBookModalOpen, setAddBookModalOpen] = useState(false);
+  const [refreshBooksTrigger, setRefreshBooksTrigger] = useState(0);
 
-    const [resourceToDelete, setResourceToDelete] = useState<{ id: number, title: string } | null>(null);
-    const [addBookModalOpen, setAddBookModalOpen] = useState(false);
-    const [refreshBooksTrigger, setRefreshBooksTrigger] = useState(0);
+  const {
+    studyPacks,
+    filters,
+    navigation,
+    courseResources,
+    loading,
+    creating,
+    loadingResources,
+    deletingResource,
+    error,
+    selectYear,
+    navigateToUnits,
+    navigateToModules,
+    navigateToCourses,
+    navigateToResources,
+    navigateToCreateResource,
+    navigateBack,
+    createResource,
+    deleteResource,
+    refetch,
+    hasError,
+    hasData
+  } = useAdminCourseResources();
 
-    const {
-      studyPacks,
-      filters,
-      navigation,
-      courseResources,
-      loading,
-      creating,
-      loadingResources,
-      deletingResource,
-      error,
-      selectYear,
-      navigateToUnits,
-      navigateToModules,
-      navigateToCourses,
-      navigateToResources,
-      navigateToCreateResource,
-      navigateBack,
-      createResource,
-      deleteResource,
-      refetch,
-      hasError,
-      hasData
-    } = useAdminCourseResources();
-
-    const handleDeleteResource = async () => {
-      if (resourceToDelete) {
-        const success = await deleteResource(resourceToDelete.id);
-        if (success) {
-          setResourceToDelete(null);
-        }
+  const handleDeleteResource = async () => {
+    if (resourceToDelete) {
+      const success = await deleteResource(resourceToDelete.id);
+      if (success) {
+        setResourceToDelete(null);
       }
-    };
+    }
+  };
 
+  try {
     // Loading state
     if (loading) {
       return (
@@ -509,7 +511,7 @@ export default function AdminCourseResourcesPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => window.open(resource.filePath!, '_blank')}
+                                onClick={() => window.open(resolveMediaUrl(resource.filePath!), '_blank')}
                                 className="flex items-center gap-1"
                               >
                                 <FileIcon className="h-3 w-3" />
@@ -519,9 +521,12 @@ export default function AdminCourseResourcesPage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => {
-                                  // Create download link
+                                  // Files are served from the API origin, where the
+                                  // download attribute is ignored, so open in a new tab.
                                   const link = document.createElement('a');
-                                  link.href = resource.filePath!;
+                                  link.href = resolveMediaUrl(resource.filePath!);
+                                  link.target = '_blank';
+                                  link.rel = 'noopener noreferrer';
                                   link.download = fileName || resource.title;
                                   document.body.appendChild(link);
                                   link.click();

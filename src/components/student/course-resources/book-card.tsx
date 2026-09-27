@@ -5,6 +5,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ExternalLink, BookOpen, ImageOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { API_BASE_URL } from '@/lib/config'
+import { resolveApiAssetUrl } from '@/lib/image-loader'
 
 interface BookCardProps {
     book: {
@@ -22,8 +24,6 @@ export function BookCard({ book, className }: BookCardProps) {
         }
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://med-cortex.com'
-
     return (
         <Card
             className={cn(
@@ -38,7 +38,7 @@ export function BookCard({ book, className }: BookCardProps) {
             <div className="relative aspect-[3/4] bg-muted overflow-hidden">
                 {book.cover_path ? (
                     <img
-                        src={book.cover_path.startsWith('http') ? book.cover_path : `${baseUrl}${book.cover_path}`}
+                        src={resolveApiAssetUrl(book.cover_path, API_BASE_URL)}
                         alt={book.name}
                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                         onError={(e) => {

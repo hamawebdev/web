@@ -4,7 +4,6 @@ export const dynamic = 'force-dynamic';
 
 import React, { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { toast } from 'sonner';
 import { QuizCreationWizard } from '@/components/student/quiz-creation';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -20,10 +19,10 @@ function CreateQuizContent() {
   const handleQuizCreated = (quizSession: any) => {
     console.log('handleQuizCreated called with:', quizSession);
 
-    toast.success('Quiz created successfully!');
-
+    // The creation hook already shows the success toast
     // Navigate to the practice session route - session data is now at root level
-    const sessionId = quizSession?.id;
+    // POST /quizzes/sessions returns { sessionId }; keep `id` for older response shapes.
+    const sessionId = quizSession?.sessionId ?? quizSession?.id;
     if (sessionId) {
       console.log(`Navigating to practice session: ${sessionId}`);
       router.push(`/session/${sessionId}`);

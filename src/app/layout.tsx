@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Providers } from "@/components/providers";
 import Script from "next/script";
-import { FrontextInit } from "@/components/frontext-init";
+import { APP_URL } from "@/lib/config";
 import { MobileSafetyGuard } from "@/components/mobile-safety-guard";
 import { Poppins } from "next/font/google";
 import "./globals.css";
@@ -36,18 +36,18 @@ export const metadata: Metadata = {
   authors: [{ name: "Med-ADN Team" }],
   creator: "Med-ADN",
   publisher: "Med-ADN",
-  metadataBase: new URL("https://med-adn.com"),
+  metadataBase: new URL(APP_URL),
   alternates: {
     canonical: "/",
   },
   openGraph: {
     title: "Med-ADN - The #1 Medical Learning Platform in Algeria",
     description: "Access 150k+ questions and 12k+ resources. The trusted choice for medical students across 10+ Algerian universities for Résidanat and daily studies.",
-    url: "https://med-adn.com",
+    url: APP_URL,
     siteName: "Med-ADN",
     images: [
       {
-        url: "/dashborad.webp",
+        url: "/dashboard.webp",
         alt: "Med-ADN dashboard preview",
       },
     ],
@@ -59,7 +59,7 @@ export const metadata: Metadata = {
     title: "Med-ADN - Ace Your Medical Exams in Algeria",
     description: "Join thousands of students using Med-ADN. 150k+ QCMs, 12k+ resources, and comprehensive tools for medical success.",
     creator: "@medadn",
-    images: ["/dashborad.webp"],
+    images: ["/dashboard.webp"],
   },
   robots: {
     index: true,
@@ -72,9 +72,6 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-  verification: {
-    google: "google-site-verification-code", // Placeholder, user might need to provide this
-  },
   category: "education",
   manifest: "/site.webmanifest",
   icons: {
@@ -85,12 +82,6 @@ export const metadata: Metadata = {
     ],
     apple: [
       { url: "/apple-touch-icon.png" },
-    ],
-    other: [
-      {
-        rel: "mask-icon",
-        url: "/safari-pinned-tab.svg", // Assuming this might exist or user adds it later, otherwise standard icon
-      },
     ],
   },
 };
@@ -188,7 +179,6 @@ export default function RootLayout({
             disableTransitionOnChange={true}
             storageKey="theme"
           >
-            <FrontextInit />
             {children}
 
             <MobileSafetyGuard />

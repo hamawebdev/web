@@ -1,7 +1,5 @@
 import { ImageResponse } from 'next/og'
 
-export const runtime = 'edge'
-
 export const alt = 'Med-ADN - The Largest Medical App in Algeria'
 export const size = {
     width: 1200,

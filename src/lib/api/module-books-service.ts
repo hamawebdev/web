@@ -119,25 +119,34 @@ export class ModuleBooksService {
     }
 
     /**
-     * Upload cover image and get the path
-     * Uses the existing upload endpoint
+     * Upload a cover image and return its media URL as `data.path`.
+     *
+     * Backend contract (POST /admin/upload/image): multipart field `images` (up to 10 files),
+     * response body `{ uploadedFiles: [{ filename, path, size, url }] }` with no success/data
+     * envelope. `url` is the public media route (/api/v1/media/images/<file>); `path` is the
+     * server filesystem path and must not be stored.
      */
     static async uploadCoverImage(file: File): Promise<ApiResponse<{ path: string }>> {
         try {
             console.log('📷 [ModuleBooksService] Uploading cover image:', file.name);
 
             const formData = new FormData();
-            formData.append('file', file);
+            formData.append('images', file);
 
-            const response = await apiClient.post<{ path: string }>(
-                '/admin/upload/image',
-                formData,
-                { headers: { 'Content-Type': 'multipart/form-data' } }
-            );
+            // Content-Type is left to the browser so the multipart boundary is set.
+            const raw: any = await apiClient.post<any>('/admin/upload/image', formData);
 
-            console.log('📷 [ModuleBooksService] Upload response:', response);
+            const uploadedFiles: any[] =
+                raw?.uploadedFiles ?? raw?.data?.uploadedFiles ?? [];
+            const url: string | undefined = uploadedFiles[0]?.url;
 
-            return response;
+            if (!url) {
+                console.warn('📷 [ModuleBooksService] Upload response has no uploadedFiles[0].url');
+                return { success: false, data: { path: '' }, error: 'Cover upload returned no file URL' };
+            }
+
+            console.log('📷 [ModuleBooksService] Cover uploaded:', { url });
+            return { success: true, data: { path: url } };
         } catch (error) {
             console.error('💥 [ModuleBooksService] Error uploading cover:', error);
             throw error;

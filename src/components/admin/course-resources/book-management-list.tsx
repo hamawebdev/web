@@ -28,6 +28,8 @@ import {
 import { ModuleBooksService, ModuleBook } from '@/lib/api/module-books-service'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { API_BASE_URL } from '@/lib/config'
+import { resolveApiAssetUrl } from '@/lib/image-loader'
 
 interface BookManagementListProps {
     moduleId: number
@@ -94,8 +96,6 @@ export function BookManagementList({
         //   setDeleteBookId(null)
         // }
     }
-
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://med-cortex.com'
 
     // Loading state
     if (loading) {
@@ -181,7 +181,7 @@ export function BookManagementList({
                                 <div className="w-20 h-28 flex-shrink-0 bg-muted relative overflow-hidden">
                                     {book.cover_path ? (
                                         <img
-                                            src={book.cover_path.startsWith('http') ? book.cover_path : `${baseUrl}${book.cover_path}`}
+                                            src={resolveApiAssetUrl(book.cover_path, API_BASE_URL)}
                                             alt={book.name}
                                             className="w-full h-full object-cover"
                                             onError={(e) => {

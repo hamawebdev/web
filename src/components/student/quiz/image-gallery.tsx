@@ -96,11 +96,14 @@ export function ImageGallery({
     setSelectedImageIndex(null);
   }, []);
 
+  // Safe count: `images` may be null/undefined; the null check below runs after the hooks.
+  const imageCount = images?.length ?? 0;
+
   const nextImage = useCallback(() => {
     setSelectedImageIndex(prev =>
-      prev !== null && prev < images.length - 1 ? prev + 1 : prev
+      prev !== null && prev < imageCount - 1 ? prev + 1 : prev
     );
-  }, [images.length]);
+  }, [imageCount]);
 
   const previousImage = useCallback(() => {
     setSelectedImageIndex(prev =>
@@ -108,26 +111,18 @@ export function ImageGallery({
     );
   }, []);
 
-  if (!images || images.length === 0) {
-    return null;
-  }
-
-  // Debug logging for image data
-  console.log(`[ImageGallery] Rendering ${images.length} images:`, images.map(img => ({
-    id: img.id,
-    imagePath: img.imagePath,
-    altText: img.altText,
-    hasValidPath: !!img.imagePath && img.imagePath.length > 0
-  })));
-
-  // Determine grid columns - memoized for performance
+  // Determine grid columns (computed before any early return: hooks must run on every render)
   const gridClassName = useMemo(() => {
     if (gridCols !== 'auto') return `grid-cols-${gridCols}`;
 
-    if (images.length === 1) return 'grid-cols-1';
-    if (images.length === 2) return 'grid-cols-1 sm:grid-cols-2';
+    if (imageCount === 1) return 'grid-cols-1';
+    if (imageCount === 2) return 'grid-cols-1 sm:grid-cols-2';
     return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3';
-  }, [gridCols, images.length]);
+  }, [gridCols, imageCount]);
+
+  if (!images || images.length === 0) {
+    return null;
+  }
 
   // Determine if we should center single images
   const shouldCenterSingleImage = images.length === 1 && gridCols === 'auto';
@@ -179,7 +174,6 @@ export function ImageGallery({
                           onError={(e) => handleImageError(image.id, image.imagePath, e)}
                           onLoad={() => handleImageLoad(image.id)}
                           onLoadStart={() => handleImageLoadStart(image.id)}
-                          crossOrigin="anonymous"
                           referrerPolicy="no-referrer"
                           loading="lazy"
                         />

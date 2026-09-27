@@ -46,7 +46,7 @@ export function AdvancedFilters({
     setShowCustomization(false);
     onFiltersChange({
       quizSourceIds: [],
-      quizYears: []
+      examYears: []
     });
   };
 
@@ -71,14 +71,14 @@ export function AdvancedFilters({
 
   // Handle year selection
   const handleYearToggle = (year: number, checked: boolean) => {
-    const currentYears = filters.quizYears || [];
+    const currentYears = filters.examYears || [];
     const newYears = checked
       ? [...currentYears, year]
       : currentYears.filter(y => y !== year);
     
     onFiltersChange({
       ...filters,
-      quizYears: newYears
+      examYears: newYears
     });
   };
 

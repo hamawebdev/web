@@ -15,6 +15,7 @@ import { ContentService } from '@/lib/api-services'
 import { CourseResource } from '@/types/api'
 import { toast } from 'sonner'
 import { LoadingSpinner } from '@/components/loading-states'
+import { resolveMediaUrl } from '@/lib/image-loader'
 
 interface CourseCardProps {
   course: {
@@ -107,8 +108,12 @@ export function CourseCard({ course }: CourseCardProps) {
 
   const handleDownloadResource = (resource: CourseResource) => {
     if (resource.filePath) {
+      // Files are served from the API origin, where the download attribute is
+      // ignored, so open them in a new tab instead of navigating away.
       const link = document.createElement('a')
-      link.href = resource.filePath
+      link.href = resolveMediaUrl(resource.filePath)
+      link.target = '_blank'
+      link.rel = 'noopener noreferrer'
       link.download = resource.title
       document.body.appendChild(link)
       link.click()

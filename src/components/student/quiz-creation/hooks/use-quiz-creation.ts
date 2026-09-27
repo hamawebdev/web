@@ -32,6 +32,15 @@ const generateDefaultTitle = () => {
 
 const MAX_SESSION_QUESTIONS = 1000;
 
+// ApiResponse.error may be a string or a structured { message } object.
+const apiErrorMessage = (error: unknown): string => {
+  if (typeof error === 'string' && error) return error;
+  if (error && typeof error === 'object' && typeof (error as { message?: unknown }).message === 'string') {
+    return (error as { message: string }).message;
+  }
+  return 'Failed to create quiz';
+};
+
 // Default quiz configuration
 const DEFAULT_CONFIG: QuizCreationConfig = {
   type: 'PRACTICE',
@@ -215,10 +224,56 @@ export function useQuizCreation(
     try {
       const sanitizedTitle = sanitizeTitle(config.title);
 
+      const requestedCount = Math.min(config.settings.questionCount, MAX_SESSION_QUESTIONS);
+      const hasUniteOrModuleSelection =
+        (config.filters.uniteIds?.length ?? 0) > 0 || (config.filters.moduleIds?.length ?? 0) > 0;
+
+      // The wizard's course step only fills courseIds. Without a unite/module selection there is
+      // no client-side question pool, so let the backend (POST /quizzes/sessions) pick questions
+      // from the selected courses, forwarding the same type/year filters.
+      if (!hasUniteOrModuleSelection) {
+        const selectedCourseIds = [...new Set(config.filters.courseIds.map(Number).filter(Boolean))];
+        if (selectedCourseIds.length === 0) {
+          throw new Error('Please select at least one course');
+        }
+
+        const courseSessionData: any = {
+          title: sanitizedTitle,
+          courseIds: selectedCourseIds,
+          sessionType: config.type === 'PRACTICE' ? 'PRACTISE' : 'EXAM'
+        };
+        if (config.type === 'PRACTICE') {
+          courseSessionData.questionCount = requestedCount;
+        }
+        if (config.filters.questionTypes && config.filters.questionTypes.length > 0) {
+          courseSessionData.questionTypes = config.filters.questionTypes;
+        }
+        if (config.filters.examYears && config.filters.examYears.length > 0) {
+          courseSessionData.years = config.filters.examYears;
+        }
+        if (config.type === 'EXAM') {
+          courseSessionData.questionTypes = ['SINGLE_CHOICE', 'MULTIPLE_CHOICE', 'QROC'];
+          courseSessionData.rotations = [];
+        }
+
+        const courseResult = await QuizService.createSession(courseSessionData);
+        if (!courseResult || !courseResult.success) {
+          const sessionType = config.type === 'EXAM' ? 'EXAM' : 'PRACTICE';
+          const errorDetails = analyzeSessionCreationError(courseResult, sessionType);
+          logErrorDetails(errorDetails, `${sessionType} Session Creation`);
+          toast.error(getUserErrorMessage(errorDetails));
+          console.log(`💡 [QuizCreation] Suggested actions for user:`, getSuggestedActions(errorDetails));
+          throw new Error(apiErrorMessage(courseResult?.error));
+        }
+
+        toast.success('Quiz created successfully!');
+        return courseResult.data;
+      }
+
       // Method 1: Complete Workflow of Filter
       // Step 1: Get Content Structure (already available via useQuizFilters)
       // Step 2: Get Available Questions by Unite or Module
-      let allQuestions: any[] = [];
+      const allQuestions: any[] = [];
 
       // Fetch questions for each unite
       if (config.filters.uniteIds && config.filters.uniteIds.length > 0) {
@@ -278,10 +333,10 @@ export function useQuizCreation(
 
       // Randomize and limit to requested count
       const shuffledQuestions = uniqueQuestions.sort(() => Math.random() - 0.5);
-      const questionIds: number[] = shuffledQuestions
-        .slice(0, Math.min(config.settings.questionCount, MAX_SESSION_QUESTIONS))
-        .map((q: any) => Number(q?.id))
-        .filter(Boolean);
+      const selectedQuestions: any[] = shuffledQuestions
+        .slice(0, requestedCount)
+        .filter((q: any) => Boolean(Number(q?.id)));
+      const questionIds: number[] = selectedQuestions.map((q: any) => Number(q.id));
 
       if (questionIds.length === 0) {
         throw new Error('No questions available with current filters');
@@ -302,7 +357,7 @@ export function useQuizCreation(
       // Step 4: Create Session using documented endpoint
       // Extract course IDs from the selected questions
       const courseIds = [...new Set(
-        questions.map((q: any) => q.course?.id).filter((id: any) => id)
+        selectedQuestions.map((q: any) => q.course?.id).filter((id: any) => id)
       )];
 
       if (courseIds.length === 0) {
@@ -345,7 +400,7 @@ export function useQuizCreation(
         // Log suggested actions for debugging
         console.log(`💡 [QuizCreation] Suggested actions for user:`, suggestedActions);
 
-        throw new Error(result?.error || 'Failed to create quiz');
+        throw new Error(apiErrorMessage(result?.error));
       }
 
       toast.success('Quiz created successfully!');

@@ -10,6 +10,9 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
+  {
+    ignores: [".next/**", "out/**", "build/**", "node_modules/**", "next-env.d.ts"],
+  },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
     rules: {
@@ -70,6 +73,15 @@ const eslintConfig = [
       "no-loss-of-precision": "off",
       "no-implied-eval": "off",
       "no-throw-literal": "off",
+
+      // Stylistic rules with many existing hits: reported as warnings so CI can
+      // gate on errors while these are cleaned up incrementally.
+      "react/no-unescaped-entities": "warn",
+      "@next/next/no-assign-module-variable": "warn",
+      "prefer-const": "warn",
+      "@typescript-eslint/no-empty-object-type": "warn",
+      "@typescript-eslint/no-require-imports": "warn",
+      "react/no-children-prop": "warn",
     },
   },
 ];

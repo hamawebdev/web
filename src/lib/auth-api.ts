@@ -4,6 +4,7 @@ import { AuthService } from './api-services';
 import { User, LoginData, AuthResponse } from '@/types/auth';
 import { LoginRequest } from '@/types/api';
 import { getOrCreateDeviceFingerprint } from './device-fingerprint';
+import { API_BASE_URL } from './config';
 
 // Authentication class that integrates with the Medical Education Platform API
 export class AuthAPI {
@@ -386,8 +387,7 @@ export class AuthAPI {
    * Get the Google OAuth login URL
    */
   static getGoogleAuthUrl(): string {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://med-adn.com/api/v1';
-    return `${apiUrl}/auth/google`;
+    return `${API_BASE_URL}/auth/google`;
   }
 
 }

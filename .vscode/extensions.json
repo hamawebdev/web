@@ -1,6 +1,5 @@
 {
   "recommendations": [
-    "stagewise.stagewise-vscode-extension",
-    "frontext.frontext-vscode-extension"
+    "stagewise.stagewise-vscode-extension"
   ]
 }

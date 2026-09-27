@@ -33,9 +33,11 @@ const SOUND_FILES = {
  * - Default unmuted state
  */
 export function useSoundManager(): SoundManagerReturn {
-  // Prefer shared context if available (prevents stale state across components)
+  // Prefer shared context if available (prevents stale state across components).
+  // Every hook below runs unconditionally (rules of hooks); when a provider is
+  // present the local effects are skipped and the context value is returned.
   const ctx = useContext(SoundContext);
-  if (ctx) return ctx;
+  const hasContext = ctx !== null;
 
   const [state, setState] = useState<SoundManagerState>({
     isMuted: false, // Default to unmuted
@@ -47,6 +49,7 @@ export function useSoundManager(): SoundManagerReturn {
 
   // Load mute state from localStorage on mount
   useEffect(() => {
+    if (hasContext) return;
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
@@ -62,10 +65,12 @@ export function useSoundManager(): SoundManagerReturn {
       console.warn('Failed to load sound settings from localStorage:', error);
       // Keep default unmuted state
     }
-  }, []);
+  }, [hasContext]);
 
   // Preload audio files and cache them
   useEffect(() => {
+    if (hasContext) return;
+    const cache = audioCache.current;
     const preloadAudio = () => {
       Object.entries(SOUND_FILES).forEach(([type, src]) => {
         try {
@@ -78,7 +83,7 @@ export function useSoundManager(): SoundManagerReturn {
             console.warn(`Failed to load sound file: ${src}`);
           });
 
-          audioCache.current.set(type as SoundType, audio);
+          cache.set(type as SoundType, audio);
         } catch (error) {
           console.warn(`Failed to create audio element for ${type}:`, error);
         }
@@ -89,13 +94,13 @@ export function useSoundManager(): SoundManagerReturn {
 
     // Cleanup on unmount
     return () => {
-      audioCache.current.forEach(audio => {
+      cache.forEach(audio => {
         audio.pause();
         audio.src = '';
       });
-      audioCache.current.clear();
+      cache.clear();
     };
-  }, []);
+  }, [hasContext]);
 
   // Save mute state to localStorage
   const saveMuteState = useCallback((isMuted: boolean) => {
@@ -222,6 +227,7 @@ export function useSoundManager(): SoundManagerReturn {
     }
   }, [state.isMuted]);
 
+  if (ctx) return ctx;
 
   return {
     isMuted: state.isMuted,

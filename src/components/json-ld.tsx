@@ -1,3 +1,5 @@
+import { APP_URL } from '@/lib/config';
+
 export const JsonLd = () => {
     const jsonLd = {
         "@context": "https://schema.org",
@@ -22,8 +24,8 @@ export const JsonLd = () => {
             {
                 "@type": "Organization",
                 "name": "Med-ADN",
-                "url": "https://med-adn.com",
-                "logo": "https://med-adn.com/logo.png",
+                "url": APP_URL,
+                "logo": `${APP_URL}/logo.png`,
                 "sameAs": [
                     "https://www.facebook.com/medadn",
                     "https://twitter.com/medadn"

@@ -1,4 +1,5 @@
 import { MetadataRoute } from 'next'
+import { APP_URL } from '@/lib/config'
 
 export default function robots(): MetadataRoute.Robots {
     return {
@@ -7,6 +8,6 @@ export default function robots(): MetadataRoute.Robots {
             allow: '/',
             disallow: ['/private/', '/admin/', '/api/'],
         },
-        sitemap: 'https://med-adn.com/sitemap.xml',
+        sitemap: `${APP_URL}/sitemap.xml`,
     }
 }

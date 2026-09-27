@@ -3,6 +3,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { resolveImagePath } from '@/lib/image-loader';
 import { UnitModuleItem } from './unit-module-compact-card';
 import { Building2, BookOpen, GraduationCap } from 'lucide-react';
 
@@ -55,7 +56,7 @@ export function UnitModuleImageCard({
             {item.logoUrl ? (
                 <div className="absolute inset-0">
                     <img
-                        src={item.logoUrl}
+                        src={resolveImagePath(item.logoUrl)}
                         alt={item.name}
                         className="w-full h-full object-cover"
                     />

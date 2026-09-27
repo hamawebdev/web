@@ -26,63 +26,64 @@ export interface SessionTypeIndicatorProps {
   className?: string;
 }
 
+// Shared by SessionTypeIndicator, SessionTypeHeader and SessionTypeStats.
+function getTypeConfig(sessionType: string) {
+  const normalizedType = (sessionType || '').toUpperCase();
+  
+  switch (normalizedType) {
+    case 'PRACTICE':
+      return {
+        label: 'Practice Session',
+        shortLabel: 'Practice',
+        icon: BookOpen,
+        color: 'text-primary',
+        bgColor: 'bg-primary/10',
+        borderColor: 'border-primary/20',
+        badgeVariant: 'default' as const,
+        description: 'Practice questions to improve your knowledge',
+      };
+    case 'EXAM':
+      return {
+        label: 'Exam Session',
+        shortLabel: 'Exam',
+        icon: GraduationCap,
+        color: 'text-chart-2',
+        bgColor: 'bg-chart-2/10',
+        borderColor: 'border-chart-2/20',
+        badgeVariant: 'secondary' as const,
+        description: 'Formal examination with time limits and scoring',
+      };
+    case 'REMEDIAL':
+      return {
+        label: 'Remedial Session',
+        shortLabel: 'Remedial',
+        icon: RefreshCw,
+        color: 'text-chart-4',
+        bgColor: 'bg-chart-4/10',
+        borderColor: 'border-chart-4/20',
+        badgeVariant: 'secondary' as const,
+        description: 'Review and practice for areas needing improvement',
+      };
+    default:
+      return {
+        label: 'Quiz Session',
+        shortLabel: 'Quiz',
+        icon: Target,
+        color: 'text-muted-foreground',
+        bgColor: 'bg-muted/10',
+        borderColor: 'border-muted/20',
+        badgeVariant: 'outline' as const,
+        description: 'General quiz session',
+      };
+  }
+}
+
 export function SessionTypeIndicator({ 
   type, 
   variant = 'default',
   showIcon = true,
   className 
 }: SessionTypeIndicatorProps) {
-  const getTypeConfig = (sessionType: string) => {
-    const normalizedType = sessionType.toUpperCase();
-    
-    switch (normalizedType) {
-      case 'PRACTICE':
-        return {
-          label: 'Practice Session',
-          shortLabel: 'Practice',
-          icon: BookOpen,
-          color: 'text-primary',
-          bgColor: 'bg-primary/10',
-          borderColor: 'border-primary/20',
-          badgeVariant: 'default' as const,
-          description: 'Practice questions to improve your knowledge',
-        };
-      case 'EXAM':
-        return {
-          label: 'Exam Session',
-          shortLabel: 'Exam',
-          icon: GraduationCap,
-          color: 'text-chart-2',
-          bgColor: 'bg-chart-2/10',
-          borderColor: 'border-chart-2/20',
-          badgeVariant: 'secondary' as const,
-          description: 'Formal examination with time limits and scoring',
-        };
-      case 'REMEDIAL':
-        return {
-          label: 'Remedial Session',
-          shortLabel: 'Remedial',
-          icon: RefreshCw,
-          color: 'text-chart-4',
-          bgColor: 'bg-chart-4/10',
-          borderColor: 'border-chart-4/20',
-          badgeVariant: 'secondary' as const,
-          description: 'Review and practice for areas needing improvement',
-        };
-      default:
-        return {
-          label: 'Quiz Session',
-          shortLabel: 'Quiz',
-          icon: Target,
-          color: 'text-muted-foreground',
-          bgColor: 'bg-muted/10',
-          borderColor: 'border-muted/20',
-          badgeVariant: 'outline' as const,
-          description: 'General quiz session',
-        };
-    }
-  };
-
   const config = getTypeConfig(type);
   const Icon = config.icon;
 

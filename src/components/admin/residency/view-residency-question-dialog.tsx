@@ -14,14 +14,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { Eye, CheckCircle, XCircle, FileText, Calendar, School, BookOpen, Image as ImageIcon } from 'lucide-react';
 import { ResidencyQuestion } from '@/types/api';
+import { resolveApiAssetUrl } from '@/lib/image-loader';
 
 interface ViewResidencyQuestionDialogProps {
   question: ResidencyQuestion | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://med-cortex.com';
 
 export function ViewResidencyQuestionDialog({
   question,
@@ -117,7 +116,7 @@ export function ViewResidencyQuestionDialog({
                   {question.question.questionImages.map((image, index) => (
                     <div key={image.id} className="border rounded-lg overflow-hidden">
                       <img
-                        src={`${API_BASE_URL}${image.imagePath}`}
+                        src={resolveApiAssetUrl(image.imagePath)}
                         alt={image.altText || `Question image ${index + 1}`}
                         className="w-full h-auto object-contain"
                         loading="lazy"
@@ -196,7 +195,7 @@ export function ViewResidencyQuestionDialog({
                   {question.question.questionExplanationImages.map((image, index) => (
                     <div key={image.id} className="border rounded-lg overflow-hidden">
                       <img
-                        src={`${API_BASE_URL}${image.imagePath}`}
+                        src={resolveApiAssetUrl(image.imagePath)}
                         alt={image.altText || `Explanation image ${index + 1}`}
                         className="w-full h-auto object-contain"
                         loading="lazy"

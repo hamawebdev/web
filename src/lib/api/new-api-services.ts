@@ -287,6 +287,24 @@ export class NewApiService {
   }
 
   /**
+   * Get questions by unite or module (exactly one of the two)
+   * GET /api/v1/quizzes/questions-by-unite-or-module?uniteId=|moduleId=
+   * Returns: { questions: [...] } (each question includes course { id, name, module })
+   */
+  static async getQuestionsByUniteOrModule(params: { uniteId?: number; moduleId?: number }): Promise<ApiResponse<{ questions: any[] }>> {
+    const { uniteId, moduleId } = params;
+    if ((uniteId && moduleId) || (!uniteId && !moduleId)) {
+      throw new ApiError('Either uniteId or moduleId must be provided, not both');
+    }
+
+    const query = new URLSearchParams();
+    if (uniteId) query.append('uniteId', uniteId.toString());
+    if (moduleId) query.append('moduleId', moduleId.toString());
+
+    return apiClient.get<{ questions: any[] }>(`/quizzes/questions-by-unite-or-module?${query.toString()}`);
+  }
+
+  /**
    * Create Card (tracker)
    * POST /api/v1/students/cards
    */

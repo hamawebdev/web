@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { isApiMediaUrl } from '@/lib/image-loader';
+import { isApiMediaUrl, resolveImagePath } from '@/lib/image-loader';
 
 interface CorsSafeImageProps {
   src: string;
@@ -19,8 +19,8 @@ interface CorsSafeImageProps {
 }
 
 /**
- * CORS-safe image component that handles API images by using same-origin requests
- * This bypasses CORS issues by ensuring all requests are made from the same domain
+ * Image component for API-served media: resolves stored paths to the API origin and
+ * falls back to the same-origin image proxy if the direct request fails.
  */
 export function CorsSafeImage({
   src,
@@ -36,38 +36,22 @@ export function CorsSafeImage({
   priority = false
 }: CorsSafeImageProps) {
   const [imageError, setImageError] = useState(false);
-  const [imageSrc, setImageSrc] = useState(src);
+  const [imageSrc, setImageSrc] = useState(() => resolveImagePath(src));
   const [retryCount, setRetryCount] = useState(0);
   const [currentSrcIndex, setCurrentSrcIndex] = useState(0);
 
-  // Generate multiple fallback URLs to try
+  // Candidate URLs, tried in order. API media loads directly from the API origin
+  // (it sends Cross-Origin-Resource-Policy: cross-origin); the same-origin proxy is a fallback.
   const generateFallbackUrls = (originalSrc: string): string[] => {
-    const urls: string[] = [];
-    
-    if (isApiMediaUrl(originalSrc)) {
-      // For API media files, use proxy as the primary method
-      // This bypasses CORS issues by fetching server-side
-      urls.push(`/api/proxy-image?url=${encodeURIComponent(originalSrc)}`);
-      
-      // Try original URL as fallback (might work in some cases)
-      urls.push(originalSrc);
-      
-      // If it's already a relative path, try it (though unlikely to work)
-      if (originalSrc.startsWith('/')) {
-        urls.push(originalSrc);
-      }
-    } else {
-      // For non-API images, use original URL
-      urls.push(originalSrc);
+    const resolved = resolveImagePath(originalSrc);
+    if (!isApiMediaUrl(resolved)) {
+      return [resolved];
     }
-    
-    // Remove duplicates
-    return [...new Set(urls)];
+    return [resolved, `/api/proxy-image?url=${encodeURIComponent(resolved)}`];
   };
 
   useEffect(() => {
     const urls = generateFallbackUrls(src);
-    console.log(`[CorsSafeImage] Generated fallback URLs for ${src}:`, urls);
     setImageSrc(urls[0] || src);
     setCurrentSrcIndex(0);
     setRetryCount(0);
@@ -86,7 +70,6 @@ export function CorsSafeImage({
     // Try next fallback URL if available
     const nextIndex = currentSrcIndex + 1;
     if (nextIndex < urls.length) {
-      console.log(`[CorsSafeImage] Trying fallback URL ${nextIndex + 1}/${urls.length}:`, urls[nextIndex]);
       setCurrentSrcIndex(nextIndex);
       setImageSrc(urls[nextIndex]);
       setRetryCount(prev => prev + 1);
@@ -100,17 +83,7 @@ export function CorsSafeImage({
     }
   };
 
-  const handleLoad = (event: any) => {
-    const img = event.target;
-    console.log(`[CorsSafeImage] Image loaded successfully:`, {
-      originalSrc: src,
-      loadedSrc: imageSrc,
-      attempt: currentSrcIndex + 1,
-      naturalWidth: img.naturalWidth,
-      naturalHeight: img.naturalHeight,
-      displayWidth: img.width,
-      displayHeight: img.height
-    });
+  const handleLoad = () => {
     setImageError(false);
     onLoad?.();
   };

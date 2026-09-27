@@ -378,7 +378,6 @@ export function FullScreenImageViewer({
                   className="max-w-full max-h-full object-contain"
                   onError={handleImageError}
                   onLoad={handleImageLoad}
-                  crossOrigin="anonymous"
                   referrerPolicy="no-referrer"
                 />
               </div>

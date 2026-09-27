@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useStudentAuth, useAdminAuth, useEmployeeAuth } from '@/hooks/use-auth';
+import { useRequireAuth, useAdminAuth } from '@/hooks/use-auth';
 import { FullPageLoading } from '@/components/loading-states';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,10 +39,14 @@ export function AuthGuard({
   const router = useRouter();
   const [authChecked, setAuthChecked] = useState(false);
 
-  // Use appropriate auth hook based on required role
-  const authHook = requiredRole === 'ADMIN' ? useAdminAuth() :
-    requiredRole === 'EMPLOYEE' ? useEmployeeAuth() :
-      useStudentAuth();
+  // useStudentAuth/useAdminAuth/useEmployeeAuth are thin wrappers around
+  // useRequireAuth(role). Resolve the role first and call the hook once,
+  // unconditionally, so the hook order never depends on props.
+  const authRole: User['role'] =
+    requiredRole === 'ADMIN' ? 'ADMIN' :
+      requiredRole === 'EMPLOYEE' ? 'EMPLOYEE' :
+        'STUDENT';
+  const authHook = useRequireAuth(authRole);
 
   const { isAuthenticated, user, loading: authLoading, checkAndRedirect } = authHook;
 

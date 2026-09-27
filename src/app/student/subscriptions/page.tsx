@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle, AlertCircle, Crown, Gift } from 'lucide-react';
+import { CheckCircle, AlertCircle, Crown, Gift, BookOpen } from 'lucide-react';
 import { DollarMinimalistic } from '@solar-icons/react';
 import { StudentService } from '@/lib/api-services';
 import { useRouter } from 'next/navigation';

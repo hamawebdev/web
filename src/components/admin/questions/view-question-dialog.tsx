@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { Eye, CheckCircle, XCircle, FileText, Calendar, School, BookOpen } from 'lucide-react';
 import { AdminQuestion } from '@/types/api';
+import { resolveImagePath } from '@/lib/image-loader';
 
 interface ViewQuestionDialogProps {
   question: AdminQuestion;
@@ -122,7 +123,7 @@ export function ViewQuestionDialog({
                   {question.questionImages.map((image, index) => (
                     <div key={image.id} className="space-y-2">
                       <img
-                        src={image.imagePath}
+                        src={resolveImagePath(image.imagePath)}
                         alt={image.altText || `Question image ${index + 1}`}
                         className="w-full h-auto rounded-lg border"
                       />

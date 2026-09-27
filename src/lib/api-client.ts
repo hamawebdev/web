@@ -1,16 +1,19 @@
 // @ts-nocheck
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import { logger, logApiRequest } from './logger';
+import { API_BASE_URL } from './config';
 
-// API Configuration - reads from environment variable, falls back to production URL
+// API Configuration - base URL comes from NEXT_PUBLIC_API_URL (see src/lib/config.ts)
 const API_CONFIG = {
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://med-adn.com/api/v1',
+  baseURL: API_BASE_URL,
   timeout: 30000, // 30 seconds
 };
 
-// Determine credential usage based on environment
-const isProductionApi = API_CONFIG.baseURL.includes('med-adn.com');
-const isLocalDevelopment = API_CONFIG.baseURL.includes('localhost') || API_CONFIG.baseURL.includes('127.0.0.1');
+// Authentication uses Bearer tokens from localStorage, never cookies, so credentials
+// (cookies) are only sent to a local development backend that explicitly needs them.
+const apiHostname = new URL(API_CONFIG.baseURL).hostname;
+const isLocalDevelopment = apiHostname === 'localhost' || apiHostname === '127.0.0.1';
+const isProductionApi = !isLocalDevelopment;
 const needsCredentials = isLocalDevelopment && !process.env.NEXT_PUBLIC_DISABLE_CREDENTIALS;
 
 // Check if the API URL is using ngrok tunnel
@@ -19,7 +22,9 @@ const isNgrokUrl = API_CONFIG.baseURL.includes('ngrok.io') || API_CONFIG.baseURL
 // API configuration is set up silently
 
 // Token storage keys
-const TOKEN_STORAGE_KEY = 'auth_token';
+/** localStorage key holding the access token (also read by keepalive requests outside axios). */
+export const AUTH_TOKEN_STORAGE_KEY = 'auth_token';
+const TOKEN_STORAGE_KEY = AUTH_TOKEN_STORAGE_KEY;
 const REFRESH_TOKEN_STORAGE_KEY = 'refresh_token';
 
 // API Response interface
@@ -36,6 +41,21 @@ export interface ApiError {
   error: string;
   message?: string;
   statusCode?: number;
+}
+
+/**
+ * Loggable summary of a request error. Never log the raw AxiosError or
+ * error.response/error.request: they carry config.headers.Authorization
+ * (the Bearer token).
+ */
+function summarizeRequestError(error: any) {
+  return {
+    message: error?.message,
+    status: error?.response?.status,
+    data: error?.response?.data,
+    url: error?.config?.url,
+    method: error?.config?.method,
+  };
 }
 
 class ApiClient {
@@ -55,12 +75,10 @@ class ApiClient {
       'Accept': 'application/json',
     };
 
-    // Add production-specific headers
+    // Add production-specific headers (browsers forbid setting User-Agent, so it is not set)
     if (isProductionApi) {
-      defaultHeaders['User-Agent'] = 'MedAdn-Web-Client/1.0';
       defaultHeaders['X-Client-Version'] = '1.0.0';
       defaultHeaders['X-Requested-With'] = 'XMLHttpRequest';
-      // Add any other production-specific headers here
     }
 
     this.client = axios.create({
@@ -96,13 +114,6 @@ class ApiClient {
         // Special care for profile endpoint to ensure it gets the token despite having 'auth' in path
         if (!isPublicAuthEndpoint && token) {
           config.headers.Authorization = `Bearer ${token}`;
-
-          // Debug check for critical profile endpoint if needed
-          if (lowerUrl.includes('/auth/profile')) {
-            console.log('🔐 [ApiClient] Attaching token to profile request', {
-              tokenPrefix: token.substring(0, 10) + '...'
-            });
-          }
         }
 
         // Log if token is missing for protected endpoints (except public ones)
@@ -149,9 +160,6 @@ class ApiClient {
 
         // Add production-specific headers if needed
         if (isProductionApi) {
-          if (!config.headers['User-Agent']) {
-            config.headers['User-Agent'] = 'MedAdn-Web-Client/1.0';
-          }
           if (!config.headers['X-Client-Version']) {
             config.headers['X-Client-Version'] = '1.0.0';
           }
@@ -167,7 +175,6 @@ class ApiClient {
             fullUrl: `${config.baseURL}${config.url}`,
             hasToken: !!token,
             tokenLength: token?.length || 0,
-            headers: config.headers
           });
         }
 
@@ -337,7 +344,6 @@ class ApiClient {
     if (!this.tokenLoggedThisSession) {
       logger.debug('🔐 Getting stored token:', {
         hasToken: !!token,
-        tokenPreview: token ? `${token.substring(0, 20)}...` : 'none',
         tokenKey: TOKEN_STORAGE_KEY
       }, 'token-management');
       this.tokenLoggedThisSession = true;
@@ -353,7 +359,7 @@ class ApiClient {
       // Only log token storage once per session to reduce spam
       if (process.env.NODE_ENV === 'development' && !this.tokenLoggedThisSession) {
         console.log('🔐 Token stored in localStorage:', {
-          tokenPreview: token ? `${token.substring(0, 20)}...` : 'none',
+          hasToken: !!token,
           tokenKey: TOKEN_STORAGE_KEY
         });
       }
@@ -385,7 +391,6 @@ class ApiClient {
       console.log('🔐 Storing tokens in localStorage:', {
         hasToken: !!token,
         hasRefreshToken: !!refreshToken,
-        tokenPreview: token ? `${token.substring(0, 20)}...` : 'none'
       });
     }
 
@@ -437,7 +442,7 @@ class ApiClient {
       const response = await requestFn();
       return response.data;
     } catch (error) {
-      console.error('🚨 makeRequest caught error:', error);
+      console.error('🚨 makeRequest caught error:', summarizeRequestError(error));
       throw this.handleError(error);
     }
   }
@@ -456,14 +461,8 @@ class ApiClient {
     let errorMessage = 'An unexpected error occurred';
     let statusCode = 500;
 
-    // Enhanced error logging for debugging
-    console.error('🔍 Raw error object:', error);
-    console.error('🔍 Error type:', typeof error);
-    console.error('🔍 Error constructor:', error?.constructor?.name);
-    console.error('🔍 Error message:', error?.message);
-    console.error('🔍 Error response:', error?.response);
-    console.error('🔍 Error request:', error?.request);
-    console.error('🔍 Error config:', error?.config);
+    // Log a sanitized summary only (the raw error carries the Authorization header)
+    console.error('🔍 Request error:', summarizeRequestError(error));
 
     // Check if it's an AxiosError
     const isAxiosError = error?.isAxiosError || error?.response || error?.request;
@@ -477,22 +476,7 @@ class ApiClient {
       };
     }
 
-    const errorDetails = {
-      message: error.message,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      url: error.config?.url,
-      method: error.config?.method?.toUpperCase(),
-      responseData: error.response?.data,
-      hasAuthHeader: !!(error.config?.headers?.Authorization),
-      code: error.code,
-      baseURL: error.config?.baseURL,
-      timeout: error.config?.timeout,
-      isNetworkError: !error.response && error.request,
-      isTimeoutError: error.code === 'ECONNABORTED',
-    };
-
-    console.error('API Error Details:', errorDetails);
+    console.error('API Error Details:', summarizeRequestError(error));
 
     if (error.response) {
       statusCode = error.response.status;
@@ -503,9 +487,7 @@ class ApiClient {
         console.error('🔐 401 Unauthorized Error Details:', {
           url: error.config?.url,
           method: error.config?.method,
-          headers: error.config?.headers,
           responseData: responseData,
-          responseHeaders: error.response.headers,
         });
       }
 
@@ -581,7 +563,6 @@ class ApiClient {
       console.error('🔧 Request setup error:', {
         message: error.message,
         code: error.code,
-        config: error.config,
       });
       errorMessage = error.message || 'Request setup error';
     }

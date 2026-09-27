@@ -97,6 +97,59 @@ export function QuizLayout() {
 
   const { session, timer, currentQuestion } = state;
 
+  // Redirect to completion page when quiz is completed
+  const totalQuestions = session?.totalQuestions || session?.questions?.length || 0;
+  const answeredQuestions = Object.keys(state.localAnswers || {}).length;
+
+  // Redirect to new completion page instead of showing inline results
+  const sessionStatus = session?.status;
+
+  useEffect(() => {
+    if (sessionStatus === 'completed' || sessionStatus === 'COMPLETED') {
+      const id = (state as any).apiSessionId || session?.id;
+      if (id) {
+        router.push(`/session/${id}/results`);
+      }
+    }
+  }, [sessionStatus, router]);
+
+  // Handle browser close/navigation with session status management
+  useEffect(() => {
+    const apiSessionId = (state as any).apiSessionId;
+    if (!apiSessionId || !session) return;
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      // Only update status if session is not already completed
+      if (sessionStatus !== 'COMPLETED' && sessionStatus !== 'completed') {
+        SessionStatusManager.handleBeforeUnload(
+          apiSessionId,
+          totalQuestions,
+          answeredQuestions
+        );
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      // Handle tab/window visibility changes
+      if (document.hidden && sessionStatus !== 'COMPLETED' && sessionStatus !== 'completed') {
+        // User switched away from tab - update status if there are unanswered questions
+        if (answeredQuestions < totalQuestions && answeredQuestions > 0) {
+          SessionStatusManager.setInProgress(apiSessionId, { silent: true });
+        }
+      }
+    };
+
+    // Add event listeners
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [sessionStatus, totalQuestions, answeredQuestions, state]);
+
   // Safety check - ensure session exists and has required properties
   if (!session) {
     return (
@@ -123,57 +176,6 @@ export function QuizLayout() {
       </div>
     );
   }
-
-  // Redirect to completion page when quiz is completed
-  const totalQuestions = session.totalQuestions || session.questions?.length || 0;
-  const answeredQuestions = Object.keys(state.localAnswers || {}).length;
-
-  // Redirect to new completion page instead of showing inline results
-  useEffect(() => {
-    if (session.status === 'completed' || session.status === 'COMPLETED') {
-      const id = (state as any).apiSessionId || session.id;
-      if (id) {
-        router.push(`/session/${id}/results`);
-      }
-    }
-  }, [session.status, router]);
-
-  // Handle browser close/navigation with session status management
-  useEffect(() => {
-    const apiSessionId = (state as any).apiSessionId;
-    if (!apiSessionId) return;
-
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      // Only update status if session is not already completed
-      if (session.status !== 'COMPLETED' && session.status !== 'completed') {
-        SessionStatusManager.handleBeforeUnload(
-          apiSessionId,
-          totalQuestions,
-          answeredQuestions
-        );
-      }
-    };
-
-    const handleVisibilityChange = () => {
-      // Handle tab/window visibility changes
-      if (document.hidden && session.status !== 'COMPLETED' && session.status !== 'completed') {
-        // User switched away from tab - update status if there are unanswered questions
-        if (answeredQuestions < totalQuestions && answeredQuestions > 0) {
-          SessionStatusManager.setInProgress(apiSessionId, { silent: true });
-        }
-      }
-    };
-
-    // Add event listeners
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    // Cleanup
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [session.status, totalQuestions, answeredQuestions, state]);
 
   // Show loading while redirecting
   if (session.status === 'completed' || session.status === 'COMPLETED') {

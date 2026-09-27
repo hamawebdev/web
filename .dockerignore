@@ -1,79 +1,18 @@
-# Dependencies
-node_modules
-npm-debug.log*
+# Allowlist: the build context contains ONLY the entries re-included below.
+# The image is public, so anything not required by `npm ci` + `next build` stays out
+# (env files, git metadata, docs, local artifacts).
+*
 
-# Build outputs
-.next
-out
-dist
+!package.json
+!package-lock.json
+!next.config.ts
+!tsconfig.json
+!postcss.config.mjs
+!src/
+!public/
 
-# Environment files
-.env
-.env.local
-.env.production
-.env.test
-
-# Logs
-logs
-*.log
-
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
-
-# Coverage directory used by tools like istanbul
-coverage
-
-# Dependency directories
-node_modules/
-
-# Optional npm cache directory
-.npm
-
-# Optional REPL history
-.node_repl_history
-
-# Output of 'npm pack'
-*.tgz
-
-# Yarn Integrity file
-.yarn-integrity
-
-# dotenv environment variables file
-.env
-
-# IDE files
-.vscode
-.idea
-*.swp
-*.swo
-
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Test files
-tests/
-*.test.js
-*.test.ts
-*.spec.js
-*.spec.ts
-
-# Documentation
-*.md
-docs/
-
-# Git
-.git
-.gitignore
-
-# Next.js specific
-.next/
-out/
+# Never send env files or local build output, even from inside allowed directories.
+**/.env
+**/.env.*
+**/node_modules
+**/.next

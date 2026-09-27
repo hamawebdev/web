@@ -35,7 +35,7 @@ import { useApiQuiz } from './quiz-api-context';
 import { AIChatPanel } from './ai-chat-panel';
 import type { QuestionContext } from '@/types/ai-chat-types';
 import { InlineNoteEditor } from './inline-note-editor';
-import { resolveImagePath } from '@/lib/image-loader';
+import { resolveImagePath, resolveMediaUrl } from '@/lib/image-loader';
 import { ContentService } from '@/lib/api-services';
 
 export function QuestionDisplay() {
@@ -404,7 +404,7 @@ export function QuestionDisplay() {
 
               const url = resource.externalUrl
                 || (resource.youtubeVideoId ? `https://www.youtube.com/watch?v=${resource.youtubeVideoId}` : null)
-                || resource.filePath
+                || (resource.filePath ? resolveMediaUrl(resource.filePath) : null)
                 || null;
 
               return (
