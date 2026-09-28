@@ -147,7 +147,7 @@ export default function ProfileForm() {
         <CardHeader>
           <div className="flex items-center space-x-4">
             <Avatar className="h-20 w-20">
-              <AvatarImage src="/avatar-placeholder.png" alt={profile?.fullName} />
+              <AvatarImage src={(profile as { avatarUrl?: string } | null | undefined)?.avatarUrl || undefined} alt={profile?.fullName} />
               <AvatarFallback className="bg-primary text-primary-foreground text-lg">
                 {profile?.fullName ? getUserInitials(profile.fullName) : 'U'}
               </AvatarFallback>

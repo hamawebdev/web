@@ -111,7 +111,7 @@ export function StudentProfileDropdown() {
       <DropdownMenuTrigger asChild>
         <Button variant='ghost' className='relative h-10 w-10 rounded-full hover:bg-muted/50 transition-all duration-200 hover:scale-105 touch-target'>
           <Avatar className='h-9 w-9 ring-2 ring-background shadow-md'>
-            <AvatarImage src='/avatar-placeholder.png' alt={profile.fullName} />
+            <AvatarImage src={(profile as { avatarUrl?: string } | null | undefined)?.avatarUrl || undefined} alt={profile.fullName} />
             <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
               <UserCircle className="h-5 w-5" />
             </AvatarFallback>
@@ -125,7 +125,7 @@ export function StudentProfileDropdown() {
           <div className='flex flex-col space-y-3'>
             <div className="flex items-start gap-3">
               <Avatar className='h-12 w-12 ring-2 ring-primary/20'>
-                <AvatarImage src='/avatar-placeholder.png' alt={profile.fullName} />
+                <AvatarImage src={(profile as { avatarUrl?: string } | null | undefined)?.avatarUrl || undefined} alt={profile.fullName} />
                 <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-lg">
                   <UserCircle className="h-6 w-6" />
                 </AvatarFallback>

@@ -3,11 +3,6 @@ import { Database, Users, FileQuestion, Settings, HelpCircle, Key, FolderOpen, T
 import { type SidebarData } from '../types'
 
 export const sidebarData: SidebarData = {
-  user: {
-    name: 'Admin User',
-    email: 'admin@medadn.com',
-    avatar: '/images/avatars/default.jpg',
-  },
   teams: [
     {
       name: 'MedAdn Admin',

@@ -137,7 +137,7 @@ export function NavUser() {
               className='data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground'
             >
               <Avatar className='h-8 w-8 rounded-full'>
-                <AvatarImage src='/avatar-placeholder.png' alt={profile.fullName} />
+                <AvatarImage src={(profile as { avatarUrl?: string } | null | undefined)?.avatarUrl || undefined} alt={profile.fullName} />
                 <AvatarFallback className="bg-primary text-primary-foreground">
                   {getUserInitials(profile.fullName)}
                 </AvatarFallback>
@@ -160,7 +160,7 @@ export function NavUser() {
             <DropdownMenuLabel className='p-0 font-normal'>
               <div className='flex items-center gap-3 px-2 py-1.5 text-left'>
                 <Avatar className='h-9 w-9 rounded-full'>
-                  <AvatarImage src='/avatar-placeholder.png' alt={profile.fullName} />
+                  <AvatarImage src={(profile as { avatarUrl?: string } | null | undefined)?.avatarUrl || undefined} alt={profile.fullName} />
                   <AvatarFallback className="bg-primary text-primary-foreground">
                     {getUserInitials(profile.fullName)}
                   </AvatarFallback>
@@ -190,7 +190,7 @@ export function NavUser() {
               <DropdownMenuItem asChild>
                 <Link href='/student/subscriptions/browse'>
                   <Sparkles className='mr-2 size-4' />
-                  Upgrade to Pro
+                  Browse plans
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
@@ -202,7 +202,7 @@ export function NavUser() {
               <DropdownMenuItem asChild>
                 <Link href='/student/subscriptions'>
                   <CreditCard className='mr-2 size-4' />
-                  Billing
+                  Subscriptions
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
