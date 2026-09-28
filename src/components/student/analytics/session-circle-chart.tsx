@@ -12,7 +12,7 @@ import { AnalyticsSession } from '@/types/api';
 const CHART_COLORS = {
   correct: '#00B050',    // Green for Répondue Juste
   incorrect: '#FF0000',  // Red for Répondue Fausse  
-  consulted: '#BFBFBF',  // Gray for Consulté
+  unanswered: '#BFBFBF',  // Gray for Non répondue
 };
 
 interface SessionCircleChartProps {
@@ -67,14 +67,14 @@ export function SessionCircleChart({
       return null;
     }
 
-    const { answeredCorrect = 0, answeredWrong = 0, consulted = 0, totalQuestions = 0 } = session.stats;
+    const { answeredCorrect = 0, answeredWrong = 0, unanswered = 0, totalQuestions = 0 } = session.stats;
     
     // If no data at all, return null
     if (totalQuestions === 0) {
       return null;
     }
 
-    const total = answeredCorrect + answeredWrong + consulted;
+    const total = answeredCorrect + answeredWrong + unanswered;
     
     // Handle edge case where total might be 0
     if (total === 0) {
@@ -106,12 +106,12 @@ export function SessionCircleChart({
       });
     }
 
-    if (consulted > 0) {
+    if (unanswered > 0) {
       data.push({
-        name: 'Consulté',
-        value: consulted,
-        color: CHART_COLORS.consulted,
-        percentage: Math.round((consulted / total) * 100)
+        name: 'Non répondue',
+        value: unanswered,
+        color: CHART_COLORS.unanswered,
+        percentage: Math.round((unanswered / total) * 100)
       });
     }
 
@@ -240,10 +240,10 @@ export function SessionCircleChart({
                     <div className="text-xs text-muted-foreground">Fausses</div>
                   </div>
                   <div>
-                    <div className={cn("font-semibold", config.statsSize)} style={{ color: CHART_COLORS.consulted }}>
-                      {session.stats.consulted || 0}
+                    <div className={cn("font-semibold", config.statsSize)} style={{ color: CHART_COLORS.unanswered }}>
+                      {session.stats.unanswered || 0}
                     </div>
-                    <div className="text-xs text-muted-foreground">Consultées</div>
+                    <div className="text-xs text-muted-foreground">Non répondues</div>
                   </div>
                 </div>
                 

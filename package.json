@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "type-check": "tsc --noEmit",
+    "test": "node --test --experimental-strip-types src/tests/*.test.mjs",
     "docker:build": "docker build -t med-adn-web:local .",
     "docker:run": "docker run --rm -p 3000:3000 med-adn-web:local",
     "health:check": "curl -fsS http://localhost:3000/api/health"

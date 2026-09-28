@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { StudentService } from '@/lib/api-services';
 import { AnalyticsSession, SessionType } from '@/types/api';
+import { analyticsStatsFrom } from '@/lib/session-answers';
 import { toast } from 'sonner';
 
 interface UseAnalyticsSessionsParams {
@@ -40,15 +41,16 @@ export function useAnalyticsSessions({
         throw new Error(response.error || 'Failed to fetch analytics sessions');
       }
 
-      // The endpoint returns a flat array of { id, title, type, status, score, ... };
-      // older shapes wrapped it as { sessions: [...] }
+      // The endpoint returns a flat array of { id, title, type, status, score, correctAnswersCount,
+      // incorrectAnswersCount, unansweredCount, totalQuestions, ... } (the numbers of each session's
+      // results screen); older shapes wrapped it as { sessions: [...] }
       const payload: any = response.data;
       const list = Array.isArray(payload)
         ? payload
         : (payload?.sessions || (Array.isArray(payload?.data) ? payload.data : payload?.data?.sessions) || []);
       return list.map((session: any) => (
-        session && !session.stats && typeof session.score === 'number'
-          ? { ...session, stats: { accuracy: `${session.score}%` } }
+        session && !session.stats
+          ? { ...session, stats: analyticsStatsFrom(session) }
           : session
       ));
     },

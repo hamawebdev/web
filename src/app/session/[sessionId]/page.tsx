@@ -14,6 +14,7 @@ import { SoundProvider } from '@/components/student/quiz/sound-provider';
 import { sessionRestorationService } from '@/lib/session-restoration-service';
 import { SessionContinuationDialog } from '@/components/student/quiz/session-continuation-dialog';
 import { SessionProgressIndicator } from '@/components/student/quiz/session-progress-indicator';
+import { runnerAnswersFromApi } from '@/lib/session-answers';
 
 function StudentSessionRunnerContent() {
   const params = useParams();
@@ -90,75 +91,13 @@ function StudentSessionRunnerContent() {
         });
       }
 
-      // Build userAnswers map from API answers according to getsessioninprogress.md structure
-      // The answers array contains objects with questionId, selectedAnswerId, isCorrect, answeredAt for answered questions
-      // and objects with only questionId for unanswered questions
-      const answersArr = Array.isArray(sessionData.answers) ? sessionData.answers : [];
-      const { builtUserAnswers, nextUnansweredIndex } = (() => {
-        const map: Record<string, any> = {};
-        let nextUnanswered = 0;
-        const answeredQuestionIds = new Set();
+      // Answers saved on the server (single choice as { selectedAnswerId }, multiple choice as
+      // { selectedAnswerIds }, QROC as { textAnswer }), keyed by question id
+      const builtUserAnswers = runnerAnswersFromApi(sessionData.answers);
 
-        // Process answers from API response
-        for (const answer of answersArr) {
-          const qid = String(answer.questionId);
-          if (qid) {
-            // Single choice attempts come back as { selectedAnswerId }, multiple choice ones as
-            // { selectedAnswerIds: [...] } and QROC ones as { textAnswer }
-            const multiIds = Array.isArray(answer.selectedAnswerIds)
-              ? answer.selectedAnswerIds.filter((id: any) => id !== null && id !== undefined)
-              : [];
-            const hasText = typeof answer.textAnswer === 'string' && answer.textAnswer.trim().length > 0;
-            if (answer.selectedAnswerId || multiIds.length > 0 || hasText) {
-              // This is an answered question
-              answeredQuestionIds.add(answer.questionId);
-              map[qid] = {
-                questionId: qid,
-                selectedOptions: multiIds.length > 0
-                  ? multiIds.map((id: any) => String(id))
-                  : (answer.selectedAnswerId ? [String(answer.selectedAnswerId)] : []),
-                ...(hasText ? { textAnswer: answer.textAnswer } : {}),
-                // The API omits isCorrect when it is false
-                isCorrect: answer.isCorrect === true,
-                timeSpent: 0,
-                isBookmarked: false,
-                notes: '',
-                flags: [],
-                answeredAt: answer.answeredAt,
-                locked: true, // Lock previously submitted answers so they cannot be changed
-              };
-            } else if (!map[qid]) {
-              // This is an unanswered question (only has questionId)
-              map[qid] = {
-                questionId: qid,
-                selectedOptions: [],
-                isCorrect: false,
-                timeSpent: 0,
-                isBookmarked: false,
-                notes: '',
-                flags: [],
-                locked: false,
-              };
-            }
-          }
-        }
-
-        // Find the first unanswered question to navigate to
-        if (extractedQuestions && Array.isArray(extractedQuestions)) {
-          for (let i = 0; i < extractedQuestions.length; i++) {
-            if (!answeredQuestionIds.has(extractedQuestions[i].id)) {
-              nextUnanswered = i;
-              break;
-            }
-          }
-          // If all questions are answered, stay on the last question
-          if (nextUnanswered === 0 && answeredQuestionIds.size === extractedQuestions.length) {
-            nextUnanswered = extractedQuestions.length - 1;
-          }
-        }
-
-        return { builtUserAnswers: map, nextUnansweredIndex: nextUnanswered };
-      })();
+      // Resume at the first unanswered question, or the last one when every question is answered
+      const firstUnanswered = extractedQuestions.findIndex((question: any) => !builtUserAnswers[String(question.id)]);
+      const nextUnansweredIndex = firstUnanswered >= 0 ? firstUnanswered : Math.max(extractedQuestions.length - 1, 0);
 
 
 

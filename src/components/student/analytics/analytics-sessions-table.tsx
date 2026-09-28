@@ -95,7 +95,7 @@ export function AnalyticsSessionsTable({
             <div className="text-center">Total de questions</div>
             <div className="text-center">Répondue Juste</div>
             <div className="text-center">Répondue fausse</div>
-            <div className="text-center">Consulté</div>
+            <div className="text-center">Non répondue</div>
             <div className="text-center">Précision</div>
           </div>
           <div className="lg:hidden text-sm font-medium text-muted-foreground">
@@ -170,10 +170,10 @@ export function AnalyticsSessionsTable({
                     </span>
                   </div>
 
-                  {/* Consulted */}
+                  {/* Unanswered */}
                   <div className="text-center">
                     <span className="font-medium text-blue-600 text-sm">
-                      {session.stats?.consulted || 0}
+                      {session.stats?.unanswered || 0}
                     </span>
                   </div>
 
@@ -244,10 +244,10 @@ export function AnalyticsSessionsTable({
                         </div>
                       </div>
 
-                      {(session.stats?.consulted || 0) > 0 && (
+                      {(session.stats?.unanswered || 0) > 0 && (
                         <div className="mt-2 flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Consulté:</span>
-                          <span className="font-medium text-blue-600">{session.stats?.consulted || 0}</span>
+                          <span className="text-muted-foreground">Non répondue:</span>
+                          <span className="font-medium text-blue-600">{session.stats?.unanswered || 0}</span>
                         </div>
                       )}
                     </div>

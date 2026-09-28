@@ -24,6 +24,14 @@ import { SafeMarkdown } from '@/components/ui/safe-markdown';
 import { localizeQuestion, toPlainText } from '@/lib/question-localization';
 import { useQuestionLanguage } from '@/components/student/quiz/question-language-provider';
 import { QuestionLanguageToggle, EnglishUnavailableBadge } from '@/components/student/quiz/question-language-toggle';
+import { answerVerdict, apiSelectedIds } from '@/lib/session-answers';
+
+// Same three outcomes as the results screen
+const VERDICT_BADGES = {
+  correct: { label: 'Correct', variant: 'default' },
+  incorrect: { label: 'Incorrect', variant: 'destructive' },
+  unanswered: { label: 'Unanswered', variant: 'secondary' },
+} as const;
 
 // Stable overrides for SafeMarkdown (kept outside render so memoization holds)
 const EXPLANATION_COMPONENTS = {
@@ -62,15 +70,16 @@ export default function SessionReviewPage() {
         const userAnswer = answers.find((a: any) => String(a.questionId) === String(question.id));
 
         // Handle both single and multiple choice answers
-        const selectedAnswerIds = userAnswer?.selectedAnswerIds ||
-          (userAnswer?.selectedAnswerId ? [userAnswer.selectedAnswerId] : []);
+        const selectedAnswerIds = apiSelectedIds(userAnswer);
 
         const selectedAnswers = question.questionAnswers?.filter((a: any) =>
           selectedAnswerIds.includes(a.id)
         ) || [];
 
         const correctAnswers = question.questionAnswers?.filter((a: any) => a.isCorrect) || [];
-        const isCorrect = userAnswer?.isCorrect || false;
+        // Counted like the results screen: correct, incorrect or unanswered
+        const verdict = answerVerdict(userAnswer);
+        const isCorrect = verdict === 'correct';
 
         return {
           ...question,
@@ -80,6 +89,7 @@ export default function SessionReviewPage() {
           selectedAnswers,
           correctAnswers,
           isCorrect,
+          verdict,
           questionType: question.questionType || question.type || (correctAnswers.length > 1 ? 'MULTIPLE_CHOICE' : 'SINGLE_CHOICE'),
           // Ensure we have the answer options in the expected format
           answers: question.questionAnswers || question.answers || []
@@ -162,8 +172,8 @@ export default function SessionReviewPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
                           <Badge variant="outline">Question {question.questionNumber}</Badge>
-                          <Badge variant={question.isCorrect ? 'default' : 'destructive'}>
-                            {question.isCorrect ? 'Correct' : 'Incorrect'}
+                          <Badge variant={VERDICT_BADGES[question.verdict].variant}>
+                            {VERDICT_BADGES[question.verdict].label}
                           </Badge>
                           {question.questionType === 'MULTIPLE_CHOICE' && (
                             <Badge variant="secondary">Multiple Choice</Badge>

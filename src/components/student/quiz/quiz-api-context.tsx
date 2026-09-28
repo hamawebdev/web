@@ -1,10 +1,11 @@
 // @ts-nocheck
 'use client';
 
-import React, { createContext, useContext, useReducer, useEffect, useCallback, useState, useMemo } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useState, useMemo, useRef } from 'react';
 import { useQuizAnswerSubmission } from '@/hooks/use-quiz-api';
 import { QuizService } from '@/lib/api-services';
 import { quizStorage, QuizSessionState, QuizAnswer } from '@/lib/quiz-storage';
+import { collectSubmitPayloads, submitPayloadFor } from '@/lib/session-answers';
 import { sessionProgressManager, SessionProgressData } from '@/lib/session-progress-manager';
 import { SessionStatusManager } from '@/lib/session-status-manager';
 import { toast } from 'sonner';
@@ -619,6 +620,41 @@ export function ApiQuizProvider({
     }
   }, [apiSessionId, enableApiSubmission]);
 
+  // Answers being saved on the server, awaited before the session is submitted
+  const pendingSavesRef = useRef<Set<Promise<void>>>(new Set());
+
+  /**
+   * Save one answer on the server as soon as it is given, so leaving the page by any means (closing
+   * the tab, reloading, a phone discarding the tab) keeps it. Finishing, pausing and exiting still
+   * send every answer again.
+   */
+  const saveAnswerOnServer = useCallback((question: any, answer: any) => {
+    if (!apiSessionId || !enableApiSubmission || !question) return;
+    const payload = submitPayloadFor(question.questionType || question.type, question.id, answer);
+    if (!payload) return;
+
+    const save = QuizService.submitAnswersBulk(apiSessionId, [payload])
+      .then((response) => {
+        if (!response.success) throw new Error(response.error || 'Failed to save the answer');
+      })
+      .catch((error) => {
+        console.warn(`Failed to save the answer to question ${payload.questionId}:`, error);
+        toast.error('Your answer is not saved yet', {
+          id: 'answer-save-error',
+          description: 'It will be sent again when you pause, exit or finish the session.',
+        });
+      })
+      .finally(() => {
+        pendingSavesRef.current.delete(save);
+      });
+    pendingSavesRef.current.add(save);
+  }, [apiSessionId, enableApiSubmission]);
+
+  /** Wait for the answer saves still in flight, so a submission that follows is the last write */
+  const flushPendingAnswers = useCallback(async () => {
+    await Promise.allSettled(Array.from(pendingSavesRef.current));
+  }, []);
+
   // Answer batching state for optimized submissions
   const [pendingAnswers, setPendingAnswers] = useState<Array<{
     questionId: number;
@@ -761,6 +797,9 @@ export function ApiQuizProvider({
 
       // Always reflect in localAnswers for real-time UI (even without apiSessionId)
       dispatch({ type: 'SAVE_LOCAL_ANSWER', answer: quizAnswer });
+
+      // Keep it on the server right away
+      saveAnswerOnServer(state.currentQuestion, quizAnswer);
     }
 
     // Save to client storage with a stable session ID (works in local/practice mode too)
@@ -806,7 +845,7 @@ export function ApiQuizProvider({
     }
 
     dispatch({ type: 'ANSWER_SUBMITTED', success: true });
-  }, [state.clientStorageEnabled, state.currentQuestion?.id, state.timer.questionTime, storageSessionId, apiSessionId, enableApiSubmission, playSound]);
+  }, [state.clientStorageEnabled, state.currentQuestion?.id, state.timer.questionTime, storageSessionId, apiSessionId, enableApiSubmission, playSound, saveAnswerOnServer]);
 
   const clearAnswer = useCallback((questionId: string | number) => {
     dispatch({ type: 'CLEAR_ANSWER', questionId });
@@ -847,82 +886,18 @@ export function ApiQuizProvider({
     try {
       // Always submit current answers and fetch fresh stats on pause
       if (apiSessionId && enableApiSubmission) {
-        const userAnswers = state.session?.userAnswers || {};
-        const answersToSubmit = Object.keys(userAnswers).filter(
-          questionId => {
-            const answer = userAnswers[questionId];
-            return answer && (answer.selectedOptions?.length || answer.textAnswer);
-          }
-        );
+        await flushPendingAnswers();
+        const apiAnswers = collectSubmitPayloads(state.session.questions, state.session?.userAnswers, state.localAnswers);
 
-        if (answersToSubmit.length > 0) {
-          console.log(`📤 Auto-submitting ${answersToSubmit.length} answers on pause...`);
+        if (apiAnswers.length > 0) {
+          console.log(`📤 Auto-submitting ${apiAnswers.length} answers on pause...`);
+          const totalTimeSpent = state.timer.totalTime || 0;
+          const response = await QuizService.submitAnswersBulk(apiSessionId, apiAnswers, totalTimeSpent);
 
-          // Submit answers using existing submitAllAnswers logic but only for answered questions
-          const answersForSubmission = answersToSubmit.map(questionId => {
-            const answer = userAnswers[questionId];
-            return {
-              questionId: Number(questionId),
-              selectedAnswerId: answer.selectedOptions?.[0],
-              selectedAnswerIds: answer.selectedOptions,
-              textAnswer: answer.textAnswer,
-              isCorrect: answer.isCorrect,
-              timeSpent: answer.timeSpent || 0
-            };
-          });
-
-          // Build question type lookup
-          const questionTypeById: Record<number, string> = {};
-          (state.session.questions || []).forEach((q: any) => {
-            const qt = (q.questionType || q.type || '').toString().toUpperCase();
-            questionTypeById[Number(q.id)] = qt || 'SINGLE_CHOICE';
-          });
-
-          // Convert to API format
-          const apiAnswers = answersForSubmission.map(answer => {
-            const qType = questionTypeById[Number(answer.questionId)] || 'SINGLE_CHOICE';
-            const isSingle = qType === 'SINGLE_CHOICE' || qType === 'QCS';
-            const isMulti = qType === 'MULTIPLE_CHOICE' || qType === 'QCM';
-
-            if (isSingle) {
-              const selectedId = typeof answer.selectedAnswerId === 'number'
-                ? answer.selectedAnswerId
-                : (Array.isArray(answer.selectedAnswerIds) && answer.selectedAnswerIds.length ? Number(answer.selectedAnswerIds[0]) : undefined);
-              return {
-                questionId: Number(answer.questionId),
-                ...(Number.isFinite(selectedId as number) ? { selectedAnswerId: Number(selectedId) } : {}),
-                timeSpent: answer.timeSpent,
-              };
-            }
-
-            if (isMulti) {
-              const ids = Array.isArray(answer.selectedAnswerIds) ? answer.selectedAnswerIds.map(Number).filter(n => Number.isFinite(n)) : [];
-              return {
-                questionId: Number(answer.questionId),
-                ...(ids.length ? { selectedAnswerIds: ids } : {}),
-                timeSpent: answer.timeSpent,
-              };
-            }
-
-            return {
-              questionId: Number(answer.questionId),
-              ...(typeof answer.selectedAnswerId === 'number' ? { selectedAnswerId: answer.selectedAnswerId }
-                : (Array.isArray(answer.selectedAnswerIds) && answer.selectedAnswerIds.length ? { selectedAnswerIds: answer.selectedAnswerIds } : {})),
-              ...(answer.textAnswer ? { textAnswer: answer.textAnswer } : {}),
-              ...(typeof answer.isCorrect === 'boolean' ? { isCorrect: answer.isCorrect } : {}),
-              timeSpent: answer.timeSpent,
-            };
-          }).filter(entry => entry.selectedAnswerId || entry.selectedAnswerIds || (entry.textAnswer && String(entry.textAnswer).trim().length > 0));
-
-          if (apiAnswers.length > 0) {
-            const totalTimeSpent = state.timer.totalTime || 0;
-            const response = await QuizService.submitAnswersBulk(apiSessionId, apiAnswers, totalTimeSpent);
-
-            if (response.success && response.data) {
-              console.log(`✅ Successfully submitted ${apiAnswers.length} answers on pause:`, response.data);
-            } else {
-              console.log(`✅ Submitted ${apiAnswers.length} answers on pause (no response data)`);
-            }
+          if (response.success && response.data) {
+            console.log(`✅ Successfully submitted ${apiAnswers.length} answers on pause:`, response.data);
+          } else {
+            console.log(`✅ Submitted ${apiAnswers.length} answers on pause (no response data)`);
           }
         }
 
@@ -990,7 +965,7 @@ export function ApiQuizProvider({
 
     // Then pause the quiz
     dispatch({ type: 'PAUSE_QUIZ' });
-  }, [apiSessionId, enableApiSubmission, state.session.userAnswers, state.session.questions, state.session.totalQuestions, state.timer.totalTime]);
+  }, [apiSessionId, enableApiSubmission, state.session.userAnswers, state.localAnswers, state.session.questions, state.session.totalQuestions, state.timer.totalTime, flushPendingAnswers]);
 
   const resumeQuiz = useCallback(() => {
     dispatch({ type: 'RESUME_QUIZ' });
@@ -1006,13 +981,6 @@ export function ApiQuizProvider({
 
   const addNote = useCallback((questionId: string, note: string) => {
     dispatch({ type: 'ADD_NOTE', questionId, note });
-  }, []);
-
-  // Legacy flush pending answers - DISABLED for manual submission flow
-  const flushPendingAnswers = useCallback(async () => {
-    console.log('⚠️ Legacy flushPendingAnswers called - this should not happen in manual submission mode');
-    // This function is disabled to prevent auto-submission
-    return;
   }, []);
 
   // Manual quiz submission - only when user explicitly submits

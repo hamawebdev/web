@@ -1120,12 +1120,16 @@ export interface SubjectAnalytics extends Required<Pick<SubjectPerformance,
 
 // Session stats from the new analytics endpoint
 export interface SessionStats {
-  averagePerQuestion: number;
+  averagePerQuestion?: number;
   totalQuestions: number;
   answeredCorrect: number;
   answeredWrong: number;
-  consulted: number;
+  /** Questions without an answer (the results screen's "Unanswered") */
+  unanswered: number;
+  /** The session's score as a percentage, e.g. "67.5%" */
   accuracy: string;
+  /** The same score out of 20, as the results screen shows it */
+  scoreOutOf20?: number;
 }
 
 // Course-level stats from the new analytics endpoint

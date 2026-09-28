@@ -23,7 +23,8 @@ export interface SessionStatusUpdateOptions {
 }
 
 export class SessionStatusManager {
-  private static pendingUpdates = new Map<number, Promise<any>>();
+  // Keyed by session and status: a pending IN_PROGRESS update never swallows a COMPLETED one
+  private static pendingUpdates = new Map<string, Promise<any>>();
 
   /**
    * Update session status to IN_PROGRESS
@@ -110,6 +111,20 @@ export class SessionStatusManager {
   }
 
   /**
+   * True when the server already holds the session as completed (finished in another tab, for
+   * example): it accepts no more answers, and its results are the answers it saved
+   */
+  static async isCompletedOnServer(sessionId: number): Promise<boolean> {
+    try {
+      const response: any = await QuizService.getQuizSession(sessionId);
+      const session = response?.data?.data ?? response?.data;
+      return response?.success === true && session?.status === 'COMPLETED';
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Determine appropriate status based on quiz state
    */
   static determineStatus(
@@ -182,26 +197,25 @@ export class SessionStatusManager {
     const updateKey = `${sessionId}-${status}`;
 
     // Prevent duplicate concurrent updates for the same session and status
-    if (this.pendingUpdates.has(sessionId)) {
+    if (this.pendingUpdates.has(updateKey)) {
       if (!silent) {
         console.log(`⏳ [SessionStatusManager] Status update already pending for session ${sessionId}`);
       }
       try {
-        await this.pendingUpdates.get(sessionId);
-        return { success: true };
+        return await this.pendingUpdates.get(updateKey);
       } catch (error) {
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
       }
     }
 
     const updatePromise = this.performStatusUpdate(sessionId, status, retryCount, silent);
-    this.pendingUpdates.set(sessionId, updatePromise);
+    this.pendingUpdates.set(updateKey, updatePromise);
 
     try {
       const result = await updatePromise;
       return result;
     } finally {
-      this.pendingUpdates.delete(sessionId);
+      this.pendingUpdates.delete(updateKey);
     }
   }
 

@@ -19,8 +19,10 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { QuizStatisticsDisplay } from './quiz-statistics-display';
+import { useApiQuiz } from './quiz-api-context';
 import { SessionStatusManager } from '@/lib/session-status-manager';
 import { QuizService } from '@/lib/api-services';
+import { collectSubmitPayloads } from '@/lib/session-answers';
 import { toast } from 'sonner';
 
 interface EnhancedExitDialogProps {
@@ -55,6 +57,7 @@ export function EnhancedExitDialog({
   statsError
 }: EnhancedExitDialogProps) {
   const router = useRouter();
+  const { flushPendingAnswers } = useApiQuiz();
   const [showStats, setShowStats] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
@@ -77,133 +80,24 @@ export function EnhancedExitDialog({
       throw new Error('No session ID available for submission');
     }
 
-    // CRITICAL FIX: Use the EXACT same answer collection logic as pause button
-    console.log('🔄 Exit dialog: Collecting all answers using pause logic...');
+    // Every answer the runner holds, after the saves still in flight
+    await flushPendingAnswers();
+    const apiAnswers = collectSubmitPayloads(session?.questions, session?.userAnswers, localAnswers);
 
-    // Start with userAnswers (same as pause logic)
-    const userAnswers = session?.userAnswers || {};
-    let allAnswers: Record<string, any> = { ...userAnswers };
-
-    // Also merge localAnswers from API context
-    Object.entries(localAnswers || {}).forEach(([questionId, localAnswer]) => {
-      if (!allAnswers[questionId] || !allAnswers[questionId].selectedOptions?.length) {
-        allAnswers[questionId] = {
-          questionId,
-          selectedOptions: localAnswer.selectedOptions || (localAnswer.selectedAnswerId ? [String(localAnswer.selectedAnswerId)] : []),
-          selectedAnswerId: localAnswer.selectedAnswerId,
-          selectedAnswerIds: localAnswer.selectedAnswerIds,
-          textAnswer: localAnswer.textAnswer,
-          timeSpent: localAnswer.timeSpent || 0,
-          isCorrect: localAnswer.isCorrect
-        };
-        console.log(`📥 Exit dialog: Added answer from localAnswers for question ${questionId}`);
-      }
-    });
-
-    // Filter answers that have actual selections (same as pause logic)
-    const answersToSubmit = Object.keys(allAnswers).filter(
-      questionId => {
-        const answer = allAnswers[questionId];
-        return answer && (answer.selectedOptions?.length || answer.textAnswer);
-      }
-    );
-
-    console.log(`📤 Exit dialog: Found ${answersToSubmit.length} answers to submit (using pause logic)`);
-    console.log('🔍 Exit dialog: Answers found:', answersToSubmit.map(qId => ({
-      questionId: qId,
-      hasSelectedOptions: !!allAnswers[qId]?.selectedOptions?.length,
-      hasTextAnswer: !!allAnswers[qId]?.textAnswer
-    })));
-
-    // Convert to API format using the EXACT same logic as pause
-    if (answersToSubmit.length > 0) {
-      console.log(`📤 Exit dialog: Submitting ${answersToSubmit.length} answers using pause logic...`);
-
-      // Convert answers to API format (EXACT same logic as pause)
-      const answersForSubmission = answersToSubmit.map(questionId => {
-        const answer = allAnswers[questionId];
-        return {
-          questionId: Number(questionId),
-          selectedAnswerId: answer.selectedOptions?.[0],
-          selectedAnswerIds: answer.selectedOptions,
-          textAnswer: answer.textAnswer,
-          isCorrect: answer.isCorrect,
-          timeSpent: answer.timeSpent || 0
-        };
-      });
-
-      // Build question type lookup (same as pause)
-      const questionTypeById: Record<number, string> = {};
-      (session.questions || []).forEach((q: any) => {
-        const qt = (q.questionType || q.type || '').toString().toUpperCase();
-        questionTypeById[Number(q.id)] = qt || 'SINGLE_CHOICE';
-      });
-
-      // Convert to API format (EXACT same logic as pause)
-      const apiAnswers = answersForSubmission.map(answer => {
-        const qType = questionTypeById[Number(answer.questionId)] || 'SINGLE_CHOICE';
-        const isSingle = qType === 'SINGLE_CHOICE' || qType === 'QCS';
-        const isMulti = qType === 'MULTIPLE_CHOICE' || qType === 'QCM';
-
-        if (isSingle) {
-          const selectedId = typeof answer.selectedAnswerId === 'number'
-            ? answer.selectedAnswerId
-            : (Array.isArray(answer.selectedAnswerIds) && answer.selectedAnswerIds.length ? Number(answer.selectedAnswerIds[0]) : undefined);
-          return {
-            questionId: Number(answer.questionId),
-            ...(Number.isFinite(selectedId as number) ? { selectedAnswerId: Number(selectedId) } : {}),
-            timeSpent: answer.timeSpent,
-          };
-        }
-
-        if (isMulti) {
-          const ids = Array.isArray(answer.selectedAnswerIds) ? answer.selectedAnswerIds.map(Number).filter(n => Number.isFinite(n)) : [];
-          return {
-            questionId: Number(answer.questionId),
-            ...(ids.length ? { selectedAnswerIds: ids } : {}),
-            timeSpent: answer.timeSpent,
-          };
-        }
-
-        return {
-          questionId: Number(answer.questionId),
-          ...(typeof answer.selectedAnswerId === 'number' ? { selectedAnswerId: answer.selectedAnswerId }
-            : (Array.isArray(answer.selectedAnswerIds) && answer.selectedAnswerIds.length ? { selectedAnswerIds: answer.selectedAnswerIds } : {})),
-          ...(answer.textAnswer ? { textAnswer: answer.textAnswer } : {}),
-          ...(typeof answer.isCorrect === 'boolean' ? { isCorrect: answer.isCorrect } : {}),
-          timeSpent: answer.timeSpent,
-        };
-      }).filter(entry => (
-        (entry.selectedAnswerId !== undefined && entry.selectedAnswerId !== null) ||
-        (Array.isArray(entry.selectedAnswerIds) && entry.selectedAnswerIds.length > 0) ||
-        (entry.textAnswer && String(entry.textAnswer).trim().length > 0)
-      ));
-
-      if (apiAnswers.length === 0) {
-        console.log('Exit dialog: No answers to submit');
-        return { success: true, data: null };
-      } else {
-        console.log(`📤 Exit dialog: Submitting ${apiAnswers.length} answers for session ${apiSessionId}...`);
-        const totalTimeSpent = timer?.totalTime || 0;
-        const response = await QuizService.submitAnswersBulk(apiSessionId, apiAnswers, totalTimeSpent);
-
-        if (!response.success) {
-          throw new Error(response.error || 'Failed to submit answers');
-        }
-
-        console.log('✅ Exit dialog: Successfully submitted all answers:', response.data);
-        return response.data;
-      }
-    } else {
-      console.log('Exit dialog: No answers to submit - no questions answered');
-      return { success: true, data: null };
+    if (apiAnswers.length === 0) {
+      console.log('Exit dialog: No answers to submit');
+      return null;
     }
+
+    console.log(`📤 Exit dialog: Submitting ${apiAnswers.length} answers for session ${apiSessionId}...`);
+    const totalTimeSpent = timer?.totalTime || 0;
+    const response = await QuizService.submitAnswersBulk(apiSessionId, apiAnswers, totalTimeSpent);
 
     if (!response.success) {
       throw new Error(response.error || 'Failed to submit answers');
     }
 
-    console.log('✅ Successfully submitted all answers:', response.data);
+    console.log('✅ Exit dialog: Successfully submitted all answers:', response.data);
     return response.data;
   };
 
@@ -235,8 +129,9 @@ export function EnhancedExitDialog({
         silent: true
       });
 
+      // The session only ends here (answering never completes it), so a failure is reported
       if (!statusUpdateSuccess) {
-        console.warn('Failed to update session status to COMPLETED, but continuing to results');
+        throw new Error('The session could not be marked as finished');
       }
 
       // Step 3: Store submission data in sessionStorage for results page
@@ -258,6 +153,12 @@ export function EnhancedExitDialog({
       router.push(`/session/${apiSessionId}/results`);
 
     } catch (error) {
+      // Already finished (in another tab): its results are the saved answers
+      if (await SessionStatusManager.isCompletedOnServer(apiSessionId)) {
+        onOpenChange(false);
+        router.push(`/session/${apiSessionId}/results`);
+        return;
+      }
       console.error('❌ Failed to submit answers for results:', error);
       setSubmissionError(error instanceof Error ? error.message : 'Failed to submit answers');
 
@@ -301,6 +202,12 @@ export function EnhancedExitDialog({
       router.push('/student/dashboard');
 
     } catch (error) {
+      // Already finished (in another tab): nothing is left to save
+      if (await SessionStatusManager.isCompletedOnServer(apiSessionId)) {
+        onOpenChange(false);
+        router.push('/student/dashboard');
+        return;
+      }
       console.error('❌ Failed to submit answers for dashboard exit:', error);
       setSubmissionError(error instanceof Error ? error.message : 'Failed to submit answers');
 

@@ -33,6 +33,7 @@ import { QuestionActions } from './question-actions';
 import { QuestionMetadata } from './question-metadata';
 import { ImageGallery } from './image-gallery';
 import { EnglishUnavailableBadge } from './question-language-toggle';
+import { choiceIsCorrect } from '@/lib/session-answers';
 
 // Stable component overrides for SafeMarkdown (kept outside render so memoization holds)
 const QUESTION_TEXT_COMPONENTS = {
@@ -246,7 +247,6 @@ export function UnifiedQuestion({ question, type, onOpenAIChat, onEditNote }: Pr
       }
 
       // Normalize IDs to strings for reliable comparison
-      const correctIds = (question.options?.filter(opt => opt.isCorrect).map(opt => String(opt.id)) || []);
       const selectedIds = selectedOptions.map(String);
 
       // Validate that selected options exist in the question
@@ -258,9 +258,8 @@ export function UnifiedQuestion({ question, type, onOpenAIChat, onEditNote }: Pr
         throw new Error('Selected options are not valid for this question');
       }
 
-      const isCorrect = isMultipleChoice
-        ? validSelectedIds.length === correctIds.length && validSelectedIds.every(id => correctIds.includes(id))
-        : validSelectedIds.length === 1 && correctIds.includes(validSelectedIds[0]);
+      // Same verdict as the backend: by answer id, exact set for multiple choice
+      const isCorrect = choiceIsCorrect(question.options, validSelectedIds, isMultipleChoice);
 
       await submitAnswer({
         selectedOptions: validSelectedIds,
