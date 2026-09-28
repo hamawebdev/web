@@ -3,24 +3,29 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeRaw from 'rehype-raw';
+import { SafeMarkdown } from '@/components/ui/safe-markdown';
+import { localizeQuestion } from '@/lib/question-localization';
+import { useQuestionLanguage } from '@/components/student/quiz/question-language-provider';
+import { QuestionLanguageToggle, EnglishUnavailableBadge } from '@/components/student/quiz/question-language-toggle';
 import { CheckCircle, XCircle, HelpCircle, FileText, Image as ImageIcon } from 'lucide-react';
 import { ImageGallery } from '@/components/student/quiz/image-gallery';
 
 interface QuestionAnswer {
     id: number;
     answerText: string;
+    answerTextEn?: string | null;
     isCorrect: boolean;
     explanation?: string | null;
+    explanationEn?: string | null;
 }
 
 interface ReadOnlyQuestionProps {
     question: {
         id: number;
         questionText: string;
+        questionTextEn?: string | null;
         explanation?: string | null;
+        explanationEn?: string | null;
         questionType?: string;
         questionImages?: string[];
         questionAnswers?: QuestionAnswer[];
@@ -39,11 +44,13 @@ interface ReadOnlyQuestionProps {
 
 export function ReadOnlyQuestion({ question }: ReadOnlyQuestionProps) {
     const isMultipleChoice = question.questionType === 'SINGLE_CHOICE' || question.questionType === 'MULTIPLE_CHOICE';
+    const { language } = useQuestionLanguage();
+    const localized = localizeQuestion(question, language);
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6" lang={localized.displayedLanguage}>
             {/* Header / Context */}
-            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 {question.source?.name && (
                     <Badge variant="outline" className="bg-muted/50">
                         {question.source.name} {question.examYear ? `(${question.examYear})` : ''}
@@ -59,17 +66,16 @@ export function ReadOnlyQuestion({ question }: ReadOnlyQuestionProps) {
                         {question.course.name}
                     </Badge>
                 )}
+                <div className="ml-auto">
+                    <QuestionLanguageToggle />
+                </div>
             </div>
 
             {/* Question Text */}
             <div className="space-y-4">
-                <div className="prose prose-sm dark:prose-invert max-w-none">
-                    <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        rehypePlugins={[rehypeRaw]}
-                    >
-                        {question.questionText}
-                    </ReactMarkdown>
+                {language === 'en' && !localized.hasEnglish && <EnglishUnavailableBadge />}
+                <div className="prose prose-sm dark:prose-invert max-w-none break-words">
+                    <SafeMarkdown>{localized.questionText}</SafeMarkdown>
                 </div>
 
                 {/* Images */}
@@ -98,7 +104,7 @@ export function ReadOnlyQuestion({ question }: ReadOnlyQuestionProps) {
                     {isMultipleChoice ? 'Options' : 'Answer'}
                 </h4>
 
-                {question.questionAnswers?.map((answer) => (
+                {localized.answers.map((answer) => (
                     <div
                         key={answer.id}
                         className={cn(
@@ -116,14 +122,14 @@ export function ReadOnlyQuestion({ question }: ReadOnlyQuestionProps) {
                                     <div className="h-4 w-4 rounded-full border border-muted-foreground/30" />
                                 )}
                             </div>
-                            <div className="flex-1">
+                            <div className="flex-1 min-w-0 break-words">
                                 <span className={cn(answer.isCorrect && "font-medium text-green-900 dark:text-green-100")}>
-                                    {answer.answerText}
+                                    <SafeMarkdown inline>{answer.answerText}</SafeMarkdown>
                                 </span>
                                 {answer.explanation && (
-                                    <p className="mt-1 text-xs text-muted-foreground">
-                                        {answer.explanation}
-                                    </p>
+                                    <div className="mt-1 text-xs text-muted-foreground">
+                                        <SafeMarkdown inline>{answer.explanation}</SafeMarkdown>
+                                    </div>
                                 )}
                             </div>
                             {answer.isCorrect && (
@@ -137,8 +143,8 @@ export function ReadOnlyQuestion({ question }: ReadOnlyQuestionProps) {
             </div>
 
             {/* Explanation */}
-            {question.explanation && (
-                <Card className="bg-blue-50/30 border-blue-100 dark:bg-blue-900/5 dark:border-blue-900/30">
+            {localized.explanation && (
+                <Card lang={localized.explanationLanguage} className="bg-blue-50/30 border-blue-100 dark:bg-blue-900/5 dark:border-blue-900/30">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium flex items-center gap-2 text-blue-700 dark:text-blue-300">
                             <FileText className="h-4 w-4" />
@@ -147,12 +153,7 @@ export function ReadOnlyQuestion({ question }: ReadOnlyQuestionProps) {
                     </CardHeader>
                     <CardContent>
                         <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground prose-p:my-1">
-                            <ReactMarkdown
-                                remarkPlugins={[remarkGfm]}
-                                rehypePlugins={[rehypeRaw]}
-                            >
-                                {question.explanation}
-                            </ReactMarkdown>
+                            <SafeMarkdown>{localized.explanation}</SafeMarkdown>
                         </div>
                     </CardContent>
                 </Card>

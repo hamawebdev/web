@@ -35,6 +35,8 @@ import { ResidencyQuestion } from '@/types/api';
 import { ResidencyQuestionsService } from '@/lib/api-services';
 import { ViewResidencyQuestionDialog } from './view-residency-question-dialog';
 import { EditResidencyQuestionDialog } from './edit-residency-question-dialog';
+import { normalizeResidencyPart, residencyPartLabel } from '@/lib/residency-parts';
+import { toPlainText } from '@/lib/question-localization';
 
 interface ResidencyQuestionsTableProps {
   questions: ResidencyQuestion[];
@@ -100,27 +102,23 @@ export function ResidencyQuestionsTable({
     }
   };
 
-  const getPartLabel = (part: string) => {
-    switch (part) {
-      case 'Sciences fondamentales':
-        return 'Sciences Fond.';
-      case 'Dossier clinique':
-        return 'Dossiers Clin.';
-      case 'Pathologie medico-chirurgical':
-        return 'Pathologies M/C';
-      default:
-        return part;
-    }
-  };
+  // Parts may be stored with older labels, and some papers (Oran) have none
+  const getPartLabel = (part: string | null | undefined) => residencyPartLabel(part, 'short');
 
-  const getPartColor = (part: string) => {
-    switch (part) {
-      case 'Sciences fondamentales':
+  const getPartColor = (part: string | null | undefined) => {
+    switch (normalizeResidencyPart(part)) {
+      case 'Sciences_fondamentales':
         return 'bg-blue-100 text-blue-800';
-      case 'Dossier clinique':
+      case 'Dossier_clinique':
         return 'bg-green-100 text-green-800';
-      case 'Pathologie medico-chirurgical':
+      case 'Pathologie_medico_chirurgical':
         return 'bg-purple-100 text-purple-800';
+      case 'Biologie':
+        return 'bg-teal-100 text-teal-800';
+      case 'Medicale':
+        return 'bg-amber-100 text-amber-800';
+      case 'Chirurgie':
+        return 'bg-rose-100 text-rose-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -179,10 +177,10 @@ export function ResidencyQuestionsTable({
               <TableRow key={question.id}>
                 <TableCell>
                   <div className="max-w-md">
-                    <p className="font-medium line-clamp-2">{question.question.questionText}</p>
+                    <p className="font-medium line-clamp-2">{toPlainText(question.question.questionText)}</p>
                     {question.question.explanation && (
                       <p className="text-xs text-muted-foreground line-clamp-1 mt-1">
-                        {question.question.explanation}
+                        {toPlainText(question.question.explanation)}
                       </p>
                     )}
                   </div>

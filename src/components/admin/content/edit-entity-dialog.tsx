@@ -24,36 +24,40 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { AdminContentService, UniversityService } from '@/lib/api-services';
+import { getApiErrorMessage } from '@/lib/api-error';
 
-// Schemas for different entity types
+// Schemas for different entity types (limits match the API validation). Imported records
+// often have no description or city, so those stay optional and never block an edit.
+const optionalText = z.string().trim().optional();
+
 const universitySchema = z.object({
-  name: z.string().min(1, 'University name is required'),
-  country: z.string().min(1, 'Country is required'),
-  city: z.string().min(1, 'City is required'),
+  name: z.string().trim().min(2, 'University name must be at least 2 characters'),
+  country: z.string().trim().min(2, 'Country must be at least 2 characters'),
+  city: z.string().trim().refine(value => value === '' || value.length >= 2, 'City must be at least 2 characters').optional(),
 });
 
 const studyPackSchema = z.object({
-  name: z.string().min(1, 'Study pack name is required'),
-  description: z.string().min(1, 'Description is required'),
+  name: z.string().trim().min(2, 'Study pack name must be at least 2 characters'),
+  description: optionalText,
   // Optional: residency packs have no year number (the field is hidden for them)
   yearNumber: z.enum(['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN']).optional(),
-  pricePerMonth: z.number().min(0, 'Monthly price must be positive'),
-  pricePerYear: z.number().min(0, 'Yearly price must be positive'),
+  pricePerMonth: z.number().min(0, 'Monthly price cannot be negative'),
+  pricePerYear: z.number().min(0, 'Yearly price cannot be negative'),
 });
 
 const unitSchema = z.object({
-  name: z.string().min(1, 'Unit name is required'),
-  description: z.string().min(1, 'Description is required'),
+  name: z.string().trim().min(2, 'Unit name must be at least 2 characters'),
+  description: optionalText,
 });
 
 const moduleSchema = z.object({
-  name: z.string().min(1, 'Module name is required'),
-  description: z.string().min(1, 'Description is required'),
+  name: z.string().trim().min(2, 'Module name must be at least 2 characters'),
+  description: optionalText,
 });
 
 const courseSchema = z.object({
-  name: z.string().min(1, 'Course name is required'),
-  description: z.string().min(1, 'Description is required'),
+  name: z.string().trim().min(3, 'Course name must be at least 3 characters'),
+  description: optionalText,
 });
 
 type EntityType = 'university' | 'studyPack' | 'unit' | 'module' | 'course';
@@ -66,7 +70,7 @@ interface BaseEntity {
 
 interface University extends BaseEntity {
   country: string;
-  city: string;
+  city?: string | null;
 }
 
 interface StudyPack extends BaseEntity {
@@ -152,13 +156,13 @@ export function EditEntityDialog({
 
       if (entityType === 'university') {
         const university = entity as University;
-        formData.country = university.country;
-        formData.city = university.city;
+        formData.country = university.country ?? '';
+        formData.city = university.city ?? '';
       } else if (entityType === 'studyPack') {
         const studyPack = entity as StudyPack;
         formData.yearNumber = studyPack.yearNumber ?? undefined;
-        formData.pricePerMonth = studyPack.pricePerMonth || 0;
-        formData.pricePerYear = studyPack.pricePerYear || 0;
+        formData.pricePerMonth = Number(studyPack.pricePerMonth) || 0;
+        formData.pricePerYear = Number(studyPack.pricePerYear) || 0;
       }
 
       form.reset(formData);
@@ -211,6 +215,8 @@ export function EditEntityDialog({
     if (!entity) return;
 
     setIsSubmitting(true);
+    // Optional texts: an empty field is left out rather than sent as ''
+    const description = data.description?.trim() || undefined;
     try {
       let result;
 
@@ -219,7 +225,7 @@ export function EditEntityDialog({
           result = await UniversityService.updateUniversity(entity.id, {
             name: data.name,
             country: data.country,
-            city: data.city,
+            city: data.city?.trim() || undefined,
           });
           break;
         case 'studyPack':
@@ -227,7 +233,7 @@ export function EditEntityDialog({
           // turned into a YEAR pack, and never send a year number for residency packs.
           result = await AdminContentService.updateStudyPack(entity.id, {
             name: data.name,
-            description: data.description,
+            description,
             yearNumber: (entity as StudyPack).type === 'RESIDENCY' ? undefined : data.yearNumber,
             pricePerMonth: data.pricePerMonth,
             pricePerYear: data.pricePerYear,
@@ -237,7 +243,7 @@ export function EditEntityDialog({
           const unitEntity = entity as Unit;
           result = await AdminContentService.updateUnit(entity.id, {
             name: data.name,
-            description: data.description,
+            description,
             studyPackId: unitEntity.studyPackId,
           });
           break;
@@ -245,7 +251,7 @@ export function EditEntityDialog({
           const moduleEntity = entity as Module;
           result = await AdminContentService.updateModule(entity.id, {
             name: data.name,
-            description: data.description,
+            description,
             uniteId: moduleEntity.uniteId,
           });
           break;
@@ -253,7 +259,7 @@ export function EditEntityDialog({
           const courseEntity = entity as Course;
           result = await AdminContentService.updateCourse(entity.id, {
             name: data.name,
-            description: data.description,
+            description,
             moduleId: courseEntity.moduleId,
           });
           break;
@@ -270,7 +276,7 @@ export function EditEntityDialog({
       }
     } catch (error) {
       console.error(`Error updating ${entityType}:`, error);
-      toast.error(`Failed to update ${entityType}`);
+      toast.error(`Failed to update ${entityType}: ${getApiErrorMessage(error)}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -312,7 +318,7 @@ export function EditEntityDialog({
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <FormLabel>Description (optional)</FormLabel>
                     <FormControl>
                       <Input placeholder="Enter description" {...field} />
                     </FormControl>
@@ -344,7 +350,7 @@ export function EditEntityDialog({
                 name="city"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>City</FormLabel>
+                    <FormLabel>City (optional)</FormLabel>
                     <FormControl>
                       <Input placeholder="Enter city" {...field} />
                     </FormControl>

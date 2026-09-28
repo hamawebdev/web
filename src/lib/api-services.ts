@@ -127,8 +127,25 @@ import {
   STUDY_PACK_TYPES,
   YEAR_NUMBERS,
 } from '@/types/api';
+import type { BulkQuestionImportResult } from '@/types/question-import';
 
 // Authentication Services
+/**
+ * Items of a list reply: a raw page `{ items }`, a keyed object `{ [key]: [...] }` (possibly
+ * nested under `data`), or a bare array.
+ */
+function listFromPage<T = any>(body: any, key: string): T[] {
+  const candidates = [body, body?.data, body?.data?.data];
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) return candidate;
+    if (candidate && typeof candidate === 'object') {
+      if (Array.isArray(candidate.items)) return candidate.items;
+      if (Array.isArray(candidate[key])) return candidate[key];
+    }
+  }
+  return [];
+}
+
 export class AuthService {
   /**
    * Register new user
@@ -142,17 +159,28 @@ export class AuthService {
   }
 
   /**
-   * Get universities list for settings
+   * Get universities list (public; registration, settings and admin pickers).
+   * GET /universities replies with a raw page `{ items, total, page, limit, totalPages }`
+   * (limit <= 100); older replies used `{ success, data: { universities } }`. Both are
+   * returned as `{ success, data: { universities } }`.
    */
   static async getUniversities(): Promise<ApiResponse<UniversitiesResponse>> {
-    return apiClient.get<UniversitiesResponse>('/Universities');
+    const response = normalizeApiResponse<any>(await apiClient.get<any>('/universities?limit=100'));
+    return {
+      ...response,
+      data: { universities: listFromPage(response.data, 'universities') },
+    };
   }
 
   /**
-   * Get specialties list for settings
+   * Get specialties list (public). Same page shape as universities.
    */
   static async getSpecialties(): Promise<ApiResponse<SpecialtiesResponse>> {
-    return apiClient.get<SpecialtiesResponse>('/Specialties');
+    const response = normalizeApiResponse<any>(await apiClient.get<any>('/specialties?limit=100'));
+    return {
+      ...response,
+      data: { specialties: listFromPage(response.data, 'specialties') },
+    };
   }
 
   /**
@@ -2539,6 +2567,7 @@ export class AdminService {
     if (params.rotation) queryParams.append('rotation', params.rotation);
     if (params.sourceId) queryParams.append('sourceId', params.sourceId.toString());
     if (params.isActive !== undefined) queryParams.append('isActive', params.isActive.toString());
+    if (params.isPublished !== undefined) queryParams.append('isPublished', params.isPublished.toString());
     if (params.search) queryParams.append('search', params.search);
 
     const url = queryParams.toString() ? `/admin/questions?${queryParams.toString()}` : '/admin/questions';
@@ -2581,22 +2610,9 @@ export class AdminService {
         explanation?: string;
       }>;
     }>;
-  }): Promise<ApiResponse<{
-    questions: Array<{
-      id: number;
-      questionText: string;
-      questionType: string;
-    }>;
-    totalCreated: number;
-  }>> {
-    return apiClient.post<{
-      questions: Array<{
-        id: number;
-        questionText: string;
-        questionType: string;
-      }>;
-      totalCreated: number;
-    }>('/admin/questions/bulk', bulkData);
+  }): Promise<ApiResponse<BulkQuestionImportResult>> {
+    // Reply: { created, totalCreated, failed, questionIds, errors }
+    return apiClient.post<BulkQuestionImportResult>('/admin/questions/bulk', bulkData);
   }
 
   /**
@@ -3244,8 +3260,8 @@ export class AdminContentService {
     if (!studyPackData.name || typeof studyPackData.name !== 'string') {
       throw new Error('Name is required and must be a string');
     }
-    if (!studyPackData.description || typeof studyPackData.description !== 'string') {
-      throw new Error('Description is required and must be a string');
+    if (studyPackData.description !== undefined && typeof studyPackData.description !== 'string') {
+      throw new Error('Description must be a string when provided');
     }
     if (!studyPackData.type || !STUDY_PACK_TYPES.includes(studyPackData.type)) {
       throw new Error(`Type is required and must be one of: ${STUDY_PACK_TYPES.join(', ')}`);
@@ -3257,11 +3273,12 @@ export class AdminContentService {
     if (studyPackData.yearNumber !== undefined && !YEAR_NUMBERS.includes(studyPackData.yearNumber)) {
       throw new Error(`YearNumber must be one of: ${YEAR_NUMBERS.join(', ')} when provided`);
     }
-    if (typeof studyPackData.pricePerMonth !== 'number' || studyPackData.pricePerMonth <= 0) {
-      throw new Error('PricePerMonth is required and must be a positive number');
+    // Free packs are allowed: prices only need to be non-negative
+    if (typeof studyPackData.pricePerMonth !== 'number' || !(studyPackData.pricePerMonth >= 0)) {
+      throw new Error('PricePerMonth is required and cannot be negative');
     }
-    if (typeof studyPackData.pricePerYear !== 'number' || studyPackData.pricePerYear <= 0) {
-      throw new Error('PricePerYear is required and must be a positive number');
+    if (studyPackData.pricePerYear !== undefined && (typeof studyPackData.pricePerYear !== 'number' || !(studyPackData.pricePerYear >= 0))) {
+      throw new Error('PricePerYear cannot be negative');
     }
 
     return apiClient.post<StudyPackResponse['data']>('/admin/study-packs', studyPackData);
@@ -3290,11 +3307,11 @@ export class AdminContentService {
     if (studyPackData.yearNumber !== undefined && !YEAR_NUMBERS.includes(studyPackData.yearNumber)) {
       throw new Error(`YearNumber must be one of: ${YEAR_NUMBERS.join(', ')} when provided`);
     }
-    if (studyPackData.pricePerMonth !== undefined && (typeof studyPackData.pricePerMonth !== 'number' || studyPackData.pricePerMonth <= 0)) {
-      throw new Error('PricePerMonth must be a positive number when provided');
+    if (studyPackData.pricePerMonth !== undefined && (typeof studyPackData.pricePerMonth !== 'number' || !(studyPackData.pricePerMonth >= 0))) {
+      throw new Error('PricePerMonth cannot be negative');
     }
-    if (studyPackData.pricePerYear !== undefined && (typeof studyPackData.pricePerYear !== 'number' || studyPackData.pricePerYear <= 0)) {
-      throw new Error('PricePerYear must be a positive number when provided');
+    if (studyPackData.pricePerYear !== undefined && (typeof studyPackData.pricePerYear !== 'number' || !(studyPackData.pricePerYear >= 0))) {
+      throw new Error('PricePerYear cannot be negative');
     }
     if (studyPackData.isActive !== undefined && typeof studyPackData.isActive !== 'boolean') {
       throw new Error('IsActive must be a boolean when provided');
@@ -3321,7 +3338,7 @@ export class AdminContentService {
    */
   static async createUnit(unitData: {
     name: string;
-    description: string;
+    description?: string;
     studyPackId: number;
     logoUrl?: string;
   }): Promise<ApiResponse<{
@@ -3390,7 +3407,7 @@ export class AdminContentService {
    */
   static async createModule(moduleData: {
     name: string;
-    description: string;
+    description?: string;
     uniteId: number;
   }): Promise<ApiResponse<{
     message: string;
@@ -3419,6 +3436,7 @@ export class AdminContentService {
     name: string;
     description: string;
     uniteId: number;
+    imagePath: string | null;
   }>): Promise<ApiResponse<{
     message: string;
     module: StudyPackModule & {
@@ -3458,7 +3476,7 @@ export class AdminContentService {
    */
   static async createIndependentModule(moduleData: {
     name: string;
-    description: string;
+    description?: string;
     studyPackId: number;
   }): Promise<ApiResponse<{
     message: string;
@@ -3538,18 +3556,7 @@ export class AdminContentService {
       throw new Error('The unit study pack is unknown, so its image cannot be updated.');
     }
 
-    let logoUrl: string | undefined;
-    if (params.logo) {
-      const formData = new FormData();
-      formData.append('logo', params.logo);
-      const uploaded: any = await apiClient.post<any>('/admin/upload/logo', formData);
-      const uploadedFiles: any[] = uploaded?.uploadedFiles ?? uploaded?.data?.uploadedFiles ?? [];
-      const url: string | undefined = uploadedFiles[0]?.url;
-      if (!url) {
-        throw new Error('Logo upload returned no file URL');
-      }
-      logoUrl = /^https?:\/\//i.test(url) ? url : `${API_ORIGIN}${url.startsWith('/') ? '' : '/'}${url}`;
-    }
+    const logoUrl = params.logo ? await AdminContentService.uploadLogoFile(params.logo) : undefined;
 
     const payload: any = {
       studyPackId: params.studyPackId,
@@ -3564,13 +3571,28 @@ export class AdminContentService {
   }
 
   /**
-   * Update a module's logo.
-   *
-   * Not supported by the API: PUT /admin/content/modules/:id only parses JSON, its schema
-   * (createModuleSchema) has no logo/image field and the service only updates the name.
-   * Fail clearly instead of sending a request that cannot store the image.
+   * Upload a logo through POST /admin/upload/logo (multipart field `logo`, raw
+   * `{ uploadedFiles: [{ url }] }` reply) and return its absolute media URL.
    */
-  static async updateModuleLogo(_params: {
+  private static async uploadLogoFile(logo: File): Promise<string> {
+    const formData = new FormData();
+    formData.append('logo', logo);
+    const uploaded: any = await apiClient.post<any>('/admin/upload/logo', formData);
+    const uploadedFiles: any[] = uploaded?.uploadedFiles ?? uploaded?.data?.uploadedFiles ?? [];
+    const url: string | undefined = uploadedFiles[0]?.url;
+    if (!url) {
+      throw new Error('Logo upload returned no file URL');
+    }
+    return /^https?:\/\//i.test(url) ? url : `${API_ORIGIN}${url.startsWith('/') ? '' : '/'}${url}`;
+  }
+
+  /**
+   * Update a module's logo: upload the file (POST /admin/upload/logo), then store its URL with
+   * PUT /admin/content/modules/:id { name, imagePath } (the route's schema requires the name).
+   * The module route replies with a raw object, wrapped here so callers can check `success`
+   * and read `data.imagePath` / `data.logoUrl`.
+   */
+  static async updateModuleLogo(params: {
     moduleId: number;
     name: string;
     description?: string;
@@ -3578,7 +3600,20 @@ export class AdminContentService {
     studyPackId?: number;
     logo?: File;
   }): Promise<ApiResponse<any>> {
-    throw new Error('Module images are not supported by the API yet.');
+    if (!params.logo) {
+      throw new Error('Please select an image');
+    }
+    const imagePath = await AdminContentService.uploadLogoFile(params.logo);
+
+    const payload: any = {
+      name: params.name,
+      imagePath,
+      ...(params.uniteId ? { uniteId: params.uniteId } : {}),
+    };
+
+    return normalizeApiResponse<any>(
+      await apiClient.put<any>(`/admin/content/modules/${params.moduleId}`, payload)
+    );
   }
 
 
@@ -3589,7 +3624,7 @@ export class AdminContentService {
    */
   static async createCourse(courseData: {
     name: string;
-    description: string;
+    description?: string;
     moduleId: number;
   }): Promise<ApiResponse<{
     message: string;
@@ -4164,7 +4199,7 @@ export class UniversityService {
   static async createUniversity(universityData: {
     name: string;
     country: string;
-    city: string;
+    city?: string;
   }): Promise<ApiResponse<{
     message: string;
     university: {
@@ -4349,22 +4384,9 @@ export class UniversityService {
         explanation?: string;
       }>;
     }>;
-  }): Promise<ApiResponse<{
-    questions: Array<{
-      id: number;
-      questionText: string;
-      questionType: string;
-    }>;
-    totalCreated: number;
-  }>> {
-    return apiClient.post<{
-      questions: Array<{
-        id: number;
-        questionText: string;
-        questionType: string;
-      }>;
-      totalCreated: number;
-    }>('/admin/questions/bulk', payload);
+  }): Promise<ApiResponse<BulkQuestionImportResult>> {
+    // Reply: { created, totalCreated, failed, questionIds, errors }
+    return apiClient.post<BulkQuestionImportResult>('/admin/questions/bulk', payload);
   }
 
   // ==================== UNIVERSITY MANAGEMENT ====================

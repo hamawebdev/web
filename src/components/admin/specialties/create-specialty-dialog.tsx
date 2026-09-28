@@ -25,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Specialty } from '@/types/api';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 // Validation schema for specialty creation
 const createSpecialtySchema = z.object({
@@ -71,7 +72,7 @@ export function CreateSpecialtyDialog({
       form.reset();
       onClose();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create specialty';
+      const errorMessage = getApiErrorMessage(error, 'Failed to create specialty');
       console.error('❌ Create specialty error:', error);
       setError(errorMessage);
     } finally {

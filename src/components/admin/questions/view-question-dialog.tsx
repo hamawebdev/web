@@ -15,6 +15,7 @@ import { Separator } from '@/components/ui/separator';
 import { Eye, CheckCircle, XCircle, FileText, Calendar, School, BookOpen } from 'lucide-react';
 import { AdminQuestion } from '@/types/api';
 import { resolveImagePath } from '@/lib/image-loader';
+import { SafeMarkdown } from '@/components/ui/safe-markdown';
 
 interface ViewQuestionDialogProps {
   question: AdminQuestion;
@@ -106,9 +107,9 @@ export function ViewQuestionDialog({
               <CardTitle className="text-base">Question</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                {question.questionText}
-              </p>
+              <div className="text-sm leading-relaxed break-words">
+                <SafeMarkdown>{question.questionText}</SafeMarkdown>
+              </div>
             </CardContent>
           </Card>
 
@@ -173,14 +174,15 @@ export function ViewQuestionDialog({
                             </Badge>
                           )}
                         </div>
-                        <p className="text-sm leading-relaxed">
-                          {answer.answerText}
-                        </p>
+                        <div className="text-sm leading-relaxed break-words">
+                          <SafeMarkdown inline>{answer.answerText}</SafeMarkdown>
+                        </div>
                         {answer.explanation && (
                           <div className="pt-2 border-t border-gray-200">
-                            <p className="text-xs text-muted-foreground">
-                              <strong>Explanation:</strong> {answer.explanation}
-                            </p>
+                            <div className="text-xs text-muted-foreground break-words">
+                              <strong>Explanation:</strong>{' '}
+                              <SafeMarkdown inline>{answer.explanation}</SafeMarkdown>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -201,9 +203,9 @@ export function ViewQuestionDialog({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                  {question.explanation}
-                </p>
+                <div className="text-sm leading-relaxed break-words">
+                  <SafeMarkdown>{question.explanation}</SafeMarkdown>
+                </div>
               </CardContent>
             </Card>
           )}

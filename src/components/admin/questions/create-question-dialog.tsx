@@ -26,6 +26,7 @@ import { Loader2, AlertCircle, Plus, Trash2, Check } from 'lucide-react';
 import { CreateQuestionRequest, QuestionCreationUnit, QuestionCreationModule, QuestionCreationCourse } from '@/types/api';
 import { AdminService } from '@/lib/api-services';
 import { Switch } from '@/components/ui/switch';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 interface CreateQuestionDialogProps {
   open: boolean;
@@ -66,6 +67,11 @@ export function CreateQuestionDialog({
   const [availableModules, setAvailableModules] = useState<QuestionCreationModule[]>([]);
   const [availableCourses, setAvailableCourses] = useState<QuestionCreationCourse[]>([]);
   const [examYears, setExamYears] = useState<number[]>([]);
+  // The API accepts exam years 2000-2100: offer 2000..next year plus any other year already used
+  const examYearOptions = Array.from(new Set([
+    ...Array.from({ length: new Date().getFullYear() + 2 - 2000 }, (_, i) => 2000 + i),
+    ...examYears.filter(year => Number.isInteger(year) && year >= 2000 && year <= 2100),
+  ])).sort((a, b) => b - a);
   const [questionTypes, setQuestionTypes] = useState<string[]>([]);
   const [loadingData, setLoadingData] = useState(false);
   const [loadingModules, setLoadingModules] = useState(false);
@@ -331,7 +337,7 @@ export function CreateQuestionDialog({
       await onCreateQuestion(questionData);
       resetForm();
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to create question');
+      setError(getApiErrorMessage(error, 'Failed to create question'));
     } finally {
       setLoading(false);
     }
@@ -540,11 +546,14 @@ export function CreateQuestionDialog({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Years</SelectItem>
-                      {studyPacks.map((pack) => (
-                        <SelectItem key={pack.id} value={pack.yearNumber}>
-                          {pack.name} ({pack.yearNumber})
-                        </SelectItem>
-                      ))}
+                      {/* Residency packs have no year number; one entry per year */}
+                      {studyPacks
+                        .filter((pack, index, all) => pack.yearNumber && all.findIndex(p => p.yearNumber === pack.yearNumber) === index)
+                        .map((pack) => (
+                          <SelectItem key={pack.id} value={pack.yearNumber}>
+                            {pack.name} ({pack.yearNumber})
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -563,7 +572,7 @@ export function CreateQuestionDialog({
                       <SelectValue placeholder="Select exam year" />
                     </SelectTrigger>
                     <SelectContent>
-                      {examYears.map((year) => (
+                      {examYearOptions.map((year) => (
                         <SelectItem key={year} value={year.toString()}>
                           {year}
                         </SelectItem>

@@ -25,6 +25,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Plus, X, Upload, AlertCircle, BookOpen, Calendar, GraduationCap, RefreshCw } from 'lucide-react';
 import { CreateQuestionRequest } from '@/types/api';
 import { useQuestionSources } from '@/hooks/admin/use-question-sources';
+import { getApiErrorMessage } from '@/lib/api-error';
+
+// POST /admin/questions accepts exam years 2000-2100
+const EXAM_YEAR_MIN = 2000;
+const EXAM_YEAR_MAX = 2100;
 
 interface CourseSpecificQuestionDialogProps {
   open: boolean;
@@ -67,11 +72,8 @@ export function CourseSpecificQuestionDialog({
     explanation: '',
     questionType: '' as 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | '',
     yearLevel: '' as 'ONE' | 'TWO' | 'THREE' | 'FOUR' | 'FIVE' | 'SIX' | 'SEVEN' | '',
-    rotation: '' as 'R1' | 'R2' | 'R3' | 'R4' | '',
     examYear: undefined as number | undefined,
     sourceId: undefined as number | undefined,
-    universityId: undefined as number | undefined,
-    additionalInfo: '',
   });
 
   const [answers, setAnswers] = useState<Answer[]>([
@@ -86,11 +88,8 @@ export function CourseSpecificQuestionDialog({
       explanation: '',
       questionType: '',
       yearLevel: '',
-      rotation: '',
       examYear: undefined,
       sourceId: undefined,
-      universityId: undefined,
-      additionalInfo: '',
     });
     setAnswers([
       { answerText: '', isCorrect: false, explanation: '' },
@@ -132,15 +131,14 @@ export function CourseSpecificQuestionDialog({
       return;
     }
 
-    // Rotation is now optional - no validation needed
-
     if (!formData.examYear) {
       setError('Please enter an exam year');
       return;
     }
 
-    if (formData.examYear <= 1900 || formData.examYear > new Date().getFullYear()) {
-      setError(`Exam year must be between 1900 and ${new Date().getFullYear()}`);
+    // Same range as the API (POST /admin/questions: examYear 2000-2100)
+    if (formData.examYear < EXAM_YEAR_MIN || formData.examYear > EXAM_YEAR_MAX) {
+      setError(`Exam year must be between ${EXAM_YEAR_MIN} and ${EXAM_YEAR_MAX}`);
       return;
     }
 
@@ -175,12 +173,11 @@ export function CourseSpecificQuestionDialog({
         explanation: formData.explanation || undefined,
         questionType: formData.questionType,
         courseId: courseId, // Auto-populated from props
-        universityId: universityId || formData.universityId || 1, // Use passed universityId, fallback to form or default
+        // Only the university selected in the content tree; none is sent otherwise
+        ...(universityId ? { universityId } : {}),
         yearLevel: formData.yearLevel as 'ONE' | 'TWO' | 'THREE' | 'FOUR' | 'FIVE' | 'SIX' | 'SEVEN',
-        rotation: formData.rotation || undefined,
         examYear: formData.examYear,
         sourceId: formData.sourceId,
-        additionalInfo: formData.additionalInfo || undefined,
         answers: validAnswers.map(answer => ({
           answerText: answer.answerText,
           isCorrect: answer.isCorrect,
@@ -191,7 +188,7 @@ export function CourseSpecificQuestionDialog({
       await onCreateQuestion(questionData);
       resetForm();
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to create question');
+      setError(getApiErrorMessage(error, 'Failed to create question'));
     } finally {
       setLoading(false);
     }
@@ -276,7 +273,7 @@ export function CourseSpecificQuestionDialog({
           {/* Required Metadata Fields */}
           <div className="grid gap-4 md:grid-cols-2">
             {/* Year Level */}
-            <div className="space-y-2">
+            <div className="space-y-2 md:col-span-2">
               <Label>Year Level *</Label>
               <Select
                 value={formData.yearLevel}
@@ -300,28 +297,6 @@ export function CourseSpecificQuestionDialog({
               </Select>
             </div>
 
-            {/* Rotation */}
-            <div className="space-y-2">
-              <Label>Rotation</Label>
-              <Select
-                value={formData.rotation}
-                onValueChange={(value: 'R1' | 'R2' | 'R3' | 'R4' | '') =>
-                  setFormData(prev => ({ ...prev, rotation: value }))
-                }
-                disabled={loading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select rotation (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">None</SelectItem>
-                  <SelectItem value="R1">R1</SelectItem>
-                  <SelectItem value="R2">R2</SelectItem>
-                  <SelectItem value="R3">R3</SelectItem>
-                  <SelectItem value="R4">R4</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -330,8 +305,8 @@ export function CourseSpecificQuestionDialog({
               <Label>Exam Year *</Label>
               <Input
                 type="number"
-                min="1900"
-                max={new Date().getFullYear()}
+                min={EXAM_YEAR_MIN}
+                max={EXAM_YEAR_MAX}
                 placeholder="e.g., 2024"
                 value={formData.examYear || ''}
                 onChange={(e) => setFormData(prev => ({
@@ -383,22 +358,6 @@ export function CourseSpecificQuestionDialog({
               disabled={loading}
               rows={2}
             />
-          </div>
-
-          {/* Optional Fields */}
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="additionalInfo">Additional Information</Label>
-              <Textarea
-                id="additionalInfo"
-                placeholder="Any additional information about the question..."
-                value={formData.additionalInfo}
-                onChange={(e) => setFormData(prev => ({ ...prev, additionalInfo: e.target.value }))}
-                disabled={loading}
-                rows={2}
-              />
-            </div>
-
           </div>
 
 

@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import { ModuleBooksService } from '@/lib/api/module-books-service'
 import { toast } from 'sonner'
+import { getApiErrorMessage } from '@/lib/api-error'
 
 interface AddBookModalProps {
     open: boolean
@@ -176,7 +177,7 @@ export function AddBookModal({
             }
         } catch (error) {
             console.error('Error adding book:', error)
-            toast.error('Failed to add book')
+            toast.error(getApiErrorMessage(error, 'Failed to add book'))
         } finally {
             setLoading(false)
         }

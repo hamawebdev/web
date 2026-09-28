@@ -24,6 +24,7 @@ import {
   FileImage
 } from 'lucide-react';
 import { AdminQuestion } from '@/types/api';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 interface UpdateQuestionImagesDialogProps {
   question: AdminQuestion;
@@ -263,7 +264,7 @@ export function UpdateQuestionImagesDialog({
       // Reset form on success
       resetForm();
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to update images');
+      setError(getApiErrorMessage(error, 'Failed to update images'));
     }
   };
 

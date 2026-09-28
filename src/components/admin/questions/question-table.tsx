@@ -45,6 +45,7 @@ import {
 import { toast } from 'sonner';
 import { AdminQuestion, UpdateQuestionRequest } from '@/types/api';
 import { AdminService } from '@/lib/api-services';
+import { toPlainText } from '@/lib/question-localization';
 import { EditQuestionDialog } from './edit-question-dialog';
 import { ViewQuestionDialog } from './view-question-dialog';
 import { UpdateExplanationDialog } from './update-explanation-dialog';
@@ -91,15 +92,6 @@ export function QuestionTable({
     }
   };
 
-  const getStatusBadgeVariant = (isActive: boolean) => {
-    return isActive ? 'default' : 'secondary';
-  };
-
-  const truncateText = (text: string, maxLength: number = 100) => {
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
-  };
-
   // The list endpoint (GET /admin/questions) returns no answers or explanation,
   // so load the full question (answers with their ids) before opening a dialog.
   const openWithDetails = async (
@@ -116,6 +108,7 @@ export function QuestionTable({
       open({
         ...question,
         explanation: full.explanation ?? question.explanation,
+        isPublished: full.isPublished ?? question.isPublished,
         answers: full.answers,
         questionImages: full.images ?? question.questionImages,
       });
@@ -223,7 +216,7 @@ export function QuestionTable({
                 <TableCell className="min-w-[300px]">
                   <div className="space-y-1">
                     <div className="font-medium text-sm">
-                      {truncateText(question.questionText, 80)}
+                      {toPlainText(question.questionText, 80)}
                     </div>
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       {/* Mobile-visible info */}
@@ -231,9 +224,11 @@ export function QuestionTable({
                         <Badge variant={getQuestionTypeBadgeVariant(question.questionType)} className="text-xs">
                           {question.questionType === 'SINGLE_CHOICE' ? 'Single' : 'Multiple'}
                         </Badge>
-                        <Badge variant={getStatusBadgeVariant(question.isActive)} className="text-xs">
-                          {question.isActive ? 'Active' : 'Inactive'}
-                        </Badge>
+                        {question.isPublished === false && (
+                          <Badge variant="destructive" className="text-xs">
+                            Unpublished
+                          </Badge>
+                        )}
                       </div>
                       {/* Icons and metadata */}
                       <div className="flex items-center gap-3">
@@ -305,9 +300,12 @@ export function QuestionTable({
                   </div>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
-                  <Badge variant={getStatusBadgeVariant(question.isActive)}>
-                    {question.isActive ? 'Active' : 'Inactive'}
-                  </Badge>
+                  {/* GET /admin/questions returns isPublished; false = hidden from students */}
+                  {question.isPublished === false ? (
+                    <Badge variant="destructive">Unpublished</Badge>
+                  ) : (
+                    <Badge variant="default">Published</Badge>
+                  )}
                 </TableCell>
                 <TableCell className="hidden lg:table-cell">
                   <div className="text-sm">

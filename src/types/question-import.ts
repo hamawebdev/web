@@ -148,16 +148,33 @@ export interface BulkQuestionImportPayload {
   questions: ImportQuestion[];
 }
 
+/**
+ * POST /admin/questions/bulk result: `created` (also sent as `totalCreated`), `failed`, the new
+ * ids in input order (null for a failed entry) and per-entry errors.
+ */
+export interface BulkQuestionImportResult {
+  created?: number;
+  totalCreated?: number;
+  failed?: number;
+  questionIds?: Array<number | null>;
+  errors?: Array<{ index: number; error: string }>;
+  questions?: Array<{
+    id: number;
+    questionText: string;
+    questionType: string;
+  }>;
+}
+
 export interface BulkQuestionImportResponse {
   success: true;
-  data: {
-    questions: Array<{
-      id: number;
-      questionText: string;
-      questionType: string;
-    }>;
-    totalCreated: number;
-  };
+  data: BulkQuestionImportResult;
+}
+
+/** Number of questions a bulk import created, whichever count field the API sent. */
+export function bulkImportCreatedCount(result: BulkQuestionImportResult | null | undefined): number {
+  if (!result) return 0;
+  const count = result.created ?? result.totalCreated ?? result.questions?.length;
+  return typeof count === 'number' && Number.isFinite(count) ? count : 0;
 }
 
 // Progressive selection state interfaces
@@ -276,14 +293,7 @@ export interface BulkImportRequest {
 export interface BulkImportResponse {
   fileId: string;
   success: boolean;
-  data?: {
-    questions: Array<{
-      id: number;
-      questionText: string;
-      questionType: string;
-    }>;
-    totalCreated: number;
-  };
+  data?: BulkQuestionImportResult;
   error?: string;
 }
 

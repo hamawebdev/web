@@ -20,9 +20,18 @@ import {
 import { cn } from '@/lib/utils';
 import { ImageGallery } from '@/components/student/quiz/image-gallery';
 import { resolveImagePath } from '@/lib/image-loader';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeRaw from 'rehype-raw';
+import { SafeMarkdown } from '@/components/ui/safe-markdown';
+import { localizeQuestion, toPlainText } from '@/lib/question-localization';
+import { useQuestionLanguage } from '@/components/student/quiz/question-language-provider';
+import { QuestionLanguageToggle, EnglishUnavailableBadge } from '@/components/student/quiz/question-language-toggle';
+
+// Stable overrides for SafeMarkdown (kept outside render so memoization holds)
+const EXPLANATION_COMPONENTS = {
+  p: ({ node: _node, className, children, ...props }) => <p {...props} className={cn('mb-2 last:mb-0 leading-relaxed text-sm', className)}>{children}</p>,
+  ul: ({ node: _node, className, children, ...props }) => <ul {...props} className={cn('list-disc ml-4 mb-2', className)}>{children}</ul>,
+  ol: ({ node: _node, className, children, ...props }) => <ol {...props} className={cn('list-decimal ml-4 mb-2', className)}>{children}</ol>,
+  li: ({ node: _node, className, children, ...props }) => <li {...props} className={cn('mb-1', className)}>{children}</li>,
+};
 
 export default function SessionReviewPage() {
   const params = useParams();
@@ -30,6 +39,7 @@ export default function SessionReviewPage() {
   const sessionId = parseInt(params.sessionId as string);
 
   const { session: apiSession, loading, error } = useQuizSession(sessionId);
+  const { language } = useQuestionLanguage();
 
   const [reviewData, setReviewData] = useState<any>(null);
 
@@ -115,7 +125,7 @@ export default function SessionReviewPage() {
         <div className="container mx-auto px-4 py-8 max-w-4xl space-y-6">
 
           {/* Header */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <Button
               variant="ghost"
               onClick={() => router.push(`/session/${sessionId}/results`)}
@@ -125,17 +135,28 @@ export default function SessionReviewPage() {
               Back to Results
             </Button>
 
-            <div className="text-right">
-              <h1 className="text-2xl font-bold">Session Review</h1>
-              <p className="text-muted-foreground">{reviewData.title}</p>
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="text-right min-w-0">
+                <h1 className="text-2xl font-bold">Session Review</h1>
+                <p className="text-muted-foreground break-words">{reviewData.title}</p>
+              </div>
+              <QuestionLanguageToggle />
             </div>
           </div>
 
           {/* Questions */}
           <div className="space-y-6">
-            {reviewData.questions.map((question: any) => {
+            {reviewData.questions.map((rawQuestion: any) => {
+              // Texts in the selected language; answer ids are kept, so selections still match
+              const localized = localizeQuestion(rawQuestion, language);
+              const question = {
+                ...rawQuestion,
+                questionText: localized.questionText,
+                explanation: localized.explanation,
+                answers: localized.answers,
+              };
               return (
-                <Card key={question.id} className="overflow-hidden">
+                <Card key={question.id} lang={localized.displayedLanguage} className="overflow-hidden">
                   <CardHeader className="pb-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
@@ -148,8 +169,11 @@ export default function SessionReviewPage() {
                             <Badge variant="secondary">Multiple Choice</Badge>
                           )}
                         </div>
-                        <CardTitle className="text-lg leading-relaxed">
-                          {question.questionText || question.text || question.content}
+                        {language === 'en' && !localized.hasEnglish && (
+                          <EnglishUnavailableBadge className="mb-2" />
+                        )}
+                        <CardTitle className="text-lg leading-relaxed break-words">
+                          <SafeMarkdown inline>{question.questionText || question.text || question.content}</SafeMarkdown>
                         </CardTitle>
                       </div>
 
@@ -221,10 +245,10 @@ export default function SessionReviewPage() {
                             </div>
 
                             {/* Answer Text */}
-                            <div className="flex-1">
-                              <p className="text-sm leading-relaxed">
-                                {answer.answerText || answer.text}
-                              </p>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm leading-relaxed break-words">
+                                <SafeMarkdown inline>{answer.answerText || answer.text}</SafeMarkdown>
+                              </div>
 
                               {/* Status Labels */}
                               <div className="flex gap-2 mt-2">
@@ -253,25 +277,13 @@ export default function SessionReviewPage() {
 
                     {/* Explanation Section */}
                     {question.explanation && (
-                      <div className="space-y-3 pt-4 border-t">
+                      <div lang={localized.explanationLanguage} className="space-y-3 pt-4 border-t">
                         <div className="flex items-center gap-2">
                           <BookOpen className="h-4 w-4 text-primary" />
                           <h4 className="text-sm font-medium text-primary">Explanation</h4>
                         </div>
                         <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 prose prose-sm max-w-none text-foreground prose-p:text-foreground prose-strong:text-foreground prose-headings:text-foreground">
-                          <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
-                            rehypePlugins={[rehypeRaw]}
-                            components={{
-                              p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed text-sm">{children}</p>,
-                              a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{children}</a>,
-                              ul: ({ children }) => <ul className="list-disc ml-4 mb-2">{children}</ul>,
-                              ol: ({ children }) => <ol className="list-decimal ml-4 mb-2">{children}</ol>,
-                              li: ({ children }) => <li className="mb-1">{children}</li>,
-                            }}
-                          >
-                            {question.explanation || ''}
-                          </ReactMarkdown>
+                          <SafeMarkdown components={EXPLANATION_COMPONENTS}>{question.explanation || ''}</SafeMarkdown>
                         </div>
                       </div>
                     )}
@@ -302,8 +314,8 @@ export default function SessionReviewPage() {
                         <div className="space-y-4">
                           {question.answers.filter((answer: any) => answer.explanationImages && answer.explanationImages.length > 0).map((answer: any) => (
                             <div key={answer.id} className="space-y-2">
-                              <p className="text-xs font-medium text-muted-foreground">
-                                For answer: "{answer.answerText || answer.text}"
+                              <p className="text-xs font-medium text-muted-foreground break-words">
+                                For answer: "{toPlainText(answer.answerText || answer.text)}"
                               </p>
                               <ImageGallery
                                 images={answer.explanationImages.map((img: any, idx: number) => ({
@@ -311,7 +323,7 @@ export default function SessionReviewPage() {
                                   imagePath: resolveImagePath(img.imagePath || img.url),
                                   altText: img.altText || `Answer explanation image ${idx + 1}`
                                 }))}
-                                title={`Answer Explanation Images for: "${answer.answerText || answer.text}"`}
+                                title={`Answer Explanation Images for: "${toPlainText(answer.answerText || answer.text)}"`}
                                 maxHeight="max-h-64"
                                 gridCols="auto"
                                 showZoom={true}

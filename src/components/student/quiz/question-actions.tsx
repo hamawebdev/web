@@ -28,6 +28,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label as UILabel } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { toPlainText } from '@/lib/question-localization';
 import { useQuiz } from './quiz-api-context';
 import { QuestionReportDialog } from '@/components/student/session-analysis/question-report-dialog';
 import { useLabels } from '@/hooks/use-student-organization';
@@ -107,7 +108,7 @@ export function QuestionActions({ onEditNote }: QuestionActionsProps) {
         {/* Report Question */}
         <QuestionReportDialog
           questionId={parseInt(currentQuestion.id)}
-          questionText={currentQuestion.title || currentQuestion.content || currentQuestion.questionText || `Question ${currentQuestion.id}`}
+          questionText={toPlainText(currentQuestion.title || currentQuestion.content || currentQuestion.questionText) || `Question ${currentQuestion.id}`}
           questionType={currentQuestion.type}
           onReportSubmitted={() => flagQuestion(currentQuestion.id, 'report_error')}
         >

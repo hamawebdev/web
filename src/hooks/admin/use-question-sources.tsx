@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AdminService } from '@/lib/api-services';
 import { QuestionSource } from '@/types/api';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 interface UseQuestionSourcesState {
   questionSources: QuestionSource[];
@@ -43,7 +44,7 @@ export function useQuestionSources() {
         throw new Error(response.error?.toString() || 'Failed to fetch question sources');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch question sources';
+      const errorMessage = getApiErrorMessage(error, 'Failed to fetch question sources');
       console.error('❌ Error fetching question sources:', error);
 
       setState(prev => ({

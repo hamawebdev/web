@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { UniversityService } from '@/lib/api-services';
 import { Specialty, PaginationParams } from '@/types/api';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 // Interface for specialty management state
 interface SpecialtyManagementState {
@@ -71,7 +72,7 @@ export function useSpecialtyManagement() {
         throw new Error(response.error || 'Failed to fetch specialties');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch specialties';
+      const errorMessage = getApiErrorMessage(error, 'Failed to fetch specialties');
 
       console.error('❌ Specialty fetch error:', error);
 
@@ -115,7 +116,7 @@ export function useSpecialtyManagement() {
         throw new Error(response.error || 'Failed to create specialty');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create specialty';
+      const errorMessage = getApiErrorMessage(error, 'Failed to create specialty');
       
       console.error('❌ Create specialty error:', error);
       
@@ -151,7 +152,7 @@ export function useSpecialtyManagement() {
         throw new Error(response.error || 'Failed to update specialty');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update specialty';
+      const errorMessage = getApiErrorMessage(error, 'Failed to update specialty');
       
       console.error('❌ Update specialty error:', error);
       
@@ -185,7 +186,7 @@ export function useSpecialtyManagement() {
         throw new Error(response.error || 'Failed to delete specialty');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete specialty';
+      const errorMessage = getApiErrorMessage(error, 'Failed to delete specialty');
       
       console.error('❌ Delete specialty error:', error);
       

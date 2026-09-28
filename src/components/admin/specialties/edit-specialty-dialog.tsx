@@ -25,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Specialty } from '@/types/api';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 // Validation schema for specialty editing
 const editSpecialtySchema = z.object({
@@ -94,7 +95,7 @@ export function EditSpecialtyDialog({
       // Close dialog on success
       onClose();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update specialty';
+      const errorMessage = getApiErrorMessage(error, 'Failed to update specialty');
       console.error('❌ Update specialty error:', error);
       setError(errorMessage);
     } finally {

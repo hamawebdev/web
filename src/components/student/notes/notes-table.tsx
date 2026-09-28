@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { MoreHorizontal, Eye, Pencil, Trash2, ArrowUpDown } from 'lucide-react';
 import { StudentNote } from '@/types/notes';
+import { toPlainText } from '@/lib/question-localization';
 import { formatDistanceToNow } from 'date-fns';
 import { LoadingSpinner } from '@/components/loading-states';
 
@@ -86,7 +87,7 @@ export function NotesTable({
                         <TableRow key={note.id} className="group cursor-pointer hover:bg-muted/50" onClick={() => onEdit(note)}>
                             <TableCell className="font-medium align-top">
                                 <div className="line-clamp-2 text-sm">
-                                    {note.question?.questionText || 'No question text'}
+                                    {toPlainText(note.question?.questionText) || 'No question text'}
                                 </div>
                                 <div className="mt-1 flex flex-wrap gap-1">
                                     {note.labels.map(label => (

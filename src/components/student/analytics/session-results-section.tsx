@@ -31,6 +31,7 @@ import {
   BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toPlainText } from '@/lib/question-localization';
 import { SessionResultsParams, DetailedSessionResult } from '@/types/api';
 
 export function SessionResultsSection() {
@@ -321,7 +322,7 @@ export function SessionResultsSection() {
                               {getAnswerIcon(result.isCorrect, result.userAnswer)}
                               <div>
                                 <p className="font-medium text-sm line-clamp-2">
-                                  {result.questionText}
+                                  {toPlainText(result.questionText)}
                                 </p>
                                 <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
                                   <span>{result.subject}</span>

@@ -61,6 +61,8 @@ export interface ApiError {
   error: string;
   message?: string;
   statusCode?: number;
+  /** Backend validation details (e.g. { errors: [{ field, message }] }), when the API sent any */
+  details?: unknown;
 }
 
 /**
@@ -565,6 +567,7 @@ class ApiClient {
 
     let errorMessage = 'An unexpected error occurred';
     let statusCode = 500;
+    let details: unknown;
 
     // Log a sanitized summary only (the raw error carries the Authorization header)
     console.error('🔍 Request error:', summarizeRequestError(error));
@@ -586,6 +589,7 @@ class ApiClient {
     if (error.response) {
       statusCode = error.response.status;
       const responseData = error.response.data as any;
+      details = responseData?.error?.details ?? responseData?.details;
 
       // Log detailed info for 401 errors to help debug authentication issues
       if (statusCode === 401) {
@@ -677,6 +681,7 @@ class ApiClient {
       success: false,
       error: errorMessage,
       statusCode,
+      ...(details !== undefined ? { details } : {}),
     };
   }
 

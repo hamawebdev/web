@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { AdminService } from '@/lib/api-services';
 import { AdminQuestion, AdminQuestionFilters, PaginatedResponse, PaginationParams, CreateQuestionRequest, UpdateQuestionRequest } from '@/types/api';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 // Question management state interface
 interface QuestionManagementState {
@@ -39,6 +40,7 @@ export function useQuestionManagement() {
       rotation: undefined,
       sourceId: undefined,
       isActive: undefined,
+      isPublished: undefined,
     },
   });
 
@@ -109,7 +111,7 @@ export function useQuestionManagement() {
         throw new Error(response.error || 'Failed to fetch questions');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Impossible de charger les questions.';
+      const errorMessage = getApiErrorMessage(error, 'Impossible de charger les questions.');
       console.error('❌ Error fetching questions:', error);
       console.error('❌ Error details:', {
         message: error?.message,
@@ -161,6 +163,7 @@ export function useQuestionManagement() {
         rotation: undefined,
         sourceId: undefined,
         isActive: undefined,
+        isPublished: undefined,
       },
       currentPage: 1,
     }));
@@ -180,7 +183,7 @@ export function useQuestionManagement() {
         throw new Error(response.error || 'Failed to fetch question');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch question';
+      const errorMessage = getApiErrorMessage(error, 'Failed to fetch question');
       console.error('❌ Error fetching question:', error);
       
       toast.error('Error', {
@@ -213,7 +216,7 @@ export function useQuestionManagement() {
         throw new Error(response.error || 'Failed to create question');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create question';
+      const errorMessage = getApiErrorMessage(error, 'Failed to create question');
       console.error('❌ Error creating question:', error);
       
       toast.error('Error', {
@@ -246,7 +249,7 @@ export function useQuestionManagement() {
         throw new Error(response.error || 'Failed to update question');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update question';
+      const errorMessage = getApiErrorMessage(error, 'Failed to update question');
       console.error('❌ Error updating question:', error);
       
       toast.error('Error', {
@@ -279,7 +282,7 @@ export function useQuestionManagement() {
         throw new Error(response.error || 'Failed to delete question');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete question';
+      const errorMessage = getApiErrorMessage(error, 'Failed to delete question');
       console.error('❌ Error deleting question:', error);
       
       toast.error('Error', {
@@ -317,7 +320,7 @@ export function useQuestionManagement() {
         throw new Error(response.error || 'Failed to update question explanation');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update question explanation';
+      const errorMessage = getApiErrorMessage(error, 'Failed to update question explanation');
       console.error('❌ Error updating question explanation:', error);
       
       toast.error('Error', {
@@ -372,7 +375,7 @@ export function useQuestionManagement() {
         throw new Error(failedResponses.map(r => r.error).join(', ') || 'Failed to update some images');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update question images';
+      const errorMessage = getApiErrorMessage(error, 'Failed to update question images');
       console.error('❌ Error updating question images:', error);
 
       toast.error('Error', {

@@ -4,6 +4,7 @@ import {
   QuestionFiltersResponse,
   BulkQuestionImportPayload,
   BulkQuestionImportResponse,
+  bulkImportCreatedCount,
   HierarchyData,
   SelectionState,
   University,
@@ -17,6 +18,7 @@ import {
 } from '@/types/question-import';
 import { apiClient } from '@/lib/api-client';
 import { UniversityService } from '@/lib/api-services';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 // Extended StudyPack type with unites
 type ExtendedStudyPack = StudyPack & {
@@ -253,13 +255,7 @@ export function useQuestionImport() {
         progress: 10
       });
     } catch (error) {
-      let errorMessage = 'Failed to fetch hierarchy data';
-
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else if (typeof error === 'string') {
-        errorMessage = error;
-      }
+      const errorMessage = getApiErrorMessage(error, 'Failed to fetch hierarchy data');
 
       console.error('Filter fetch error:', error);
       toast.error(`Unable to load hierarchy data: ${errorMessage}`);
@@ -834,13 +830,19 @@ export function useQuestionImport() {
     });
 
     try {
+      // Questions are attached to the selected course; never guess one
+      if (!selection.course?.id) {
+        throw new Error('Select a course before importing questions');
+      }
+
       const payload: BulkQuestionImportPayload = {
         metadata: {
-          courseId: selection.course?.id || 1, // Default to course ID 1 if not selected
+          courseId: selection.course.id,
           universityId: selection.university?.id,
           examYear: additionalMetadata?.examYear || selection.examYear,
           sourceId: additionalMetadata?.sourceId,
-          rotation: additionalMetadata?.rotation
+          // Backend accepts R1-R4 and derives the year level from it; omit when unset
+          ...(additionalMetadata?.rotation ? { rotation: additionalMetadata.rotation } : {}),
         },
         questions: questions || []
       };
@@ -861,26 +863,32 @@ export function useQuestionImport() {
           success: true,
           data: response.data
         };
+        const created = bulkImportCreatedCount(response.data);
+        const failed = response.data?.failed ?? 0;
+        const summary = failed > 0
+          ? `Imported ${created} questions, ${failed} failed`
+          : `Successfully imported ${created} questions`;
 
         setProgress({
           step: 'completed',
-          message: `Successfully imported ${response.data.totalCreated} questions`,
+          message: summary,
           progress: 100
         });
 
-        toast.success("Questions imported successfully.");
+        if (failed > 0) {
+          const firstError = response.data?.errors?.[0];
+          toast.warning(summary, {
+            description: firstError ? `Question ${firstError.index + 1}: ${firstError.error}` : undefined,
+          });
+        } else {
+          toast.success(summary);
+        }
         return result;
       } else {
         throw new Error(response.error || 'Failed to import questions');
       }
     } catch (error) {
-      let errorMessage = 'Failed to import questions';
-
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else if (typeof error === 'string') {
-        errorMessage = error;
-      }
+      const errorMessage = getApiErrorMessage(error, 'Failed to import questions');
 
       console.error('Import error:', error);
 

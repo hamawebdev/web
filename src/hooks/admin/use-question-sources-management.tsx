@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { AdminService } from '@/lib/api-services';
 import { QuestionSource, QuestionSourceFilters, PaginationParams, CreateQuestionSourceRequest, UpdateQuestionSourceRequest } from '@/types/api';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 // Question sources filters interface
 export interface QuestionSourcesFilters extends QuestionSourceFilters {
@@ -76,7 +77,7 @@ export function useQuestionSourcesManagement() {
         throw new Error(response.error?.toString() || 'Failed to fetch question sources');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch question sources';
+      const errorMessage = getApiErrorMessage(error, 'Failed to fetch question sources');
       console.error('❌ Error fetching question sources:', error);
 
       setState(prev => ({
@@ -133,7 +134,7 @@ export function useQuestionSourcesManagement() {
         throw new Error(response.error?.toString() || 'Failed to create question source');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create question source';
+      const errorMessage = getApiErrorMessage(error, 'Failed to create question source');
       console.error('❌ Error creating question source:', error);
 
       toast.error('Error', {
@@ -161,7 +162,7 @@ export function useQuestionSourcesManagement() {
         throw new Error(response.error?.toString() || 'Failed to update question source');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update question source';
+      const errorMessage = getApiErrorMessage(error, 'Failed to update question source');
       console.error('❌ Error updating question source:', error);
 
       toast.error('Error', {
@@ -189,7 +190,7 @@ export function useQuestionSourcesManagement() {
         throw new Error(response.error?.toString() || 'Failed to delete question source');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete question source';
+      const errorMessage = getApiErrorMessage(error, 'Failed to delete question source');
       console.error('❌ Error deleting question source:', error);
 
       toast.error('Error', {

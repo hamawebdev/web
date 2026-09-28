@@ -17,6 +17,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AdminQuestionFilters } from '@/types/api';
 import { AdminService } from '@/lib/api-services';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 interface QuestionFiltersProps {
   filters: AdminQuestionFilters;
@@ -149,7 +150,7 @@ export default function QuestionFilters({
 
       } catch (error) {
         console.error('Failed to load filter data:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Impossible de charger les filtres.';
+        const errorMessage = getApiErrorMessage(error, 'Impossible de charger les filtres.');
         setError(errorMessage);
         toast.error('Erreur', {
           description: errorMessage,
@@ -321,9 +322,10 @@ export default function QuestionFilters({
     });
   };
 
+  // Publication status: GET /admin/questions?isPublished=true|false
   const handleStatusChange = (value: string) => {
     onFiltersChange({
-      isActive: value === 'all' ? undefined : value === 'active'
+      isPublished: value === 'all' ? undefined : value === 'published'
     });
   };
 
@@ -340,6 +342,7 @@ export default function QuestionFilters({
     if (filters.rotation) count++;
     if (filters.sourceId) count++;
     if (filters.isActive !== undefined) count++;
+    if (filters.isPublished !== undefined) count++;
     return count;
   };
 
@@ -591,11 +594,11 @@ export default function QuestionFilters({
             <Label>Statut</Label>
             <Select
               value={
-                filters.isActive === undefined
+                filters.isPublished === undefined
                   ? 'all'
-                  : filters.isActive
-                    ? 'active'
-                    : 'inactive'
+                  : filters.isPublished
+                    ? 'published'
+                    : 'unpublished'
               }
               onValueChange={handleStatusChange}
             >
@@ -604,8 +607,8 @@ export default function QuestionFilters({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tous les Statuts</SelectItem>
-                <SelectItem value="active">Actif</SelectItem>
-                <SelectItem value="inactive">Inactif</SelectItem>
+                <SelectItem value="published">Publiées</SelectItem>
+                <SelectItem value="unpublished">Non publiées</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -734,6 +737,16 @@ export default function QuestionFilters({
               <X
                 className="h-3 w-3 cursor-pointer"
                 onClick={() => onFiltersChange({ isActive: undefined })}
+              />
+            </Badge>
+          )}
+
+          {filters.isPublished !== undefined && (
+            <Badge variant="secondary" className="gap-1">
+              Statut: {filters.isPublished ? 'Publiées' : 'Non publiées'}
+              <X
+                className="h-3 w-3 cursor-pointer"
+                onClick={() => onFiltersChange({ isPublished: undefined })}
               />
             </Badge>
           )}

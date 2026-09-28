@@ -25,44 +25,47 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { AdminContentService, UniversityService } from '@/lib/api-services';
+import { getApiErrorMessage } from '@/lib/api-error';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
-// Schemas for different entity types
+// Schemas for different entity types (limits match the API validation)
+const optionalText = z.string().trim().optional();
+
 const universitySchema = z.object({
-  name: z.string().min(1, 'University name is required'),
-  country: z.string().min(1, 'Country is required'),
-  city: z.string().min(1, 'City is required'),
+  name: z.string().trim().min(2, 'University name must be at least 2 characters'),
+  country: z.string().trim().min(2, 'Country must be at least 2 characters'),
+  city: z.string().trim().refine(value => value === '' || value.length >= 2, 'City must be at least 2 characters').optional(),
 });
 
 const unitSchema = z.object({
-  name: z.string().min(1, 'Unit name is required'),
-  description: z.string().min(1, 'Description is required'),
+  name: z.string().trim().min(2, 'Unit name must be at least 2 characters'),
+  description: optionalText,
 });
 
 const moduleSchema = z.object({
-  name: z.string().min(1, 'Module name is required'),
-  description: z.string().min(1, 'Description is required'),
+  name: z.string().trim().min(2, 'Module name must be at least 2 characters'),
+  description: optionalText,
 });
 
 const courseSchema = z.object({
-  name: z.string().min(1, 'Course name is required'),
-  description: z.string().min(1, 'Description is required'),
+  name: z.string().trim().min(3, 'Course name must be at least 3 characters'),
+  description: optionalText,
 });
 
 const independentModuleSchema = z.object({
-  name: z.string().min(1, 'Module name is required'),
-  description: z.string().min(1, 'Description is required'),
+  name: z.string().trim().min(2, 'Module name must be at least 2 characters'),
+  description: optionalText,
 });
 
 const studyPackSchema = z.object({
-  name: z.string().min(1, 'Study pack name is required'),
-  description: z.string().min(1, 'Description is required'),
+  name: z.string().trim().min(2, 'Study pack name must be at least 2 characters'),
+  description: optionalText,
   // Backend PackType enum: YEAR packs need a year number, RESIDENCY packs have none
   type: z.enum(['YEAR', 'RESIDENCY']),
   yearNumber: z.enum(['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN']).optional(),
-  pricePerMonth: z.number().min(0, 'Monthly price must be positive'),
-  pricePerYear: z.number().min(0, 'Yearly price must be positive'),
+  pricePerMonth: z.number().min(0, 'Monthly price cannot be negative'),
+  pricePerYear: z.number().min(0, 'Yearly price cannot be negative'),
 }).refine(data => data.type !== 'YEAR' || !!data.yearNumber, {
   message: 'Year number is required for a year study pack',
   path: ['yearNumber'],
@@ -173,6 +176,8 @@ export function AddEntityDialog({
 
   const onSubmit = async (data: any) => {
     setIsSubmitting(true);
+    // Optional texts: send nothing rather than an empty string
+    const description = data.description?.trim() || undefined;
     try {
       let result;
 
@@ -181,13 +186,13 @@ export function AddEntityDialog({
           result = await UniversityService.createUniversity({
             name: data.name,
             country: data.country,
-            city: data.city,
+            city: data.city?.trim() || undefined,
           });
           break;
         case 'studyPack':
           result = await AdminContentService.createStudyPack({
             name: data.name,
-            description: data.description,
+            description,
             type: data.type,
             yearNumber: data.type === 'RESIDENCY' ? undefined : data.yearNumber,
             pricePerMonth: data.pricePerMonth,
@@ -201,7 +206,7 @@ export function AddEntityDialog({
           }
           result = await AdminContentService.createUnit({
             name: data.name,
-            description: data.description,
+            description,
             studyPackId: parentId,
           });
           break;
@@ -212,7 +217,7 @@ export function AddEntityDialog({
           }
           result = await AdminContentService.createModule({
             name: data.name,
-            description: data.description,
+            description,
             uniteId: parentId,
           });
           break;
@@ -223,7 +228,7 @@ export function AddEntityDialog({
           }
           result = await AdminContentService.createIndependentModule({
             name: data.name,
-            description: data.description,
+            description,
             studyPackId: parentId,
           });
           break;
@@ -234,7 +239,7 @@ export function AddEntityDialog({
           }
           result = await AdminContentService.createCourse({
             name: data.name,
-            description: data.description,
+            description,
             moduleId: parentId,
           });
           break;
@@ -251,7 +256,7 @@ export function AddEntityDialog({
       }
     } catch (error) {
       console.error(`Error creating ${entityType}:`, error);
-      toast.error(`Failed to create ${entityType}: ${error.message || 'Unknown error'}`);
+      toast.error(`Failed to create ${entityType}: ${getApiErrorMessage(error)}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -296,7 +301,7 @@ export function AddEntityDialog({
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <FormLabel>Description (optional)</FormLabel>
                     <FormControl>
                       <Textarea
                         placeholder={`Enter ${entityType} description`}
@@ -331,7 +336,7 @@ export function AddEntityDialog({
                 name="city"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>City</FormLabel>
+                    <FormLabel>City (optional)</FormLabel>
                     <FormControl>
                       <Input placeholder="Enter city" {...field} />
                     </FormControl>

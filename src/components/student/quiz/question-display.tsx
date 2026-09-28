@@ -37,11 +37,14 @@ import type { QuestionContext } from '@/types/ai-chat-types';
 import { InlineNoteEditor } from './inline-note-editor';
 import { resolveImagePath, resolveMediaUrl } from '@/lib/image-loader';
 import { ContentService } from '@/lib/api-services';
+import { localizeQuestion } from '@/lib/question-localization';
+import { useQuestionLanguage } from './question-language-provider';
 
 export function QuestionDisplay() {
   const { state, bookmarkQuestion, flagQuestion, revealAnswer } = useQuiz();
   const { session, currentQuestion, isAnswerRevealed, showExplanation } = state;
   const { state: apiState } = useApiQuiz();
+  const { language } = useQuestionLanguage();
 
   // Auto-reveal in completed sessions to show status chips and highlights immediately
   const autoReveal = session.status === 'COMPLETED' || session.status === 'completed';
@@ -145,8 +148,11 @@ export function QuestionDisplay() {
 
   // Transform API question to match component expectations
   const transformQuestion = (question: any) => {
-    // According to session-doc.md, answers are in questionAnswers array
-    const answers = question.questionAnswers || question.answers || [];
+    // According to session-doc.md, answers are in questionAnswers array. Texts are picked for the
+    // selected question language (French when no complete English version exists); answer ids
+    // are unchanged so selections survive a language switch.
+    const localized = localizeQuestion(question, language);
+    const answers = localized.answers;
 
     // Helper function to ensure proper image data structure
     const normalizeImageArray = (images: any[]): Array<{ id: number; imagePath: string; altText?: string }> => {
@@ -175,8 +181,15 @@ export function QuestionDisplay() {
 
     return {
       ...question,
-      // Ensure content property exists
-      content: question.content || question.questionText,
+      // Question text and explanation in the displayed language
+      content: localized.questionText,
+      questionText: localized.questionText,
+      explanation: localized.explanation,
+      questionAnswers: answers,
+      hasEnglish: localized.hasEnglish,
+      displayedLanguage: localized.displayedLanguage,
+      explanationLanguage: localized.explanationLanguage,
+      requestedLanguage: localized.requestedLanguage,
       // Transform answers to options format using documented structure
       options: answers.map((answer: any) => ({
         id: String(answer.id),
@@ -189,7 +202,7 @@ export function QuestionDisplay() {
       questionImages: normalizeImageArray(question.questionImages || []),
       questionExplanationImages: normalizeImageArray(question.questionExplanationImages || []),
       // Ensure other required properties exist
-      title: question.title || question.questionText || `Question ${question.id}`,
+      title: question.title || localized.questionText || `Question ${question.id}`,
       difficulty: question.difficulty || 'intermediate',
       source: question.source || 'API',
       tags: question.tags || [],
@@ -254,21 +267,21 @@ export function QuestionDisplay() {
     />;
   };
 
-  // Build AI chat context from current question
+  // Build AI chat context from current question (in the language it is displayed in)
   const buildAIChatContext = (): QuestionContext | null => {
     if (!currentQuestion) return null;
-    const answers = currentQuestion.questionAnswers || currentQuestion.answers || [];
+    const answers = transformedQuestion.questionAnswers || [];
     const correctAnswer = answers.find((a: any) => a.isCorrect);
     return {
       questionId: currentQuestion.id,
-      questionText: currentQuestion.questionText || currentQuestion.content || '',
+      questionText: transformedQuestion.questionText || '',
       options: answers.map((a: any) => ({
         id: String(a.id),
         text: a.answerText || a.text || '',
         isCorrect: a.isCorrect || false
       })),
       correctAnswer: correctAnswer?.answerText || correctAnswer?.text || 'Unknown',
-      explanation: currentQuestion.explanation || 'No explanation available',
+      explanation: transformedQuestion.explanation || 'No explanation available',
       questionType: questionType,
       yearLevel: currentQuestion.yearLevel,
       course: currentQuestion.course?.name
@@ -279,7 +292,10 @@ export function QuestionDisplay() {
     <div className="h-full flex flex-col">
       {/* Question Content - Enable scrolling before selection */}
       <div className="flex-1 overflow-y-auto scroll-smooth">
-        <div className="min-h-full flex flex-col p-0.5 sm:p-1 lg:p-1.5 space-y-0.5 sm:space-y-1 max-w-7xl mx-auto quiz-question-container">
+        <div
+          lang={transformedQuestion.displayedLanguage}
+          className="min-h-full flex flex-col p-0.5 sm:p-1 lg:p-1.5 space-y-0.5 sm:space-y-1 max-w-7xl mx-auto quiz-question-container"
+        >
 
           {isEditingNote ? (
             <div className="flex-1 min-h-0 animate-fade-in-up">

@@ -23,6 +23,7 @@ import { QuestionReportsFilters } from '@/components/admin/question-reports/ques
 import { QuestionReportsStats } from '@/components/admin/question-reports/question-reports-stats';
 import { ReviewReportDialog } from '@/components/admin/question-reports/review-report-dialog';
 import { EditQuestionDialog } from '@/components/admin/questions/edit-question-dialog';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 /**
  * Admin Question Reports Management Page
@@ -116,7 +117,7 @@ export default function AdminQuestionReportsPage() {
         throw new Error(errorMessage);
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch question data';
+      const errorMessage = getApiErrorMessage(error, 'Failed to fetch question data');
       toast.error(errorMessage);
     } finally {
       setLoadingQuestion(false);
@@ -139,7 +140,7 @@ export default function AdminQuestionReportsPage() {
         throw new Error(errorMessage);
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update question';
+      const errorMessage = getApiErrorMessage(error, 'Failed to update question');
       toast.error(errorMessage);
       throw error;
     }

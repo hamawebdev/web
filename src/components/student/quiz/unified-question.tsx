@@ -17,10 +17,9 @@ import {
   Send,
   Trash2
 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeRaw from 'rehype-raw';
 import { Button } from '@/components/ui/button';
+import { SafeMarkdown } from '@/components/ui/safe-markdown';
+import { toPlainText } from '@/lib/question-localization';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -33,6 +32,15 @@ import { QuizQuestion } from './quiz-context';
 import { QuestionActions } from './question-actions';
 import { QuestionMetadata } from './question-metadata';
 import { ImageGallery } from './image-gallery';
+import { EnglishUnavailableBadge } from './question-language-toggle';
+
+// Stable component overrides for SafeMarkdown (kept outside render so memoization holds)
+const QUESTION_TEXT_COMPONENTS = {
+  p: ({ node: _node, className, ...props }) => <p {...props} className={cn('mb-1 last:mb-0', className)} />,
+};
+const QROC_ANSWER_COMPONENTS = {
+  p: ({ node: _node, className, ...props }) => <span {...props} className={cn('block', className)} />,
+};
 
 interface Props {
   question: QuizQuestion;
@@ -428,8 +436,10 @@ export function UnifiedQuestion({ question, type, onOpenAIChat, onEditNote }: Pr
   const optionCount = question.options?.length || 0;
 
   // Dynamic sizing based on option count and content length - More aggressive for all cases
-  const isCompactMode = optionCount >= 3 || question.content.length > 100;
-  const isUltraCompactMode = optionCount > 4 || question.content.length > 200;
+  // (length of the visible text: imported questions can carry HTML/Markdown markup)
+  const contentLength = useMemo(() => toPlainText(question.content).length, [question.content]);
+  const isCompactMode = optionCount >= 3 || contentLength > 100;
+  const isUltraCompactMode = optionCount > 4 || contentLength > 200;
   const containerClass = isUltraCompactMode ? 'quiz-ultra-compact-mode' : isCompactMode ? 'quiz-compact-mode' : 'quiz-compact-mode';
 
   // Calculate dynamic spacing based on option count - Minimal space between question and answers
@@ -601,14 +611,21 @@ export function UnifiedQuestion({ question, type, onOpenAIChat, onEditNote }: Pr
               </div>
             )}
 
+            {/* Shown when English was asked for but this question has no translation */}
+            {question.requestedLanguage === 'en' && !question.hasEnglish && (
+              <div>
+                <EnglishUnavailableBadge />
+              </div>
+            )}
+
             {/* Question Text - Responsive sizing */}
             <div className="prose prose-sm sm:prose-base max-w-none">
-              <p className={cn(
-                "font-bold text-foreground mb-0 quiz-question-text",
+              <div className={cn(
+                "font-bold text-foreground mb-0 quiz-question-text break-words",
                 isUltraCompactMode ? "leading-tight text-sm" : isCompactMode ? "leading-snug text-base" : "leading-snug text-base lg:text-lg"
               )}>
-                {question.content}
-              </p>
+                <SafeMarkdown components={QUESTION_TEXT_COMPONENTS}>{question.content}</SafeMarkdown>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -630,20 +647,12 @@ export function UnifiedQuestion({ question, type, onOpenAIChat, onEditNote }: Pr
                   </div>
                   <div className="text-lg font-medium text-success flex-1">
                     {question.options?.find(o => o.isCorrect)?.text ? (
-                      question.options?.find(o => o.isCorrect)?.text
+                      <SafeMarkdown components={QROC_ANSWER_COMPONENTS}>{question.options?.find(o => o.isCorrect)?.text}</SafeMarkdown>
                     ) : question.correctAnswers?.[0] ? (
-                      question.correctAnswers?.[0]
+                      <SafeMarkdown components={QROC_ANSWER_COMPONENTS}>{question.correctAnswers?.[0]}</SafeMarkdown>
                     ) : question.explanation ? (
                       <div className="prose prose-sm max-w-none text-success prose-p:text-success prose-strong:text-success prose-headings:text-success">
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm]}
-                          rehypePlugins={[rehypeRaw]}
-                          components={{
-                            p: ({ children }) => <span className="block">{children}</span>
-                          }}
-                        >
-                          {question.explanation}
-                        </ReactMarkdown>
+                        <SafeMarkdown components={QROC_ANSWER_COMPONENTS}>{question.explanation}</SafeMarkdown>
                       </div>
                     ) : (
                       'Answer not available'
@@ -696,20 +705,12 @@ export function UnifiedQuestion({ question, type, onOpenAIChat, onEditNote }: Pr
                   </div>
                   <div className="text-lg font-medium text-success flex-1">
                     {question.options?.find(o => o.isCorrect)?.text ? (
-                      question.options?.find(o => o.isCorrect)?.text
+                      <SafeMarkdown components={QROC_ANSWER_COMPONENTS}>{question.options?.find(o => o.isCorrect)?.text}</SafeMarkdown>
                     ) : question.correctAnswers?.[0] ? (
-                      question.correctAnswers?.[0]
+                      <SafeMarkdown components={QROC_ANSWER_COMPONENTS}>{question.correctAnswers?.[0]}</SafeMarkdown>
                     ) : question.explanation ? (
                       <div className="prose prose-sm max-w-none text-success prose-p:text-success prose-strong:text-success prose-headings:text-success">
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm]}
-                          rehypePlugins={[rehypeRaw]}
-                          components={{
-                            p: ({ children }) => <span className="block">{children}</span>
-                          }}
-                        >
-                          {question.explanation}
-                        </ReactMarkdown>
+                        <SafeMarkdown components={QROC_ANSWER_COMPONENTS}>{question.explanation}</SafeMarkdown>
                       </div>
                     ) : (
                       'Answer not available'
@@ -822,7 +823,7 @@ export function UnifiedQuestion({ question, type, onOpenAIChat, onEditNote }: Pr
 
                         {/* Answer Text */}
                         <div className="flex-1 min-w-0 mt-0.5">
-                          <p className={cn(
+                          <div className={cn(
                             "font-semibold transition-colors duration-200 break-words hyphens-auto quiz-option-text",
                             isUltraCompactMode
                               ? "text-xs sm:text-sm lg:text-base leading-tight"
@@ -832,8 +833,8 @@ export function UnifiedQuestion({ question, type, onOpenAIChat, onEditNote }: Pr
                             getOptionTextColors(status, isSelected, isAnswerRevealed),
                             eliminatedOptions.has(option.id) && "line-through opacity-60"
                           )}>
-                            {option.text}
-                          </p>
+                            <SafeMarkdown inline>{option.text}</SafeMarkdown>
+                          </div>
                         </div>
 
                         {/* Trash Icon Button */}
@@ -916,7 +917,7 @@ export function UnifiedQuestion({ question, type, onOpenAIChat, onEditNote }: Pr
 
                           {/* Answer Text */}
                           <div className="flex-1 min-w-0 mt-0.5">
-                            <p className={cn(
+                            <div className={cn(
                               "font-semibold transition-colors duration-200 break-words hyphens-auto quiz-option-text",
                               isUltraCompactMode
                                 ? "text-xs sm:text-sm lg:text-base leading-tight"
@@ -926,8 +927,8 @@ export function UnifiedQuestion({ question, type, onOpenAIChat, onEditNote }: Pr
                               getOptionTextColors(status, isSelected, isAnswerRevealed),
                               eliminatedOptions.has(option.id) && "line-through opacity-60"
                             )}>
-                              {option.text}
-                            </p>
+                              <SafeMarkdown inline>{option.text}</SafeMarkdown>
+                            </div>
                           </div>
 
                           {/* Trash Icon Button */}

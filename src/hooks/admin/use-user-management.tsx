@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { AdminService } from '@/lib/api-services';
 import { ApiUser, PaginationParams } from '@/types/api';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 // User filters interface
 export interface UserFilters {
@@ -116,7 +117,7 @@ export function useUserManagement() {
         throw new Error(typeof response.error === 'string' ? response.error : 'Failed to fetch users');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch users';
+      const errorMessage = getApiErrorMessage(error, 'Failed to fetch users');
       console.error('❌ Error fetching users:', error);
 
       setState(prev => ({
@@ -192,7 +193,7 @@ export function useUserManagement() {
         throw new Error(typeof response.error === 'string' ? response.error : 'Failed to create user');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create user';
+      const errorMessage = getApiErrorMessage(error, 'Failed to create user');
       console.error('❌ Error creating user:', error);
 
       toast.error('Error', {
@@ -225,7 +226,7 @@ export function useUserManagement() {
         throw new Error(typeof response.error === 'string' ? response.error : 'Failed to update user');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update user';
+      const errorMessage = getApiErrorMessage(error, 'Failed to update user');
       console.error('❌ Error updating user:', error);
 
       toast.error('Error', {
@@ -258,7 +259,7 @@ export function useUserManagement() {
         throw new Error(typeof response.error === 'string' ? response.error : 'Failed to deactivate user');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to deactivate user';
+      const errorMessage = getApiErrorMessage(error, 'Failed to deactivate user');
       console.error('❌ Error deactivating user:', error);
 
       toast.error('Error', {
@@ -291,7 +292,7 @@ export function useUserManagement() {
         throw new Error(typeof response.error === 'string' ? response.error : 'Failed to delete user');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete user';
+      const errorMessage = getApiErrorMessage(error, 'Failed to delete user');
       console.error('❌ Error deleting user:', error);
 
       toast.error('Error', {
@@ -321,7 +322,7 @@ export function useUserManagement() {
         throw new Error(typeof response.error === 'string' ? response.error : 'Failed to reset password');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to reset password';
+      const errorMessage = getApiErrorMessage(error, 'Failed to reset password');
       console.error('❌ Error resetting password:', error);
 
       toast.error('Error', {

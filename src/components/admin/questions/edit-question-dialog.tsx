@@ -25,6 +25,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertCircle, Edit, Plus, Trash2, Check } from 'lucide-react';
 import { AdminQuestion, UpdateQuestionRequest } from '@/types/api';
 import { AdminService } from '@/lib/api-services';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 interface EditQuestionDialogProps {
   question: AdminQuestion;
@@ -84,6 +85,8 @@ export function EditQuestionDialog({
     courseId: question.courseId,
     universityId: question.universityId,
     yearLevel: question.yearLevel || '',
+    // Older questions / responses without the field are published
+    isPublished: question.isPublished ?? true,
   });
 
   const [answers, setAnswers] = useState<Answer[]>(
@@ -107,6 +110,7 @@ export function EditQuestionDialog({
         courseId: question.courseId,
         universityId: question.universityId,
         yearLevel: question.yearLevel || '',
+        isPublished: question.isPublished ?? true,
       });
       setAnswers(
         question.answers.map(answer => ({
@@ -206,6 +210,7 @@ export function EditQuestionDialog({
         courseId: formData.courseId,
         universityId: formData.universityId,
         yearLevel: formData.yearLevel || undefined,
+        isPublished: formData.isPublished,
         answers: validAnswers.map(answer => ({
           id: answer.id,
           answerText: answer.answerText,
@@ -216,7 +221,7 @@ export function EditQuestionDialog({
 
       await onUpdateQuestion(updateData);
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to update question');
+      setError(getApiErrorMessage(error, 'Failed to update question'));
     }
   };
 
@@ -373,6 +378,21 @@ export function EditQuestionDialog({
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-4 rounded-lg border p-3">
+                <div className="space-y-0.5">
+                  <Label htmlFor="isPublished">Published (visible to students)</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Unpublished questions stay visible to admins only.
+                  </p>
+                </div>
+                <Switch
+                  id="isPublished"
+                  checked={formData.isPublished}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isPublished: checked }))}
+                  disabled={loading}
+                />
               </div>
             </div>
 

@@ -1,6 +1,6 @@
 # Allowlist: the build context contains ONLY the entries re-included below.
 # The image is public, so anything not required by `npm ci` + `next build` stays out
-# (env files, git metadata, docs, local artifacts).
+# (env files, git metadata other than the commit refs below, docs, local artifacts).
 *
 
 !package.json
@@ -10,6 +10,11 @@
 !postcss.config.mjs
 !src/
 !public/
+# Commit detection for source builds (Dockerfile "version" stage): commit ids and ref
+# names only, never .git/config (it can hold credentials)
+!.git/HEAD
+!.git/refs/heads/
+!.git/packed-refs
 
 # Never send env files or local build output, even from inside allowed directories.
 **/.env

@@ -25,7 +25,8 @@ import {
   BulkImportMetadata, 
   SelectionState, 
   BulkImportComponentProps,
-  BulkImportResponse
+  BulkImportResponse,
+  bulkImportCreatedCount
 } from '@/types/question-import';
 import {
   validateAllFiles,
@@ -34,6 +35,7 @@ import {
 } from '@/utils/bulk-import-validation';
 import { UniversityService } from '@/lib/api-services';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 export function BulkImportWizard({ selection, onImportComplete, onCancel }: BulkImportComponentProps) {
   const [files, setFiles] = useState<BulkImportFile[]>([]);
@@ -141,14 +143,14 @@ export function BulkImportWizard({ selection, onImportComplete, onCancel }: Bulk
             f.id === file.id ? { 
               ...f, 
               status: 'error',
-              error: error instanceof Error ? error.message : 'Import failed'
+              error: getApiErrorMessage(error, 'Import failed')
             } : f
           ));
 
           results.push({
             fileId: file.id,
             success: false,
-            error: error instanceof Error ? error.message : 'Import failed'
+            error: getApiErrorMessage(error, 'Import failed')
           });
         }
 
@@ -163,7 +165,7 @@ export function BulkImportWizard({ selection, onImportComplete, onCancel }: Bulk
       const errorCount = results.filter(r => !r.success).length;
       const totalQuestions = results
         .filter(r => r.success && r.data)
-        .reduce((sum, r) => sum + (r.data?.totalCreated || 0), 0);
+        .reduce((sum, r) => sum + bulkImportCreatedCount(r.data), 0);
 
       if (successCount > 0) {
         toast.success(

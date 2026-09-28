@@ -180,6 +180,9 @@ export interface ExamSessionFilters {
 export interface Question {
   id: number;
   questionText: string;
+  /** English translation (null until translated) */
+  questionTextEn?: string | null;
+  explanationEn?: string | null;
   questionType: string;
   universityId: number;
   yearLevel: string;

@@ -14,6 +14,7 @@ import {
 import { Search, X } from 'lucide-react';
 import { ResidencyQuestionFilters } from '@/types/api';
 import { AuthService } from '@/lib/api-services';
+import { RESIDENCY_PARTS, normalizeResidencyPart } from '@/lib/residency-parts';
 
 interface ResidencyQuestionsFiltersProps {
   filters: ResidencyQuestionFilters;
@@ -107,7 +108,7 @@ export function ResidencyQuestionsFilters({
       <div className="space-y-2">
         <Label htmlFor="part">Part</Label>
         <Select
-          value={filters.part || 'all'}
+          value={normalizeResidencyPart(filters.part) || 'all'}
           onValueChange={handlePartChange}
         >
           <SelectTrigger id="part">
@@ -115,9 +116,9 @@ export function ResidencyQuestionsFilters({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Parts</SelectItem>
-            <SelectItem value="E_Sciences_Fondamentales">Sciences Fondamentales</SelectItem>
-            <SelectItem value="E_Dossiers_Cliniques">Dossiers Cliniques</SelectItem>
-            <SelectItem value="E_Pathologies_M_C">Pathologies M/C</SelectItem>
+            {RESIDENCY_PARTS.map((part) => (
+              <SelectItem key={part.value} value={part.value}>{part.label}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

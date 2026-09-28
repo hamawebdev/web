@@ -5,11 +5,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { BookOpen, Check, X, Info } from 'lucide-react';
 import { LightbulbBolt } from '@solar-icons/react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeRaw from 'rehype-raw'; import { QuizQuestion, UserAnswer } from './quiz-context';
+import { SafeMarkdown } from '@/components/ui/safe-markdown';
+import { QuizQuestion, UserAnswer } from './quiz-context';
 import { ImageGallery } from './image-gallery';
 import { resolveImagePath } from '@/lib/image-loader';
+import { cn } from '@/lib/utils';
+
+// Stable overrides for SafeMarkdown (kept outside render so memoization holds)
+const EXPLANATION_COMPONENTS = {
+  p: ({ node: _node, className, children, ...props }) => <p {...props} className={cn('mb-2 last:mb-0', className)}>{children}</p>,
+  ul: ({ node: _node, className, children, ...props }) => <ul {...props} className={cn('list-disc ml-4 mb-2', className)}>{children}</ul>,
+  ol: ({ node: _node, className, children, ...props }) => <ol {...props} className={cn('list-decimal ml-4 mb-2', className)}>{children}</ol>,
+  li: ({ node: _node, className, children, ...props }) => <li {...props} className={cn('mb-1', className)}>{children}</li>,
+  strong: ({ node: _node, className, children, ...props }) => <span {...props} className={cn('font-bold text-foreground', className)}>{children}</span>,
+  em: ({ node: _node, className, children, ...props }) => <span {...props} className={cn('italic text-foreground', className)}>{children}</span>,
+  blockquote: ({ node: _node, className, children, ...props }) => <blockquote {...props} className={cn('border-l-2 border-primary/50 pl-4 italic text-muted-foreground my-2', className)}>{children}</blockquote>,
+  code: ({ node: _node, className, children, ...props }) => <code {...props} className={cn('bg-muted px-1 py-0.5 rounded text-xs font-mono', className)}>{children}</code>,
+  pre: ({ node: _node, className, children, ...props }) => <pre {...props} className={cn('bg-muted p-2 rounded-lg overflow-x-auto my-2 text-xs font-mono', className)}>{children}</pre>,
+};
 
 interface Props {
   question: QuizQuestion;
@@ -83,7 +96,7 @@ export function AnswerExplanation({ question, userAnswer }: Props) {
   const explanationImages = getAllExplanationImages();
 
   return (
-    <Card id="answer-explanation" className="border-primary/20 bg-primary/5 shadow-sm">
+    <Card id="answer-explanation" lang={question.explanationLanguage} className="border-primary/20 bg-primary/5 shadow-sm">
       <CardHeader className="pb-1 pt-2">
         <CardTitle className="flex items-center gap-2 text-primary text-sm sm:text-base font-bold">
           <LightbulbBolt className="h-4 w-4" />
@@ -93,24 +106,7 @@ export function AnswerExplanation({ question, userAnswer }: Props) {
       <CardContent className="pt-0 pb-2 space-y-3">
         {/* Explanation Text */}
         <div className="prose prose-xs sm:prose-sm max-w-none text-foreground text-xs sm:text-sm leading-tight font-medium [&>p]:mb-2 [&>ul]:mb-2 [&>ol]:mb-2">
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            rehypePlugins={[rehypeRaw]}
-            components={{
-              p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-              a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{children}</a>,
-              ul: ({ children }) => <ul className="list-disc ml-4 mb-2">{children}</ul>,
-              ol: ({ children }) => <ol className="list-decimal ml-4 mb-2">{children}</ol>,
-              li: ({ children }) => <li className="mb-1">{children}</li>,
-              strong: ({ children }) => <span className="font-bold text-foreground">{children}</span>,
-              em: ({ children }) => <span className="italic text-foreground">{children}</span>,
-              blockquote: ({ children }) => <blockquote className="border-l-2 border-primary/50 pl-4 italic text-muted-foreground my-2">{children}</blockquote>,
-              code: ({ children }) => <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">{children}</code>,
-              pre: ({ children }) => <pre className="bg-muted p-2 rounded-lg overflow-x-auto my-2 text-xs font-mono">{children}</pre>,
-            }}
-          >
-            {question.explanation || ''}
-          </ReactMarkdown>
+          <SafeMarkdown components={EXPLANATION_COMPONENTS}>{question.explanation || ''}</SafeMarkdown>
         </div>
 
         {/* Explanation Images */}

@@ -17,6 +17,7 @@ import { QuizService } from '@/lib/api-services';
 import { NewApiService } from '@/lib/api/new-api-services';
 import { toast } from 'sonner';
 import { Stethoscope, Loader2 } from 'lucide-react';
+import { residencyPartLabel } from '@/lib/residency-parts';
 
 interface University {
   id: number;
@@ -96,7 +97,8 @@ export default function ResidencyCreatePage() {
       );
       const data = (res?.data?.data) ?? res?.data;
       if (res?.success && data) {
-        setAvailableParts(data.parts || []);
+        // Papers without parts (e.g. Oran) list none; drop empty entries defensively
+        setAvailableParts((data.parts || []).filter((part: unknown) => typeof part === 'string' && part.trim()));
         setQuestionCount(data.questionCount || 0);
       }
     } catch (e) {
@@ -254,7 +256,7 @@ export default function ResidencyCreatePage() {
                                 setSelectedParts((prev) => (checked ? [...prev, p] : prev.filter((x) => x !== p)));
                               }}
                             />
-                            <span className="text-sm">{p}</span>
+                            <span className="text-sm">{residencyPartLabel(p)}</span>
                           </label>
                         ))}
                       </div>

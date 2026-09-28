@@ -24,17 +24,23 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertCircle } from 'lucide-react';
+import { getApiErrorMessage } from '@/lib/api-error';
 import { CreateQuestionSourceRequest } from '@/types/api';
+
+// Unicode classes need the `u` flag (built at runtime: the TS target predates it)
+const QUESTION_SOURCE_NAME = new RegExp("^[\\p{L}\\p{M}\\p{N}\\s\\-_'’.]+$", 'u');
 
 // Validation schema based on API documentation
 const createQuestionSourceSchema = z.object({
   name: z
     .string()
+    .trim()
     .min(2, 'Question source name must be at least 2 characters')
     .max(100, 'Question source name must not exceed 100 characters')
+    // Same rule as the API: letters (accents included), digits, spaces, - _ ' ’ and dots
     .regex(
-      /^[a-zA-Z0-9\s\-_]+$/,
-      'Question source name can only contain letters, numbers, spaces, hyphens, and underscores'
+      QUESTION_SOURCE_NAME,
+      'Question source name can only contain letters, numbers, spaces, hyphens, underscores, apostrophes and dots'
     ),
 });
 
@@ -72,18 +78,13 @@ export function CreateQuestionSourceDialog({
     } catch (error: any) {
       console.error('❌ Error creating question source:', error);
       
-      // Handle API validation errors
-      if (error?.response?.data?.error?.details?.errors) {
-        const apiErrors = error.response.data.error.details.errors;
-        apiErrors.forEach((err: any) => {
-          if (err.field === 'name') {
-            form.setError('name', { message: err.message });
-          }
-        });
+      // Field errors from the API validation (apiClient rejection or raw Axios error)
+      const apiErrors: any[] = error?.details?.errors || error?.response?.data?.error?.details?.errors || [];
+      const nameError = apiErrors.find((err: any) => err?.field === 'name');
+      if (nameError?.message) {
+        form.setError('name', { message: nameError.message });
       } else {
-        // Generic error message
-        const errorMessage = error?.message || error?.response?.data?.error?.message || 'Failed to create question source';
-        setApiError(errorMessage);
+        setApiError(getApiErrorMessage(error, 'Failed to create question source'));
       }
     } finally {
       setIsSubmitting(false);

@@ -15,6 +15,7 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertCircle, Key, Eye, EyeOff } from 'lucide-react';
 import { ApiUser } from '@/types/api';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 interface ResetPasswordDialogProps {
   user: ApiUser;
@@ -57,8 +58,8 @@ export function ResetPasswordDialog({
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long');
       return;
     }
 
@@ -73,7 +74,7 @@ export function ResetPasswordDialog({
       setPassword('');
       setConfirmPassword('');
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to reset password');
+      setError(getApiErrorMessage(error, 'Failed to reset password'));
     }
   };
 
@@ -122,7 +123,7 @@ export function ResetPasswordDialog({
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter new password (min 6 characters)"
+                  placeholder="Enter new password (min 8 characters)"
                   disabled={loading}
                   className="pr-10"
                 />

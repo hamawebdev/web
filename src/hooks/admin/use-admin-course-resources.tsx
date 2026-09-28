@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AdminCourseResourcesService } from '@/lib/api-services';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 // Types based on the API documentation
 export interface StudyPack {
@@ -210,7 +211,7 @@ export function useAdminCourseResources(): UseAdminCourseResourcesResult {
       }
     } catch (err) {
       console.error('Error fetching study packs:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch study packs';
+      const errorMessage = getApiErrorMessage(err, 'Failed to fetch study packs');
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -248,7 +249,7 @@ export function useAdminCourseResources(): UseAdminCourseResourcesResult {
       }
     } catch (err) {
       console.error('❌ [AdminCourseResources] Error fetching content filters:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch content filters';
+      const errorMessage = getApiErrorMessage(err, 'Failed to fetch content filters');
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -286,7 +287,7 @@ export function useAdminCourseResources(): UseAdminCourseResourcesResult {
       }
     } catch (err) {
       console.error('❌ [AdminCourseResources] Error fetching course resources:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch course resources';
+      const errorMessage = getApiErrorMessage(err, 'Failed to fetch course resources');
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -474,7 +475,7 @@ export function useAdminCourseResources(): UseAdminCourseResourcesResult {
       }
     } catch (err) {
       console.error('❌ [AdminCourseResources] Error creating resource:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create course resource';
+      const errorMessage = getApiErrorMessage(err, 'Failed to create course resource');
       setError(errorMessage);
       toast.error(errorMessage);
       return false;
@@ -509,7 +510,7 @@ export function useAdminCourseResources(): UseAdminCourseResourcesResult {
       }
     } catch (err) {
       console.error('❌ [AdminCourseResources] Error deleting resource:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete course resource';
+      const errorMessage = getApiErrorMessage(err, 'Failed to delete course resource');
       setError(errorMessage);
       toast.error(errorMessage);
       return false;

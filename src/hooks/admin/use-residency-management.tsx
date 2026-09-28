@@ -11,6 +11,7 @@ import {
   UpdateResidencyQuestionRequest
 } from '@/types/api';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 // Residency management state interface
 interface ResidencyManagementState {
@@ -86,7 +87,7 @@ export function useResidencyManagement() {
         throw new Error(response.error || 'Failed to fetch residency questions');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch residency questions';
+      const errorMessage = getApiErrorMessage(error, 'Failed to fetch residency questions');
       console.error('❌ Error fetching residency questions:', error);
 
       setState(prev => ({
@@ -156,7 +157,7 @@ export function useResidencyManagement() {
         throw new Error(response.error || 'Failed to fetch residency question');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch residency question';
+      const errorMessage = getApiErrorMessage(error, 'Failed to fetch residency question');
       console.error('❌ Error fetching residency question:', error);
 
       toast.error('Error', {
@@ -193,7 +194,7 @@ export function useResidencyManagement() {
         throw new Error(response.error || 'Failed to create residency question');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create residency question';
+      const errorMessage = getApiErrorMessage(error, 'Failed to create residency question');
       console.error('❌ Error creating residency question:', error);
 
       toast.error('Error', {
@@ -229,7 +230,7 @@ export function useResidencyManagement() {
         throw new Error(response.error || 'Failed to update residency question');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update residency question';
+      const errorMessage = getApiErrorMessage(error, 'Failed to update residency question');
       console.error('❌ Error updating residency question:', error);
 
       toast.error('Error', {
@@ -262,7 +263,7 @@ export function useResidencyManagement() {
         throw new Error(response.error || 'Failed to delete residency question');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete residency question';
+      const errorMessage = getApiErrorMessage(error, 'Failed to delete residency question');
       console.error('❌ Error deleting residency question:', error);
 
       toast.error('Error', {

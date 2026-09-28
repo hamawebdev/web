@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { LoadingSpinner } from '@/components/loading-states'
 import { useStudentAuth } from '@/hooks/use-auth'
 import { useReportDetails } from '@/hooks/use-question-reports'
+import { toPlainText } from '@/lib/question-localization'
 import { Badge } from '@/components/ui/badge'
 
 export default function ReportDetailsPage() {
@@ -73,7 +74,7 @@ export default function ReportDetailsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">{report.question?.questionText || `Question #${report.questionId}`}</CardTitle>
+          <CardTitle className="text-lg">{toPlainText(report.question?.questionText) || `Question #${report.questionId}`}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>

@@ -25,6 +25,9 @@ import { Loader2, AlertCircle, CheckCircle, Upload, FileJson } from 'lucide-reac
 import { BulkResidencyQuestionRequest } from '@/types/api';
 import { ResidencyQuestionsService, AuthService } from '@/lib/api-services';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api-error';
+import { RESIDENCY_PARTS } from '@/lib/residency-parts';
+import type { ResidencyPart } from '@/types/api';
 
 interface BulkImportResidencyDialogProps {
   open: boolean;
@@ -47,7 +50,7 @@ export function BulkImportResidencyDialog({
   // Form state for metadata
   const [universityId, setUniversityId] = useState<number | undefined>(undefined);
   const [examYear, setExamYear] = useState<number | undefined>(undefined);
-  const [part, setPart] = useState<'E_Sciences_Fondamentales' | 'E_Dossiers_Cliniques' | 'E_Pathologies_M_C' | ''>('');
+  const [part, setPart] = useState<ResidencyPart | ''>('');
 
   // Load universities when dialog opens
   const loadUniversities = async () => {
@@ -192,7 +195,7 @@ export function BulkImportResidencyDialog({
 
       return requestData;
     } catch (err) {
-      setError('Invalid JSON format: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      setError('Invalid JSON format: ' + (getApiErrorMessage(err, 'Unknown error')));
       return null;
     }
   };
@@ -239,7 +242,7 @@ export function BulkImportResidencyDialog({
         throw new Error(response.error || 'Failed to import questions');
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to import questions';
+      const errorMessage = getApiErrorMessage(err, 'Failed to import questions');
       console.error('❌ Import error:', err);
       setError(errorMessage);
       toast.error('Import Failed', {
@@ -254,7 +257,7 @@ export function BulkImportResidencyDialog({
   const exampleJson = {
     universityId: 1,
     examYear: 2024,
-    part: 'E_Sciences_Fondamentales',
+    part: 'Sciences_fondamentales',
     questions: [
       {
         questionText: 'What is the primary function of mitochondria?',
@@ -331,9 +334,9 @@ export function BulkImportResidencyDialog({
                   <SelectValue placeholder="Select part" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="E_Sciences_Fondamentales">Sciences Fondamentales</SelectItem>
-                  <SelectItem value="E_Dossiers_Cliniques">Dossiers Cliniques</SelectItem>
-                  <SelectItem value="E_Pathologies_M_C">Pathologies M/C</SelectItem>
+                  {RESIDENCY_PARTS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AdminService } from '@/lib/api-services';
 import { AdminQuestionReport, AdminQuestionReportFilters, ReviewQuestionReportRequest } from '@/types/api';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 // Question reports filters interface
 export interface QuestionReportsFilters extends AdminQuestionReportFilters {
@@ -132,7 +133,7 @@ export function useQuestionReportsManagement() {
         throw new Error(response.error?.message || 'Failed to fetch question reports');
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch question reports';
+      const errorMessage = getApiErrorMessage(err, 'Failed to fetch question reports');
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -183,9 +184,7 @@ export function useQuestionReportsManagement() {
       }
     } catch (err) {
       // apiClient rejects with { success: false, error } objects, not Error instances
-      const errorMessage = err instanceof Error
-        ? err.message
-        : (typeof (err as any)?.error === 'string' ? (err as any).error : 'Failed to review report');
+      const errorMessage = getApiErrorMessage(err, 'Failed to review report');
       toast.error(errorMessage);
       throw err;
     }

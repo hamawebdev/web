@@ -14,7 +14,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { X, Search, Filter } from 'lucide-react';
 import { UserFilters as UserFiltersType } from '@/hooks/admin/use-user-management';
-import { AdminService } from '@/lib/api-services';
+import { AuthService } from '@/lib/api-services';
 
 interface UserFiltersProps {
   filters: UserFiltersType;
@@ -43,10 +43,11 @@ export function UserFilters({
     const loadUniversities = async () => {
       try {
         setLoadingUniversities(true);
-        const response = await AdminService.getQuestionFilters();
-        
-        if (response.success && response.data?.filters?.universities) {
-          setUniversities(response.data.filters.universities);
+        // Every university (the question filters only list universities that have questions)
+        const response = await AuthService.getUniversities();
+
+        if (response.success && response.data?.universities) {
+          setUniversities(response.data.universities);
         }
       } catch (error) {
         console.error('Failed to load universities:', error);

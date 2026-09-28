@@ -39,6 +39,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { LogoDisplay } from '@/components/ui/logo-display';
 import { toast } from 'sonner';
 import { AdminContentService, UniversityService } from '@/lib/api-services';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 type EntityType = 'university' | 'studyPack' | 'unit' | 'module' | 'course';
 
@@ -50,7 +51,7 @@ interface BaseEntity {
 
 interface University extends BaseEntity {
   country: string;
-  city: string;
+  city?: string | null;
 }
 
 interface StudyPack extends BaseEntity {
@@ -106,7 +107,10 @@ export function EntityCard({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [localLogoUrl, setLocalLogoUrl] = useState<string | undefined>(() => (entity as any)?.logoUrl);
+  // Units store `logoUrl`; modules store `imagePath` (some responses also echo it as logoUrl)
+  const [localLogoUrl, setLocalLogoUrl] = useState<string | undefined>(
+    () => (entity as any)?.logoUrl || (entity as any)?.imagePath || undefined
+  );
 
   const allowedTypes = useMemo(() => new Set([
     'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'
@@ -169,7 +173,8 @@ export function EntityCard({
           logo: selectedFile,
         });
         if (res?.success) {
-          const newUrl = (res.data?.module?.logoUrl) || (res.data?.data?.module?.logoUrl) || (res.data as any)?.logoUrl;
+          const data: any = res.data;
+          const newUrl = data?.imagePath || data?.logoUrl || data?.module?.imagePath || data?.module?.logoUrl;
           if (newUrl) setLocalLogoUrl(newUrl);
           toast.success('Module image updated');
           setShowImageDialog(false);
@@ -179,7 +184,7 @@ export function EntityCard({
       }
     } catch (error: any) {
       console.error('Failed to update image', error);
-      toast.error(error?.error || error?.message || 'Failed to update image');
+      toast.error(getApiErrorMessage(error, 'Failed to update image'));
     } finally {
       setIsUploading(false);
     }
@@ -209,7 +214,7 @@ export function EntityCard({
         return (
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">{university.country}</p>
-            <p className="text-xs text-muted-foreground">{university.city}</p>
+            {university.city && <p className="text-xs text-muted-foreground">{university.city}</p>}
           </div>
         );
       case 'studyPack':
@@ -272,7 +277,7 @@ export function EntityCard({
       }
     } catch (error) {
       console.error(`Error deleting ${entityType}:`, error);
-      toast.error(`Failed to delete ${entityType}`);
+      toast.error(`Failed to delete ${entityType}: ${getApiErrorMessage(error)}`);
     } finally {
       setIsDeleting(false);
       setShowDeleteDialog(false);
@@ -295,7 +300,7 @@ export function EntityCard({
             <CardTitle className="flex items-center space-x-2 text-base">
               {(isUnit || isModule) ? (
                 <LogoDisplay
-                  logoUrl={localLogoUrl || (entity as any)?.logoUrl}
+                  logoUrl={localLogoUrl || (entity as any)?.logoUrl || (entity as any)?.imagePath}
                   fallbackIcon={isUnit ? GraduationCap : Layers}
                   alt={`${entity.name} logo`}
                   size="md"
@@ -314,8 +319,8 @@ export function EntityCard({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  {/* Only units can store a logo: the module update API has no image field */}
-                  {isUnit && (
+                  {/* Units store a logoUrl, modules an imagePath (both uploaded via /admin/upload/logo) */}
+                  {(isUnit || isModule) && (
                     <DropdownMenuItem
                       onClick={(e) => {
                         e.stopPropagation();

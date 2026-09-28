@@ -21,7 +21,8 @@ import {
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertCircle, UserPlus } from 'lucide-react';
-import { AdminService } from '@/lib/api-services';
+import { AdminService, AuthService } from '@/lib/api-services';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 interface CreateUserDialogProps {
   open: boolean;
@@ -80,10 +81,11 @@ export function CreateUserDialog({
   const loadFormData = async () => {
     try {
       setLoadingData(true);
-      const response = await AdminService.getQuestionFilters();
-      
-      if (response.success && response.data?.filters) {
-        setUniversities(response.data.filters.universities || []);
+      // Every university (the question filters only list universities that have questions)
+      const response = await AuthService.getUniversities();
+
+      if (response.success && response.data) {
+        setUniversities(response.data.universities || []);
         // Note: Specialties might need a separate API call if not included in filters
         // For now, we'll leave it empty and add when the API is available
         setSpecialties([]);
@@ -118,8 +120,8 @@ export function CreateUserDialog({
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long');
+    if (formData.password.length < 8) {
+      setError('Password must be at least 8 characters long');
       return;
     }
 
@@ -139,7 +141,7 @@ export function CreateUserDialog({
       await onCreateUser(userData);
       resetForm();
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to create user');
+      setError(getApiErrorMessage(error, 'Failed to create user'));
     } finally {
       setLoading(false);
     }
@@ -213,7 +215,7 @@ export function CreateUserDialog({
                   type="password"
                   value={formData.password}
                   onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                  placeholder="Enter password (min 6 characters)"
+                  placeholder="Enter password (min 8 characters)"
                   disabled={loading}
                 />
               </div>

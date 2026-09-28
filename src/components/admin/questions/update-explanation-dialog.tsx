@@ -16,6 +16,7 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertCircle, FileText, Upload, X } from 'lucide-react';
 import { AdminQuestion } from '@/types/api';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 interface UpdateExplanationDialogProps {
   question: AdminQuestion;
@@ -74,7 +75,7 @@ export function UpdateExplanationDialog({
       setExplanation(question.explanation || '');
       setExplanationImages([]);
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to update explanation');
+      setError(getApiErrorMessage(error, 'Failed to update explanation'));
     }
   };
 

@@ -379,15 +379,21 @@ export interface StudyPackCourse {
 export interface QuizQuestion {
   id: number;
   questionText: string;
+  /** English translation (null until translated) */
+  questionTextEn?: string | null;
   explanation: string;
+  explanationEn?: string | null;
   answers: QuizAnswer[];
 }
 
 export interface QuizAnswer {
   id: number;
   answerText: string;
+  /** English translation (null until translated) */
+  answerTextEn?: string | null;
   isCorrect: boolean;
   explanation: string;
+  explanationEn?: string | null;
   explanationImages: ExplanationImage[];
 }
 
@@ -566,15 +572,22 @@ export interface ExamSession {
 export interface SessionQuestion {
   id: number;
   questionText: string;
+  /** English translation (null until translated) */
+  questionTextEn?: string | null;
   explanation: string;
+  explanationEn?: string | null;
   answers: SessionQuestionAnswer[];
 }
 
+/** Answers come ordered by position (then id). */
 export interface SessionQuestionAnswer {
   id: number;
   answerText: string;
+  /** English translation (null until translated) */
+  answerTextEn?: string | null;
   isCorrect: boolean;
   explanation: string;
+  explanationEn?: string | null;
   explanationImages: ExplanationImage[];
 }
 
@@ -1175,6 +1188,9 @@ export interface Note {
   question?: {
     id: number;
     questionText: string;
+    questionTextEn?: string | null;
+    explanation?: string | null;
+    explanationEn?: string | null;
     course?: {
       id: number;
       name: string;
@@ -1877,6 +1893,8 @@ export interface AdminQuestion {
   yearLevel?: string;
   examYear?: number;
   isActive: boolean;
+  /** false = hidden from students (admins still see it) */
+  isPublished?: boolean;
   createdAt: string;
   updatedAt: string;
   course?: {
@@ -1936,6 +1954,8 @@ export interface AdminQuestionFilters {
   rotation?: 'R1' | 'R2' | 'R3' | 'R4';
   sourceId?: number;
   isActive?: boolean;
+  /** true = published only, false = unpublished only, undefined = all */
+  isPublished?: boolean;
   search?: string;
 }
 
@@ -2018,6 +2038,8 @@ export interface UpdateQuestionRequest {
     explanation?: string;
   }>;
   isActive?: boolean;
+  /** false hides the question from students (admins still see it) */
+  isPublished?: boolean;
 }
 
 export interface UpdateQuestionExplanationRequest {
@@ -2137,10 +2159,24 @@ export interface QuestionSourceFilters {
 }
 
 // Residency Questions Management Types
+/**
+ * Residency exam part as the API returns it (canonical values). The API also accepts the older
+ * labels ("Sciences fondamentales", "E_Sciences_Fondamentales", "Médicale"...). Questions of
+ * some papers (Oran) have no part. See src/lib/residency-parts.ts.
+ */
+export type ResidencyPart =
+  | 'Sciences_fondamentales'
+  | 'Pathologie_medico_chirurgical'
+  | 'Dossier_clinique'
+  | 'Biologie'
+  | 'Medicale'
+  | 'Chirurgie'
+  | (string & {});
+
 export interface ResidencyQuestion {
   id: number;
   questionId: number;
-  part: 'Sciences fondamentales' | 'Pathologie medico-chirurgical' | 'Dossier clinique';
+  part?: ResidencyPart | null;
   examYear?: number;
   universityId?: number;
   metadata?: string;
@@ -2174,7 +2210,7 @@ export interface ResidencyQuestion {
 }
 
 export interface ResidencyQuestionFilters {
-  part?: 'Sciences fondamentales' | 'Pathologie medico-chirurgical' | 'Dossier clinique';
+  part?: ResidencyPart;
   examYear?: number;
   universityId?: number;
   search?: string;
@@ -2194,7 +2230,7 @@ export interface ResidencyQuestionsResponse {
 export interface CreateResidencyQuestionRequest {
   questionText: string;
   explanation?: string;
-  part: 'Sciences fondamentales' | 'Pathologie medico-chirurgical' | 'Dossier clinique';
+  part: ResidencyPart;
   examYear?: number;
   universityId?: number;
   metadata?: string;
@@ -2209,7 +2245,7 @@ export interface CreateResidencyQuestionRequest {
 export interface UpdateResidencyQuestionRequest {
   questionText?: string;
   explanation?: string;
-  part?: 'Sciences fondamentales' | 'Pathologie medico-chirurgical' | 'Dossier clinique';
+  part?: ResidencyPart;
   examYear?: number;
   universityId?: number;
   metadata?: string;
@@ -2225,7 +2261,7 @@ export interface UpdateResidencyQuestionRequest {
 export interface BulkResidencyQuestionRequest {
   universityId: number;
   examYear: number;
-  part: 'Sciences fondamentales' | 'Pathologie medico-chirurgical' | 'Dossier clinique';
+  part: ResidencyPart;
   questions: Array<{
     questionText: string;
     explanation?: string;
@@ -2242,7 +2278,7 @@ export interface BulkResidencyQuestionResponse {
   questions: Array<{
     id: number;
     questionId: number;
-    part: 'Sciences fondamentales' | 'Pathologie medico-chirurgical' | 'Dossier clinique';
+    part?: ResidencyPart | null;
     question: {
       id: number;
       questionText: string;
@@ -2270,12 +2306,13 @@ export interface BulkResidencyQuestionResponse {
 // Admin Study Pack Management Types
 export interface CreateStudyPackRequest {
   name: string;
-  description: string;
+  description?: string;
   // Backend PackType enum; RESIDENCY packs have no yearNumber
   type: 'YEAR' | 'RESIDENCY';
   yearNumber?: 'ONE' | 'TWO' | 'THREE' | 'FOUR' | 'FIVE' | 'SIX' | 'SEVEN';
+  // Prices may be 0 (free pack)
   pricePerMonth: number;
-  pricePerYear: number;
+  pricePerYear?: number;
 }
 
 export interface UpdateStudyPackRequest {

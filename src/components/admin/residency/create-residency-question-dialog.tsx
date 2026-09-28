@@ -23,8 +23,10 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ImageUpload, ImageFile } from '@/components/ui/image-upload';
 import { Loader2, AlertCircle, Plus, Trash2, Check } from 'lucide-react';
-import { CreateResidencyQuestionRequest } from '@/types/api';
+import { CreateResidencyQuestionRequest, ResidencyPart } from '@/types/api';
+import { RESIDENCY_PARTS } from '@/lib/residency-parts';
 import { AuthService } from '@/lib/api-services';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 interface CreateResidencyQuestionDialogProps {
   open: boolean;
@@ -51,7 +53,7 @@ export function CreateResidencyQuestionDialog({
   const [formData, setFormData] = useState({
     questionText: '',
     explanation: '',
-    part: '' as 'Sciences fondamentales' | 'Pathologie medico-chirurgical' | 'Dossier clinique' | '',
+    part: '' as ResidencyPart | '',
     examYear: undefined as number | undefined,
     universityId: undefined as number | undefined,
     metadata: '',
@@ -179,7 +181,7 @@ export function CreateResidencyQuestionDialog({
       const questionData: CreateResidencyQuestionRequest = {
         questionText: formData.questionText,
         explanation: formData.explanation || undefined,
-        part: formData.part,
+        part: formData.part as ResidencyPart,
         examYear: formData.examYear,
         universityId: formData.universityId,
         metadata: formData.metadata || undefined,
@@ -195,7 +197,7 @@ export function CreateResidencyQuestionDialog({
       onOpenChange(false);
     } catch (error) {
       console.error('Error creating residency question:', error);
-      setError(error instanceof Error ? error.message : 'Failed to create residency question');
+      setError(getApiErrorMessage(error, 'Failed to create residency question'));
     } finally {
       setLoading(false);
     }
@@ -249,9 +251,9 @@ export function CreateResidencyQuestionDialog({
                 <SelectValue placeholder="Select part" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Sciences fondamentales">Sciences fondamentales</SelectItem>
-                <SelectItem value="Pathologie medico-chirurgical">Pathologie medico-chirurgical</SelectItem>
-                <SelectItem value="Dossier clinique">Dossier clinique</SelectItem>
+                {RESIDENCY_PARTS.map((part) => (
+                  <SelectItem key={part.value} value={part.value}>{part.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

@@ -31,6 +31,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toPlainText } from '@/lib/question-localization';
 import { NewSessionResults } from '@/components/student/quiz/new-session-results';
 
 // Utility function to format time in mm:ss format
@@ -172,9 +173,9 @@ function QuizCompletionContent() {
 
         return {
           questionNumber: index + 1,
-          question: question.questionText || question.text || question.content,
-          studentAnswer: selectedAnswers.map((a: any) => a.answerText || a.text).join(', ') || (hasTextAnswer ? String(userAnswer.textAnswer) : 'No answer'),
-          correctAnswer: correctAnswers.map((a: any) => a.answerText || a.text).join(', '),
+          question: toPlainText(question.questionText || question.text || question.content),
+          studentAnswer: selectedAnswers.map((a: any) => toPlainText(a.answerText || a.text)).join(', ') || (hasTextAnswer ? String(userAnswer.textAnswer) : 'No answer'),
+          correctAnswer: correctAnswers.map((a: any) => toPlainText(a.answerText || a.text)).join(', '),
           isCorrect,
           isAnswered
         };

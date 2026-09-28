@@ -23,8 +23,10 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ImageUpload, ImageFile } from '@/components/ui/image-upload';
 import { Loader2, AlertCircle, Plus, Trash2, Check, Edit } from 'lucide-react';
-import { ResidencyQuestion, UpdateResidencyQuestionRequest } from '@/types/api';
+import { ResidencyQuestion, ResidencyPart, UpdateResidencyQuestionRequest } from '@/types/api';
+import { RESIDENCY_PARTS, normalizeResidencyPart } from '@/lib/residency-parts';
 import { AuthService } from '@/lib/api-services';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 interface EditResidencyQuestionDialogProps {
   question: ResidencyQuestion | null;
@@ -54,7 +56,7 @@ export function EditResidencyQuestionDialog({
   const [formData, setFormData] = useState({
     questionText: '',
     explanation: '',
-    part: '' as 'Sciences fondamentales' | 'Pathologie medico-chirurgical' | 'Dossier clinique' | '',
+    part: '' as ResidencyPart | '',
     examYear: undefined as number | undefined,
     universityId: undefined as number | undefined,
     metadata: '',
@@ -99,7 +101,8 @@ export function EditResidencyQuestionDialog({
       setFormData({
         questionText: question.question.questionText || '',
         explanation: question.question.explanation || '',
-        part: question.part || '',
+        // Stored parts can use older labels; questions of some papers have none
+        part: normalizeResidencyPart(question.part) ?? '',
         examYear: question.examYear,
         universityId: question.universityId,
         metadata: question.metadata || '',
@@ -142,8 +145,8 @@ export function EditResidencyQuestionDialog({
 
     if (!question) return;
 
-    // Validation
-    if (!formData.questionText || !formData.part) {
+    // Validation (the part is optional: questions of some papers, e.g. Oran, have none)
+    if (!formData.questionText) {
       setError('Please fill in all required fields');
       return;
     }
@@ -191,7 +194,7 @@ export function EditResidencyQuestionDialog({
       const questionData: UpdateResidencyQuestionRequest = {
         questionText: formData.questionText,
         explanation: formData.explanation || undefined,
-        part: formData.part,
+        ...(formData.part ? { part: formData.part } : {}),
         examYear: formData.examYear,
         universityId: formData.universityId,
         metadata: formData.metadata || undefined,
@@ -210,7 +213,7 @@ export function EditResidencyQuestionDialog({
       onOpenChange(false);
     } catch (error) {
       console.error('Error updating residency question:', error);
-      setError(error instanceof Error ? error.message : 'Failed to update residency question');
+      setError(getApiErrorMessage(error, 'Failed to update residency question'));
     } finally {
       setLoading(false);
     }
@@ -257,21 +260,21 @@ export function EditResidencyQuestionDialog({
 
           {/* Part */}
           <div className="space-y-2">
-            <Label htmlFor="part">
-              Part <span className="text-destructive">*</span>
-            </Label>
+            <Label htmlFor="part">Part</Label>
             <Select
-              value={formData.part}
-              onValueChange={(value: any) => setFormData({ ...formData, part: value })}
+              value={formData.part || 'none'}
+              onValueChange={(value: any) => setFormData({ ...formData, part: value === 'none' ? '' : value })}
               disabled={loading}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select part" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Sciences fondamentales">Sciences fondamentales</SelectItem>
-                <SelectItem value="Pathologie medico-chirurgical">Pathologie medico-chirurgical</SelectItem>
-                <SelectItem value="Dossier clinique">Dossier clinique</SelectItem>
+                {/* A part cannot be removed once set, so "No part" is only offered when there is none */}
+                {!normalizeResidencyPart(question?.part) && <SelectItem value="none">No part</SelectItem>}
+                {RESIDENCY_PARTS.map((part) => (
+                  <SelectItem key={part.value} value={part.value}>{part.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

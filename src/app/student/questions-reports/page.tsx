@@ -16,6 +16,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { LoadingSpinner } from '@/components/loading-states'
 import { useStudentAuth } from '@/hooks/use-auth'
 import { useQuestionReports } from '@/hooks/use-question-reports'
+import { toPlainText } from '@/lib/question-localization'
 
 function QuestionReportsContent() {
   const { isAuthenticated, loading: authLoading } = useStudentAuth()
@@ -201,7 +202,7 @@ function QuestionReportsContent() {
                     <div className="flex items-center gap-2">
                       <FileText className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm text-foreground truncate">
-                        {report.question?.questionText || 'Question not available'}
+                        {toPlainText(report.question?.questionText) || 'Question not available'}
                       </span>
                     </div>
                   </div>
@@ -249,7 +250,7 @@ function QuestionReportsContent() {
                       <div>
                         <h3 className="text-sm font-medium text-foreground">Report #{report.id}</h3>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {report.question?.questionText || 'Question not available'}
+                          {toPlainText(report.question?.questionText) || 'Question not available'}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
                           {report.description}

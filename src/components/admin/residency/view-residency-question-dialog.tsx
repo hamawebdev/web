@@ -15,6 +15,8 @@ import { Separator } from '@/components/ui/separator';
 import { Eye, CheckCircle, XCircle, FileText, Calendar, School, BookOpen, Image as ImageIcon } from 'lucide-react';
 import { ResidencyQuestion } from '@/types/api';
 import { resolveApiAssetUrl } from '@/lib/image-loader';
+import { residencyPartLabel } from '@/lib/residency-parts';
+import { SafeMarkdown } from '@/components/ui/safe-markdown';
 
 interface ViewResidencyQuestionDialogProps {
   question: ResidencyQuestion | null;
@@ -29,18 +31,8 @@ export function ViewResidencyQuestionDialog({
 }: ViewResidencyQuestionDialogProps) {
   if (!question) return null;
 
-  const getPartLabel = (part: string) => {
-    switch (part) {
-      case 'E_Sciences_Fondamentales':
-        return 'Sciences Fondamentales';
-      case 'E_Dossiers_Cliniques':
-        return 'Dossiers Cliniques';
-      case 'E_Pathologies_M_C':
-        return 'Pathologies M/C';
-      default:
-        return part;
-    }
-  };
+  // Any stored spelling of the part; "No part" for papers without one
+  const getPartLabel = (part: string | null | undefined) => residencyPartLabel(part);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -98,7 +90,9 @@ export function ViewResidencyQuestionDialog({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm whitespace-pre-wrap">{question.question.questionText}</p>
+              <div className="text-sm leading-relaxed break-words">
+                <SafeMarkdown>{question.question.questionText}</SafeMarkdown>
+              </div>
             </CardContent>
           </Card>
 
@@ -154,7 +148,9 @@ export function ViewResidencyQuestionDialog({
                       <XCircle className="h-5 w-5 text-gray-400 flex-shrink-0 mt-0.5" />
                     )}
                     <div className="flex-1">
-                      <p className="text-sm">{answer.answerText}</p>
+                      <div className="text-sm break-words">
+                        <SafeMarkdown inline>{answer.answerText}</SafeMarkdown>
+                      </div>
                       {answer.isCorrect && (
                         <Badge variant="default" className="mt-2 bg-green-600">
                           Correct Answer
@@ -174,9 +170,9 @@ export function ViewResidencyQuestionDialog({
                 <CardTitle className="text-sm font-medium">Explanation</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm whitespace-pre-wrap text-muted-foreground">
-                  {question.question.explanation}
-                </p>
+                <div className="text-sm leading-relaxed break-words text-muted-foreground">
+                  <SafeMarkdown>{question.question.explanation}</SafeMarkdown>
+                </div>
               </CardContent>
             </Card>
           )}

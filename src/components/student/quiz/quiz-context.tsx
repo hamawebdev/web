@@ -14,6 +14,13 @@ export interface QuizQuestion {
   options?: string[];
   correctAnswer?: string | string[];
   explanation?: string;
+  // English translations (null until translated) and the language picked for display
+  questionTextEn?: string | null;
+  explanationEn?: string | null;
+  hasEnglish?: boolean;
+  displayedLanguage?: 'fr' | 'en';
+  explanationLanguage?: 'fr' | 'en';
+  requestedLanguage?: 'fr' | 'en';
   difficulty?: 'easy' | 'medium' | 'hard';
   subject?: string;
   tags?: string[];

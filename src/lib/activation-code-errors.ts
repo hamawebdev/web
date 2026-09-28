@@ -1,3 +1,5 @@
+import { getApiErrorMessage } from './api-error';
+
 /**
  * Activation Code Error Handling Utilities
  * Provides user-friendly French error messages for activation code operations
@@ -93,15 +95,9 @@ export function getActivationCodeErrorMessage(error: any): string {
     }
   }
 
-  // Handle direct API error structure
+  // Handle direct API error structure (apiClient rejection), with validation details if any
   if (error?.error) {
-    if (typeof error.error === 'string') {
-      return error.error;
-    }
-    
-    if (error.error.message) {
-      return error.error.message;
-    }
+    return getApiErrorMessage(error, ERROR_MESSAGES.UNKNOWN_ERROR);
   }
 
   // Handle network errors

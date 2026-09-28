@@ -150,12 +150,12 @@ export default function AdminQuestionsPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Questions Actives</CardTitle>
+            <CardTitle className="text-sm font-medium">Questions Publiées</CardTitle>
             <HelpCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {questions.filter(q => q.isActive).length}
+              {questions.filter(q => q.isPublished !== false).length}
             </div>
             <p className="text-xs text-muted-foreground">
               Page actuelle
@@ -299,6 +299,15 @@ export default function AdminQuestionsPage() {
                     <X
                       className="h-3 w-3 cursor-pointer hover:text-destructive"
                       onClick={() => updateFilters({ isActive: undefined })}
+                    />
+                  </Badge>
+                )}
+                {filters.isPublished !== undefined && (
+                  <Badge variant="secondary" className="gap-1">
+                    {filters.isPublished ? 'Publiées' : 'Non publiées'}
+                    <X
+                      className="h-3 w-3 cursor-pointer hover:text-destructive"
+                      onClick={() => updateFilters({ isPublished: undefined })}
                     />
                   </Badge>
                 )}

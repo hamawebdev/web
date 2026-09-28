@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { AdminService, UniversityService } from '@/lib/api-services';
 import { DashboardStats } from '@/types/api';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 // Interface for admin dashboard state
 interface AdminDashboardState {
@@ -114,7 +115,7 @@ export function useAdminDashboard() {
         throw new Error(errorMsg);
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch dashboard statistics';
+      const errorMessage = getApiErrorMessage(error, 'Failed to fetch dashboard statistics');
 
       console.error('❌ Dashboard stats fetch error:', error);
       console.error('❌ Error message:', errorMessage);

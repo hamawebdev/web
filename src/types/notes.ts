@@ -17,14 +17,19 @@ export interface StudentNote {
     question?: {
         id: number;
         questionText: string;
+        /** English translation (null until translated) */
+        questionTextEn?: string | null;
         explanation?: string | null;
+        explanationEn?: string | null;
         questionType?: string;
         questionImages?: string[];
         questionAnswers?: {
             id: number;
             answerText: string;
+            answerTextEn?: string | null;
             isCorrect: boolean;
             explanation?: string | null;
+            explanationEn?: string | null;
         }[];
         course?: {
             id: number;

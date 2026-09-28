@@ -23,7 +23,8 @@ import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertCircle, Edit } from 'lucide-react';
 import { ApiUser } from '@/types/api';
-import { AdminService } from '@/lib/api-services';
+import { AdminService, AuthService } from '@/lib/api-services';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 interface EditUserDialogProps {
   user: ApiUser;
@@ -81,10 +82,11 @@ export function EditUserDialog({
   const loadFormData = async () => {
     try {
       setLoadingData(true);
-      const response = await AdminService.getQuestionFilters();
-      
-      if (response.success && response.data?.filters) {
-        setUniversities(response.data.filters.universities || []);
+      // Every university (the question filters only list universities that have questions)
+      const response = await AuthService.getUniversities();
+
+      if (response.success && response.data) {
+        setUniversities(response.data.universities || []);
       }
     } catch (error) {
       console.error('Failed to load form data:', error);
@@ -126,7 +128,7 @@ export function EditUserDialog({
 
       await onUpdateUser(updateData);
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to update user');
+      setError(getApiErrorMessage(error, 'Failed to update user'));
     }
   };
 

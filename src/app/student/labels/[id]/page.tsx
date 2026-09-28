@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator'
 import { LoadingSpinner } from '@/components/loading-states'
 import { ArrowLeft, Calendar, FileText, BookOpen, Clock, Tags, BarChart3, Users, Target, Play, Loader2 } from 'lucide-react'
 import { StudentService, QuizService } from '@/lib/api-services'
+import { toPlainText } from '@/lib/question-localization'
 import { toast } from 'sonner'
 
 export default function LabelDetailsPage() {
@@ -310,7 +311,7 @@ export default function LabelDetailsPage() {
                               </Badge>
                             </div>
                             <div className="font-medium text-sm leading-relaxed mb-3">
-                              {question.questionText}
+                              {toPlainText(question.questionText)}
                             </div>
                           </div>
                         </div>

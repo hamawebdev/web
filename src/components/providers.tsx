@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Toaster } from '@/components/ui/sonner';
+import { QuestionLanguageProvider } from '@/components/student/quiz/question-language-provider';
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -46,7 +47,9 @@ export function Providers({ children }: ProvidersProps) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {children}
+      <QuestionLanguageProvider>
+        {children}
+      </QuestionLanguageProvider>
       <Toaster />
     </QueryClientProvider>
   );

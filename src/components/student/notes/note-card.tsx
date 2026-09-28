@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { toPlainText } from '@/lib/question-localization';
 import { StudentNote, NoteCardProps } from '@/types/notes';
 
 /**
@@ -49,19 +50,12 @@ export function NoteCard({ note, onEdit, onDelete }: NoteCardProps) {
         return parts.join(' → ') || 'General';
     };
 
-    // Truncate question text for display
-    const truncateText = (text: string | undefined, maxLength: number = 80) => {
-        if (!text) return '';
-        if (text.length <= maxLength) return text;
-        return text.substring(0, maxLength).trim() + '...';
-    };
-
     return (
         <Card className="group transition-all hover:shadow-lg hover:border-primary/20 h-full flex flex-col">
             <CardHeader className="pb-2">
                 <div className="flex items-start justify-between gap-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground line-clamp-2">
-                        {truncateText(note.question?.questionText) || 'Note'}
+                        {toPlainText(note.question?.questionText, 80) || 'Note'}
                     </CardTitle>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                         <Button

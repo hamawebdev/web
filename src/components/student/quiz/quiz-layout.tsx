@@ -54,6 +54,7 @@ import { EnhancedQuizFooter } from './enhanced-quiz-footer';
 import { QuizStatisticsDisplay } from './quiz-statistics-display';
 import { EnhancedExitDialog } from './enhanced-exit-dialog';
 import { SoundToggle } from './sound-toggle';
+import { QuestionLanguageToggle } from './question-language-toggle';
 
 import { SessionStatusManager } from '@/lib/session-status-manager';
 import { QuizService } from '@/lib/api-services';
@@ -470,7 +471,7 @@ export function QuizLayout() {
                       )}
                     </span>
                     {timeLimit && (
-                      <span className="text-xs text-muted-foreground">
+                      <span className="hidden sm:inline text-xs text-muted-foreground">
                         / {formatTime(timeLimitSeconds || 0)}
                       </span>
                     )}
@@ -478,6 +479,9 @@ export function QuizLayout() {
                 );
               })()
             )}
+
+            {/* Question language (FR/EN), available while answering and in review */}
+            <QuestionLanguageToggle />
 
 
             {/* Pause/Resume */}
