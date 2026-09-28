@@ -61,6 +61,11 @@ export interface ApiError {
   error: string;
   message?: string;
   statusCode?: number;
+  /**
+   * Machine-readable reason: the backend's error.code (e.g. ACTIVATION_CODE_EXPIRED, RATE_LIMITED),
+   * or NETWORK_ERROR / TIMEOUT when no response came back
+   */
+  code?: string;
   /** Backend validation details (e.g. { errors: [{ field, message }] }), when the API sent any */
   details?: unknown;
 }
@@ -568,6 +573,7 @@ class ApiClient {
     let errorMessage = 'An unexpected error occurred';
     let statusCode = 500;
     let details: unknown;
+    let code: string | undefined;
 
     // Log a sanitized summary only (the raw error carries the Authorization header)
     console.error('🔍 Request error:', summarizeRequestError(error));
@@ -590,6 +596,8 @@ class ApiClient {
       statusCode = error.response.status;
       const responseData = error.response.data as any;
       details = responseData?.error?.details ?? responseData?.details;
+      const responseCode = responseData?.error?.code ?? responseData?.code;
+      code = typeof responseCode === 'string' ? responseCode : undefined;
 
       // Log detailed info for 401 errors to help debug authentication issues
       if (statusCode === 401) {
@@ -641,6 +649,7 @@ class ApiClient {
       }
     } else if (error.request) {
       // Network error or no response received
+      code = error.code === 'ECONNABORTED' ? 'TIMEOUT' : 'NETWORK_ERROR';
       console.error('🌐 Network error details:', {
         code: error.code,
         message: error.message,
@@ -682,6 +691,7 @@ class ApiClient {
       error: errorMessage,
       statusCode,
       ...(details !== undefined ? { details } : {}),
+      ...(code !== undefined ? { code } : {}),
     };
   }
 

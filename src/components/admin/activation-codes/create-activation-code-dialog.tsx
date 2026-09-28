@@ -26,6 +26,7 @@ import { Loader2, AlertCircle, Calendar, Users, Clock, Package } from 'lucide-re
 import { AdminService, StudentService } from '@/lib/api-services';
 import { CreateActivationCodeRequest, StudyPack } from '@/types/api';
 import { toast } from 'sonner';
+import { endOfDayIso, isDayNotPast, toDateInputValue } from './expiry-date';
 
 interface CreateActivationCodeDialogProps {
   open: boolean;
@@ -46,7 +47,7 @@ export function CreateActivationCodeDialog({
     durationMonths: 1,
     durationDays: undefined,
     durationType: 'MONTHS',
-    maxUses: 100,
+    maxUses: 1,
     expiresAt: '',
     studyPackIds: [],
   });
@@ -61,7 +62,7 @@ export function CreateActivationCodeDialog({
       defaultExpiry.setFullYear(defaultExpiry.getFullYear() + 1);
       setFormData(prev => ({
         ...prev,
-        expiresAt: defaultExpiry.toISOString().split('T')[0],
+        expiresAt: toDateInputValue(defaultExpiry),
       }));
     }
   }, [open]);
@@ -133,11 +134,8 @@ export function CreateActivationCodeDialog({
 
     if (!formData.expiresAt) {
       newErrors.expiresAt = 'Expiry date is required';
-    } else {
-      const expiryDate = new Date(formData.expiresAt);
-      if (expiryDate <= new Date()) {
-        newErrors.expiresAt = 'Expiry date must be in the future';
-      }
+    } else if (!isDayNotPast(formData.expiresAt)) {
+      newErrors.expiresAt = 'Expiry date must be today or later';
     }
 
     if (formData.studyPackIds.length === 0) {
@@ -158,14 +156,12 @@ export function CreateActivationCodeDialog({
     try {
       setLoading(true);
 
-      // Convert date to ISO string with time
-      const expiryDateTime = new Date(formData.expiresAt + 'T23:59:59.999Z');
-
       const codeData: CreateActivationCodeRequest = {
         description: formData.description.trim() || undefined,
         durationType: formData.durationType,
         maxUses: formData.maxUses,
-        expiresAt: expiryDateTime.toISOString(),
+        // Valid until the end of the chosen day, in the admin's time zone
+        expiresAt: endOfDayIso(formData.expiresAt),
         studyPackIds: formData.studyPackIds,
         ...(formData.durationType === 'MONTHS'
           ? { durationMonths: formData.durationMonths }
@@ -181,7 +177,7 @@ export function CreateActivationCodeDialog({
         durationMonths: 1,
         durationDays: undefined,
         durationType: 'MONTHS',
-        maxUses: 100,
+        maxUses: 1,
         expiresAt: '',
         studyPackIds: [],
       });
@@ -209,7 +205,7 @@ export function CreateActivationCodeDialog({
         durationMonths: 1,
         durationDays: undefined,
         durationType: 'MONTHS',
-        maxUses: 100,
+        maxUses: 1,
         expiresAt: '',
         studyPackIds: [],
       });
@@ -237,7 +233,7 @@ export function CreateActivationCodeDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6" noValidate>
           {/* Description */}
           <div className="space-y-2">
             <Label htmlFor="description">Description (Optional)</Label>
@@ -320,6 +316,9 @@ export function CreateActivationCodeDialog({
                 {errors.maxUses && (
                   <p className="text-sm text-red-600">{errors.maxUses}</p>
                 )}
+                <p className="text-xs text-muted-foreground">
+                  How many students can redeem it. 1 = a single student.
+                </p>
               </div>
             </div>
           </div>

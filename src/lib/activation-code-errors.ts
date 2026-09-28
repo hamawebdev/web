@@ -153,6 +153,64 @@ export function getActivationCodeErrorMessage(error: any): string {
 }
 
 /**
+ * Messages of the student's activation code dialog, one per way a redemption can fail.
+ * Keys are the backend's error codes (see code-redemption.service.ts on the API).
+ */
+export const REDEEM_ERROR_MESSAGES = {
+  ACTIVATION_CODE_ALREADY_REDEEMED: 'Vous avez déjà utilisé ce code d\'activation.',
+  ACTIVATION_CODE_USED_UP: 'Ce code d\'activation a déjà été utilisé et n\'est plus disponible.',
+  ACTIVATION_CODE_EXPIRED: 'Ce code d\'activation a expiré.',
+  ACTIVATION_CODE_DEACTIVATED: 'Ce code d\'activation a été désactivé.',
+  ACTIVATION_CODE_NOT_FOUND: 'Ce code d\'activation n\'existe pas. Vérifiez qu\'il est bien saisi.',
+  ACTIVATION_CODE_NO_ACTIVE_PACKS: 'Ce code ne donne accès à aucun pack disponible pour le moment. Contactez-nous.',
+  INVALID_FORMAT: 'Code invalide : il doit contenir de 8 à 32 caractères (lettres, chiffres et tirets).',
+  EMPTY: 'Veuillez saisir votre code d\'activation.',
+  SESSION_EXPIRED: 'Votre session a expiré. Reconnectez-vous puis réessayez.',
+  STUDENTS_ONLY: 'Seul un compte étudiant peut utiliser un code d\'activation.',
+  NETWORK_ERROR: 'Connexion impossible. Vérifiez votre connexion internet puis réessayez.',
+  UNKNOWN_ERROR: ERROR_MESSAGES.UNKNOWN_ERROR,
+} as const;
+
+function tooManyAttemptsMessage(retryAfterSeconds: unknown): string {
+  if (typeof retryAfterSeconds !== 'number' || retryAfterSeconds <= 0) {
+    return 'Trop de tentatives. Réessayez plus tard.';
+  }
+  const minutes = Math.ceil(retryAfterSeconds / 60);
+  return `Trop de tentatives. Réessayez dans ${minutes} minute${minutes > 1 ? 's' : ''}.`;
+}
+
+/**
+ * French message for a failed redemption. `error` is the apiClient rejection
+ * ({ error, statusCode, code?, details? }) or an unsuccessful response body.
+ */
+export function getRedeemErrorMessage(error: any): string {
+  const code: unknown = error?.code;
+  if (typeof code === 'string' && code in REDEEM_ERROR_MESSAGES) {
+    return REDEEM_ERROR_MESSAGES[code as keyof typeof REDEEM_ERROR_MESSAGES];
+  }
+
+  const status = error?.statusCode;
+  if (code === 'RATE_LIMITED' || status === 429) {
+    return tooManyAttemptsMessage(error?.details?.retryAfterSeconds);
+  }
+  if (code === 'NETWORK_ERROR' || code === 'TIMEOUT') {
+    return REDEEM_ERROR_MESSAGES.NETWORK_ERROR;
+  }
+  // The code itself was rejected by validation (too short, too long, other characters)
+  const issues = error?.details?.errors ?? error?.details?.fieldErrors;
+  if (status === 400 && Array.isArray(issues) && issues.some((issue: any) => issue?.field === 'code')) {
+    return REDEEM_ERROR_MESSAGES.INVALID_FORMAT;
+  }
+  if (status === 401) {
+    return REDEEM_ERROR_MESSAGES.SESSION_EXPIRED;
+  }
+  if (status === 403) {
+    return REDEEM_ERROR_MESSAGES.STUDENTS_ONLY;
+  }
+  return REDEEM_ERROR_MESSAGES.UNKNOWN_ERROR;
+}
+
+/**
  * Creates a standardized error object for activation code operations
  */
 export function createActivationCodeError(

@@ -87,6 +87,9 @@ export function ActivationCodesTable({
     return new Date(expiresAt) < new Date();
   };
 
+  // Every allowed redemption has been made
+  const isUsedUp = (code: ActivationCode) => code.currentUses >= code.maxUses;
+
   const handleDeleteConfirm = async (codeId: number) => {
     try {
       await onDeleteCode(codeId);
@@ -171,16 +174,19 @@ export function ActivationCodesTable({
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center space-x-2">
+                    {/* In the order a redemption checks them: what a student entering the code gets */}
                     <Badge 
                       variant={
                         !code.isActive ? 'secondary' :
                         isExpired(code.expiresAt) ? 'destructive' :
+                        isUsedUp(code) ? 'secondary' :
                         isExpiringSoon(code.expiresAt) ? 'outline' :
                         'default'
                       }
                     >
                       {!code.isActive ? 'Inactive' :
                        isExpired(code.expiresAt) ? 'Expired' :
+                       isUsedUp(code) ? 'Used up' :
                        isExpiringSoon(code.expiresAt) ? 'Expiring Soon' :
                        'Active'}
                     </Badge>
@@ -199,8 +205,8 @@ export function ActivationCodesTable({
                     <Calendar className="h-3 w-3 text-muted-foreground" />
                     <span className="text-sm">
                       {code.durationType === 'DAYS' 
-                        ? `${code.durationDays} Days`
-                        : `${code.durationMonths} Months`
+                        ? `${code.durationDays} Day${code.durationDays === 1 ? '' : 's'}`
+                        : `${code.durationMonths} Month${code.durationMonths === 1 ? '' : 's'}`
                       }
                     </span>
                   </div>

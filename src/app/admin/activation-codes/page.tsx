@@ -43,6 +43,7 @@ export default function AdminActivationCodesPage() {
     loading,
     error,
     filters,
+    stats,
     updateFilters,
     clearFilters,
     createCode,
@@ -90,7 +91,7 @@ export default function AdminActivationCodesPage() {
   };
 
   const handleDeactivateCode = async (codeId: number) => {
-    if (window.confirm('Are you sure you want to deactivate this activation code? This action cannot be undone.')) {
+    if (window.confirm('Deactivate this activation code? Students will no longer be able to redeem it. You can reactivate it later from Edit.')) {
       try {
         await deactivateCode(codeId);
       } catch (error) {
@@ -99,15 +100,11 @@ export default function AdminActivationCodesPage() {
     }
   };
 
-  // Calculate stats from current page data
-  const activeCodes = codes.filter(code => code.isActive).length;
-  const totalUsage = codes.reduce((sum, code) => sum + code.currentUses, 0);
-  const expiringCodes = codes.filter(code => {
-    const expiryDate = new Date(code.expiresAt);
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-    return code.isActive && expiryDate <= thirtyDaysFromNow;
-  }).length;
+  // Figures over all codes, from the backend (the table only holds the current page)
+  const allCodes = stats?.totalCodes ?? totalCodes;
+  const activeCodes = stats?.redeemableCodes ?? 0;
+  const totalUsage = stats?.totalRedemptions ?? 0;
+  const expiringCodes = stats?.expiringSoon ?? 0;
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -147,7 +144,7 @@ export default function AdminActivationCodesPage() {
             <Key className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalCodes}</div>
+            <div className="text-2xl font-bold">{allCodes}</div>
             <p className="text-xs text-muted-foreground">
               All activation codes
             </p>
@@ -162,7 +159,7 @@ export default function AdminActivationCodesPage() {
           <CardContent>
             <div className="text-2xl font-bold">{activeCodes}</div>
             <p className="text-xs text-muted-foreground">
-              Currently active
+              Redeemable now: active, not expired or used up
             </p>
           </CardContent>
         </Card>
@@ -188,7 +185,7 @@ export default function AdminActivationCodesPage() {
           <CardContent>
             <div className="text-2xl font-bold">{expiringCodes}</div>
             <p className="text-xs text-muted-foreground">
-              Within 30 days
+              Redeemable codes expiring within 30 days
             </p>
           </CardContent>
         </Card>

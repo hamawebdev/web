@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,6 +26,11 @@ export function ActivationCodesFilters({
   onClearFilters,
 }: ActivationCodesFiltersProps) {
   const [localSearch, setLocalSearch] = useState(filters.search || '');
+
+  // Follow the applied search, e.g. when the page's "Clear filters" resets it
+  useEffect(() => {
+    setLocalSearch(filters.search || '');
+  }, [filters.search]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();

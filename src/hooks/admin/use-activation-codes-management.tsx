@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { AdminService } from '@/lib/api-services';
-import { ActivationCode, CreateActivationCodeRequest, UpdateActivationCodeRequest, ActivationCodeFilters, PaginationParams } from '@/types/api';
+import { ActivationCode, ActivationCodeStats, CreateActivationCodeRequest, UpdateActivationCodeRequest, ActivationCodeFilters, PaginationParams } from '@/types/api';
 import { toast } from 'sonner';
 import { getActivationCodeErrorMessage } from '@/lib/activation-code-errors';
 
@@ -15,6 +15,8 @@ interface ActivationCodesState {
   loading: boolean;
   error: string | null;
   filters: ActivationCodeFilters & PaginationParams;
+  // Over all codes, not just the current page
+  stats: ActivationCodeStats | null;
 }
 
 // Hook for managing activation codes data
@@ -30,21 +32,30 @@ export function useActivationCodesManagement() {
       page: 1,
       limit: 20,
     },
+    stats: null,
   });
 
+  // Latest filters, for the reloads that follow a create, update, delete or deactivate
+  const filtersRef = useRef(state.filters);
+  filtersRef.current = state.filters;
+  // Only the latest request may update the list (an older, slower one must not overwrite it)
+  const requestSeq = useRef(0);
+
   // Fetch activation codes
-  const fetchCodes = useCallback(async (page?: number) => {
+  const fetchCodes = useCallback(async (filters: ActivationCodeFilters & PaginationParams = filtersRef.current) => {
+    const seq = ++requestSeq.current;
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
 
       const params = {
-        ...state.filters,
-        page: page || state.filters.page || 1,
+        ...filters,
+        page: filters.page || 1,
       };
 
       console.log('🔍 Fetching activation codes with params:', params);
 
       const response = await AdminService.getActivationCodes(params);
+      if (seq !== requestSeq.current) return;
       console.log('🔍 Raw API response:', response);
 
       // Cast response to any to handle different shapes
@@ -80,6 +91,7 @@ export function useActivationCodesManagement() {
           totalCodes: pagination.totalItems || pagination.total || 0,
           currentPage: pagination.currentPage || pagination.page || 1,
           totalPages: pagination.totalPages || 1,
+          stats: pagination.stats ?? null,
           loading: false,
           error: null,
         }));
@@ -88,6 +100,7 @@ export function useActivationCodesManagement() {
         throw new Error(errorMsg);
       }
     } catch (err) {
+      if (seq !== requestSeq.current) return;
       console.error('❌ Error fetching activation codes:', err);
       const errorMessage = getActivationCodeErrorMessage(err);
 
@@ -101,12 +114,12 @@ export function useActivationCodesManagement() {
         description: errorMessage,
       });
     }
-  }, [state.filters]);
-
-  // Initial load
-  useEffect(() => {
-    fetchCodes();
   }, []);
+
+  // Load, then reload whenever the filters or the page change
+  useEffect(() => {
+    fetchCodes(state.filters);
+  }, [state.filters, fetchCodes]);
 
   // Update filters
   const updateFilters = useCallback((newFilters: Partial<ActivationCodeFilters & PaginationParams>) => {
@@ -118,29 +131,18 @@ export function useActivationCodesManagement() {
         page: newFilters.page || 1, // Reset to page 1 when filters change (except when explicitly setting page)
       },
     }));
-
-    // Fetch with new filters
-    setTimeout(() => {
-      fetchCodes(newFilters.page || 1);
-    }, 0);
-  }, [fetchCodes]);
+  }, []);
 
   // Clear filters
   const clearFilters = useCallback(() => {
-    const clearedFilters = {
-      page: 1,
-      limit: 20,
-    };
-
     setState(prev => ({
       ...prev,
-      filters: clearedFilters,
+      filters: {
+        page: 1,
+        limit: 20,
+      },
     }));
-
-    setTimeout(() => {
-      fetchCodes(1);
-    }, 0);
-  }, [fetchCodes]);
+  }, []);
 
   // Go to specific page
   const goToPage = useCallback((page: number) => {
@@ -169,7 +171,7 @@ export function useActivationCodesManagement() {
         });
 
         // Refresh the codes list
-        await fetchCodes(state.currentPage);
+        await fetchCodes();
 
         return resp;
       } else if (isStandardSuccess) {
@@ -180,7 +182,7 @@ export function useActivationCodesManagement() {
         });
 
         // Refresh the codes list
-        await fetchCodes(state.currentPage);
+        await fetchCodes();
 
         return resp.data.activationCode || resp.data;
       } else {
@@ -196,7 +198,7 @@ export function useActivationCodesManagement() {
 
       throw err;
     }
-  }, [fetchCodes, state.currentPage]);
+  }, [fetchCodes]);
 
   // Deactivate activation code using the correct PATCH endpoint
   const deactivateCode = useCallback(async (codeId: number) => {
@@ -218,7 +220,7 @@ export function useActivationCodesManagement() {
         });
 
         // Refresh the codes list
-        await fetchCodes(state.currentPage);
+        await fetchCodes();
 
         return isCanonical ? resp : (resp.data.activationCode || resp.data);
       } else {
@@ -234,7 +236,7 @@ export function useActivationCodesManagement() {
 
       throw err;
     }
-  }, [fetchCodes, state.currentPage]);
+  }, [fetchCodes]);
 
   // Get activation code by ID
   const getCodeById = useCallback(async (codeId: number) => {
@@ -289,7 +291,7 @@ export function useActivationCodesManagement() {
         });
 
         // Refresh the codes list
-        await fetchCodes(state.currentPage);
+        await fetchCodes();
 
         return isCanonical ? resp : (resp.data.activationCode || resp.data);
       } else {
@@ -305,7 +307,7 @@ export function useActivationCodesManagement() {
 
       throw err;
     }
-  }, [fetchCodes, state.currentPage]);
+  }, [fetchCodes]);
 
   // Delete activation code
   const deleteCode = useCallback(async (codeId: number) => {
@@ -327,7 +329,7 @@ export function useActivationCodesManagement() {
         });
 
         // Refresh the codes list
-        await fetchCodes(state.currentPage);
+        await fetchCodes();
 
         return true;
       } else {
@@ -343,12 +345,12 @@ export function useActivationCodesManagement() {
 
       throw err;
     }
-  }, [fetchCodes, state.currentPage]);
+  }, [fetchCodes]);
 
   // Refresh data
   const refresh = useCallback(() => {
-    fetchCodes(state.currentPage);
-  }, [fetchCodes, state.currentPage]);
+    fetchCodes();
+  }, [fetchCodes]);
 
   // Computed properties
   const hasCodes = state.codes.length > 0;
@@ -366,6 +368,7 @@ export function useActivationCodesManagement() {
     loading: state.loading,
     error: state.error,
     filters: state.filters,
+    stats: state.stats,
 
     // Actions
     updateFilters,

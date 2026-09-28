@@ -1858,11 +1858,12 @@ export interface ReviewQuestionReportRequest {
 export interface ActivationCode {
   id: number;
   code: string;
-  description?: string;
+  description?: string | null;
   durationMonths?: number;
   durationDays?: number;
   durationType: 'MONTHS' | 'DAYS';
   maxUses: number;
+  // Number of redemptions so far
   currentUses: number;
   isActive: boolean;
   expiresAt: string;
@@ -1881,8 +1882,10 @@ export interface CreateActivationCodeRequest {
   studyPackIds: number[];
 }
 
+// PUT /admin/activation-codes/:id: every field is optional and only the fields sent change.
+// studyPackIds replaces all of the code's packs; maxUses cannot go below the code's redemptions.
 export interface UpdateActivationCodeRequest {
-  description?: string;
+  description?: string | null;
   durationMonths?: number;
   durationDays?: number;
   durationType?: 'MONTHS' | 'DAYS';
@@ -1890,10 +1893,7 @@ export interface UpdateActivationCodeRequest {
   expiresAt?: string;
   studyPackIds?: number[];
   isActive?: boolean;
-  // Fields PUT /admin/activation-codes/:id actually applies (updateActivationCodeSchema):
-  // expiryDate (ISO datetime), maxUses, durationMonths, isActive and a single studyPackId
-  // that replaces all of the code's packs. description, durationType, durationDays,
-  // expiresAt and studyPackIds are stripped by the backend on update.
+  // Legacy names still accepted by the backend
   expiryDate?: string;
   studyPackId?: number;
 }
@@ -1903,6 +1903,16 @@ export interface ActivationCodeFilters {
   search?: string;
   studyPackId?: number;
   expiryDate?: string;
+}
+
+// Figures over all codes, returned with GET /admin/activation-codes
+export interface ActivationCodeStats {
+  totalCodes: number;
+  // Active, not expired and not used up: a student can redeem them now
+  redeemableCodes: number;
+  // Redeemable codes that expire within 30 days
+  expiringSoon: number;
+  totalRedemptions: number;
 }
 
 // New API Response Types

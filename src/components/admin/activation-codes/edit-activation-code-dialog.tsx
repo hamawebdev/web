@@ -21,11 +21,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, AlertCircle, Calendar, Users, Clock, Package } from 'lucide-react';
-import { AdminService, StudentService } from '@/lib/api-services';
+import { Loader2, AlertCircle, Users, Clock, Package } from 'lucide-react';
+import { StudentService } from '@/lib/api-services';
 import { ActivationCode, UpdateActivationCodeRequest, StudyPack } from '@/types/api';
 import { toast } from 'sonner';
+import { endOfDayIso, isDayNotPast, toDateInputValue } from './expiry-date';
 
 interface EditActivationCodeDialogProps {
   open: boolean;
@@ -33,6 +33,36 @@ interface EditActivationCodeDialogProps {
   onUpdateCode: (codeId: number, codeData: UpdateActivationCodeRequest) => Promise<void>;
   activationCode: ActivationCode | null;
 }
+
+interface EditForm {
+  description: string;
+  durationType: 'MONTHS' | 'DAYS';
+  durationMonths: number;
+  durationDays: number;
+  maxUses: number;
+  expiresAt: string; // YYYY-MM-DD
+  studyPackIds: number[];
+  isActive: boolean;
+}
+
+function formFromCode(code: ActivationCode): EditForm {
+  return {
+    description: code.description || '',
+    durationType: code.durationType || 'MONTHS',
+    durationMonths: code.durationMonths || 1,
+    durationDays: code.durationDays || 30,
+    maxUses: code.maxUses,
+    expiresAt: toDateInputValue(code.expiresAt),
+    studyPackIds: code.studyPacks?.map(sp => sp.id) || [],
+    isActive: code.isActive,
+  };
+}
+
+const sameIds = (a: number[], b: number[]) => {
+  const x = [...a].sort((m, n) => m - n);
+  const y = [...b].sort((m, n) => m - n);
+  return x.length === y.length && x.every((id, i) => id === y[i]);
+};
 
 export function EditActivationCodeDialog({
   open,
@@ -43,20 +73,8 @@ export function EditActivationCodeDialog({
   const [loading, setLoading] = useState(false);
   const [studyPacks, setStudyPacks] = useState<StudyPack[]>([]);
   const [studyPacksLoading, setStudyPacksLoading] = useState(false);
-  const [formData, setFormData] = useState<UpdateActivationCodeRequest>({
-    description: '',
-    durationMonths: 1,
-    durationDays: undefined,
-    durationType: 'MONTHS',
-    maxUses: 100,
-    expiresAt: '',
-    studyPackIds: [],
-    isActive: true,
-  });
+  const [formData, setFormData] = useState<EditForm | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  // The duration type and a day-based duration cannot be changed through the update endpoint
-  const isMonthsCode = (activationCode?.durationType || 'MONTHS') === 'MONTHS';
 
   // Load study packs when dialog opens
   useEffect(() => {
@@ -65,24 +83,14 @@ export function EditActivationCodeDialog({
     }
   }, [open]);
 
-  // Populate form when activation code changes
+  // Start from the code as saved each time the dialog opens: unsaved edits of a
+  // cancelled dialog are dropped
   useEffect(() => {
-    if (activationCode) {
-      const expiryDate = new Date(activationCode.expiresAt);
-      const formattedDate = expiryDate.toISOString().split('T')[0];
-
-      setFormData({
-        description: activationCode.description || '',
-        durationMonths: activationCode.durationMonths,
-        durationDays: activationCode.durationDays,
-        durationType: activationCode.durationType || 'MONTHS',
-        maxUses: activationCode.maxUses,
-        expiresAt: formattedDate,
-        studyPackIds: activationCode.studyPacks?.map(sp => sp.id) || [],
-        isActive: activationCode.isActive,
-      });
+    if (open && activationCode) {
+      setFormData(formFromCode(activationCode));
+      setErrors({});
     }
-  }, [activationCode]);
+  }, [open, activationCode]);
 
   const loadStudyPacks = async () => {
     try {
@@ -131,81 +139,102 @@ export function EditActivationCodeDialog({
     }
   };
 
-  // Whether the selected study packs differ from the code's current packs
-  const studyPacksChanged = (): boolean => {
-    const original = (activationCode?.studyPacks?.map(sp => sp.id) || []).slice().sort((a, b) => a - b);
-    const selected = (formData.studyPackIds || []).slice().sort((a, b) => a - b);
-    return original.length !== selected.length || original.some((id, i) => id !== selected[i]);
-  };
+  if (!activationCode || !formData) {
+    return null;
+  }
+
+  const saved = formFromCode(activationCode);
+  const usedCount = activationCode.currentUses;
+  const minMaxUses = Math.max(1, usedCount);
+
+  // The code's packs that the list of active packs leaves out (a pack deactivated since)
+  const inactiveCodePacks = (activationCode.studyPacks || []).filter(
+    sp => !studyPacks.some(pack => pack.id === sp.id)
+  );
+
+  const update = (patch: Partial<EditForm>) => setFormData(prev => (prev ? { ...prev, ...patch } : prev));
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    // Validate duration based on type
     if (formData.durationType === 'MONTHS') {
       if (!formData.durationMonths || formData.durationMonths < 1 || formData.durationMonths > 60) {
         newErrors.duration = 'Duration must be between 1 and 60 months';
       }
-    } else if (formData.durationType === 'DAYS') {
-      if (!formData.durationDays || formData.durationDays < 1 || formData.durationDays > 1825) {
-        newErrors.duration = 'Duration must be between 1 and 1825 days';
-      }
+    } else if (!formData.durationDays || formData.durationDays < 1 || formData.durationDays > 1825) {
+      newErrors.duration = 'Duration must be between 1 and 1825 days';
     }
 
-    if (!formData.maxUses || formData.maxUses < 1) {
-      newErrors.maxUses = 'Max uses must be at least 1';
+    if (!formData.maxUses || formData.maxUses < minMaxUses) {
+      newErrors.maxUses = usedCount > 0
+        ? `Max uses cannot be lower than ${usedCount}: the code has already been redeemed ${usedCount} time(s)`
+        : 'Max uses must be at least 1';
     }
 
+    // An unchanged date is kept as is, even if it has passed
     if (!formData.expiresAt) {
       newErrors.expiresAt = 'Expiration date is required';
-    } else {
-      const expiryDate = new Date(formData.expiresAt);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      if (expiryDate < today) {
-        newErrors.expiresAt = 'Expiration date must be in the future';
-      }
+    } else if (formData.expiresAt !== saved.expiresAt && !isDayNotPast(formData.expiresAt)) {
+      newErrors.expiresAt = 'Expiration date must be today or later';
     }
 
-    if (!formData.studyPackIds || formData.studyPackIds.length === 0) {
+    if (formData.studyPackIds.length === 0) {
       newErrors.studyPackIds = 'Au moins un Study Pack doit être sélectionné';
-    } else if (studyPacksChanged() && formData.studyPackIds.length !== 1) {
-      // The update endpoint only takes a single studyPackId, which replaces all current packs
-      newErrors.studyPackIds = 'Lors de la modification, un seul Study Pack peut être défini (il remplace les packs actuels). Créez un nouveau code pour plusieurs packs.';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  // Only what the admin changed: PUT /admin/activation-codes/:id leaves other fields as they are
+  const changes = (): UpdateActivationCodeRequest => {
+    const data: UpdateActivationCodeRequest = {};
+    const description = formData.description.trim();
+    if (description !== saved.description.trim()) {
+      data.description = description || null;
+    }
+    const typeChanged = formData.durationType !== saved.durationType;
+    if (typeChanged) {
+      data.durationType = formData.durationType;
+    }
+    if (formData.durationType === 'MONTHS' && (typeChanged || formData.durationMonths !== saved.durationMonths)) {
+      data.durationMonths = formData.durationMonths;
+    }
+    if (formData.durationType === 'DAYS' && (typeChanged || formData.durationDays !== saved.durationDays)) {
+      data.durationDays = formData.durationDays;
+    }
+    if (formData.maxUses !== saved.maxUses) {
+      data.maxUses = formData.maxUses;
+    }
+    if (formData.expiresAt !== saved.expiresAt) {
+      // Valid until the end of the chosen day, in the admin's time zone
+      data.expiresAt = endOfDayIso(formData.expiresAt);
+    }
+    if (formData.isActive !== saved.isActive) {
+      data.isActive = formData.isActive;
+    }
+    if (!sameIds(formData.studyPackIds, saved.studyPackIds)) {
+      data.studyPackIds = formData.studyPackIds;
+    }
+    return data;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!activationCode || !validateForm()) {
+    if (!validateForm()) {
+      return;
+    }
+
+    const codeData = changes();
+    if (Object.keys(codeData).length === 0) {
+      onOpenChange(false);
       return;
     }
 
     try {
       setLoading(true);
-
-      // Convert date to ISO string with time
-      const expiryDateTime = new Date(formData.expiresAt + 'T23:59:59.999Z');
-
-      // Only send what PUT /admin/activation-codes/:id applies (updateActivationCodeSchema);
-      // anything else is stripped by the backend while the request still succeeds.
-      const codeData: UpdateActivationCodeRequest = {
-        maxUses: formData.maxUses,
-        expiryDate: expiryDateTime.toISOString(),
-        isActive: formData.isActive,
-        ...(isMonthsCode ? { durationMonths: formData.durationMonths } : {}),
-        ...(studyPacksChanged() && formData.studyPackIds?.length === 1
-          ? { studyPackId: formData.studyPackIds[0] }
-          : {}),
-      };
-
       await onUpdateCode(activationCode.id, codeData);
-
       setErrors({});
     } catch (error) {
       // Error handling is done in the parent component
@@ -215,29 +244,16 @@ export function EditActivationCodeDialog({
   };
 
   const handleStudyPackToggle = (studyPackId: number, checked: boolean) => {
-    setFormData(prev => ({
+    setFormData(prev => prev ? {
       ...prev,
       studyPackIds: checked
-        ? [...(prev.studyPackIds || []), studyPackId]
-        : (prev.studyPackIds || []).filter(id => id !== studyPackId)
-    }));
+        ? [...prev.studyPackIds, studyPackId]
+        : prev.studyPackIds.filter(id => id !== studyPackId)
+    } : prev);
   };
-
-  const handleDurationTypeChange = (newType: 'MONTHS' | 'DAYS') => {
-    setFormData(prev => ({
-      ...prev,
-      durationType: newType,
-      durationMonths: newType === 'MONTHS' ? (prev.durationMonths || 1) : undefined,
-      durationDays: newType === 'DAYS' ? (prev.durationDays || 30) : undefined,
-    }));
-  };
-
-  if (!activationCode) {
-    return null;
-  }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(next) => { if (!loading) onOpenChange(next); }}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -246,24 +262,22 @@ export function EditActivationCodeDialog({
           </DialogTitle>
           <DialogDescription>
             Update the activation code details. Code: <strong>{activationCode.code}</strong>
+            {' '}· Redeemed {usedCount} of {activationCode.maxUses} time{activationCode.maxUses > 1 ? 's' : ''}.
+            Changes apply to the next student who enters the code.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6" noValidate>
           {/* Description */}
           <div className="space-y-2">
             <Label htmlFor="description">Description (Optional)</Label>
             <Textarea
               id="description"
               placeholder="Enter a description for this activation code..."
-              value={formData.description || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              value={formData.description}
+              onChange={(e) => update({ description: e.target.value })}
               rows={3}
-              disabled
             />
-            <p className="text-xs text-muted-foreground">
-              The description cannot be changed after the code is created.
-            </p>
           </div>
 
           {/* Duration Type and Duration */}
@@ -274,7 +288,10 @@ export function EditActivationCodeDialog({
                 <Clock className="inline h-4 w-4 mr-1" />
                 Duration Type
               </Label>
-              <Select value={formData.durationType} onValueChange={handleDurationTypeChange} disabled>
+              <Select
+                value={formData.durationType}
+                onValueChange={(value: 'MONTHS' | 'DAYS') => update({ durationType: value })}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select duration type" />
                 </SelectTrigger>
@@ -299,25 +316,17 @@ export function EditActivationCodeDialog({
                   value={formData.durationType === 'MONTHS' ? formData.durationMonths || '' : formData.durationDays || ''}
                   onChange={(e) => {
                     const value = parseInt(e.target.value) || 1;
-                    setFormData(prev => ({
-                      ...prev,
-                      ...(formData.durationType === 'MONTHS'
-                        ? { durationMonths: value }
-                        : { durationDays: value }
-                      )
-                    }));
+                    update(formData.durationType === 'MONTHS' ? { durationMonths: value } : { durationDays: value });
                   }}
                   placeholder={formData.durationType === 'MONTHS' ? '1-60 months' : '1-1825 days'}
                   className={errors.duration ? 'border-red-500' : ''}
-                  disabled={!isMonthsCode}
                 />
                 {errors.duration && (
                   <p className="text-sm text-red-500">{errors.duration}</p>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  {isMonthsCode
-                    ? 'Range: 1-60 months'
-                    : 'A duration in days cannot be changed after the code is created.'}
+                  {formData.durationType === 'MONTHS' ? 'Range: 1-60 months' : 'Range: 1-1825 days (5 years)'}.
+                  {' '}Students who already redeemed the code keep what they got.
                 </p>
               </div>
 
@@ -329,18 +338,18 @@ export function EditActivationCodeDialog({
                 <Input
                   id="maxUses"
                   type="number"
-                  min="1"
+                  min={minMaxUses}
                   max="10000"
                   value={formData.maxUses || ''}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    maxUses: parseInt(e.target.value) || 1
-                  }))}
+                  onChange={(e) => update({ maxUses: parseInt(e.target.value) || 1 })}
                   className={errors.maxUses ? 'border-red-500' : ''}
                 />
                 {errors.maxUses && (
                   <p className="text-sm text-red-500">{errors.maxUses}</p>
                 )}
+                <p className="text-xs text-muted-foreground">
+                  Already redeemed {usedCount} time{usedCount === 1 ? '' : 's'}.
+                </p>
               </div>
             </div>
           </div>
@@ -351,13 +360,14 @@ export function EditActivationCodeDialog({
             <Input
               id="expiresAt"
               type="date"
-              value={formData.expiresAt || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, expiresAt: e.target.value }))}
+              value={formData.expiresAt}
+              onChange={(e) => update({ expiresAt: e.target.value })}
               className={errors.expiresAt ? 'border-red-500' : ''}
             />
             {errors.expiresAt && (
               <p className="text-sm text-red-500">{errors.expiresAt}</p>
             )}
+            <p className="text-xs text-muted-foreground">The code works until the end of this day.</p>
           </div>
 
           {/* Active Status */}
@@ -365,32 +375,29 @@ export function EditActivationCodeDialog({
             <Checkbox
               id="isActive"
               checked={formData.isActive}
-              onCheckedChange={(checked) => setFormData(prev => ({
-                ...prev,
-                isActive: checked as boolean
-              }))}
+              onCheckedChange={(checked) => update({ isActive: checked as boolean })}
             />
-            <Label htmlFor="isActive">Active</Label>
+            <Label htmlFor="isActive">Active (students can redeem it)</Label>
           </div>
 
           {/* Study Packs */}
           <div className="space-y-2">
             <Label>Study Packs *</Label>
             <p className="text-xs text-muted-foreground">
-              Selecting a different pack replaces the code&apos;s current packs; only one pack can be set here.
+              The packs a student gets when redeeming the code. Students who already redeemed it keep their packs.
             </p>
             {studyPacksLoading ? (
               <div className="flex items-center justify-center py-4 border rounded-md bg-muted/50">
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
                 <span className="text-sm text-muted-foreground">Chargement des Study Packs...</span>
               </div>
-            ) : studyPacks.length > 0 ? (
+            ) : studyPacks.length > 0 || inactiveCodePacks.length > 0 ? (
               <div className="max-h-40 overflow-y-auto border rounded-md p-3 space-y-2 bg-background">
                 {studyPacks.map((pack) => (
                   <div key={pack.id} className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted/50 transition-colors">
                     <Checkbox
                       id={`pack-${pack.id}`}
-                      checked={(formData.studyPackIds || []).includes(pack.id)}
+                      checked={formData.studyPackIds.includes(pack.id)}
                       onCheckedChange={(checked) => handleStudyPackToggle(pack.id, checked as boolean)}
                       className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                     />
@@ -401,9 +408,24 @@ export function EditActivationCodeDialog({
                       <div className="space-y-1">
                         <div className="font-medium text-foreground">{pack.name}</div>
                         <div className="text-xs text-muted-foreground">
-                          {pack.type}{pack.yearNumber ? ` • Année ${pack.yearNumber}` : ''}{pack.price ? ` • ${pack.price}€` : ''}
+                          {pack.type}{pack.yearNumber ? ` • Année ${pack.yearNumber}` : ''}
                         </div>
                       </div>
+                    </Label>
+                  </div>
+                ))}
+                {inactiveCodePacks.map((pack) => (
+                  <div key={pack.id} className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted/50 transition-colors">
+                    <Checkbox
+                      id={`pack-${pack.id}`}
+                      checked={formData.studyPackIds.includes(pack.id)}
+                      onCheckedChange={(checked) => handleStudyPackToggle(pack.id, checked as boolean)}
+                    />
+                    <Label
+                      htmlFor={`pack-${pack.id}`}
+                      className="text-sm font-normal cursor-pointer flex-1 leading-none"
+                    >
+                      <div className="font-medium text-muted-foreground">{pack.name} (inactive pack: not granted)</div>
                     </Label>
                   </div>
                 ))}
@@ -417,11 +439,11 @@ export function EditActivationCodeDialog({
             {errors.studyPackIds && (
               <p className="text-sm text-red-500">{errors.studyPackIds}</p>
             )}
-            {(formData.studyPackIds || []).length > 0 && (
+            {formData.studyPackIds.length > 0 && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/30 px-3 py-2 rounded-md">
                 <Package className="h-4 w-4" />
                 <span>
-                  {(formData.studyPackIds || []).length} Study Pack{(formData.studyPackIds || []).length > 1 ? 's' : ''} sélectionné{(formData.studyPackIds || []).length > 1 ? 's' : ''}
+                  {formData.studyPackIds.length} Study Pack{formData.studyPackIds.length > 1 ? 's' : ''} sélectionné{formData.studyPackIds.length > 1 ? 's' : ''}
                 </span>
               </div>
             )}
