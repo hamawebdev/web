@@ -67,6 +67,11 @@ type ApiQuizAction =
   | { type: 'UPDATE_SESSION_RESULTS'; results: { score: number; percentage: number; timeSpent: number; answeredQuestions: number; totalQuestions: number; correctAnswersCount?: number; incorrectAnswersCount?: number; unansweredQuestionsCount?: number } };
 
 // Enhanced quiz reducer with API integration
+/** Below Tailwind's lg breakpoint the question list is an overlay rather than a column. */
+function isNarrowViewport(): boolean {
+  return typeof window !== 'undefined' && window.innerWidth < 1024;
+}
+
 function apiQuizReducer(state: ApiQuizState, action: ApiQuizAction): ApiQuizState {
   switch (action.type) {
     case 'NEXT_QUESTION':
@@ -539,8 +544,10 @@ export function ApiQuizProvider({
         dispatch({ type: 'GO_TO_QUESTION', questionIndex: progressData.currentQuestionIndex });
         dispatch({ type: 'UPDATE_TIMER', totalTime: progressData.timeSpent, questionTime: 0 });
 
-        // Restore UI state
-        if (progressData.uiState.sidebarOpen !== undefined && progressData.uiState.sidebarOpen !== state.sidebarOpen) {
+        // Restore UI state. On phones and small tablets the question list is an overlay,
+        // so it always starts closed there instead of covering the question.
+        const restoredSidebarOpen = isNarrowViewport() ? false : progressData.uiState.sidebarOpen;
+        if (restoredSidebarOpen !== undefined && restoredSidebarOpen !== state.sidebarOpen) {
           dispatch({ type: 'TOGGLE_SIDEBAR' });
         }
 
@@ -591,6 +598,10 @@ export function ApiQuizProvider({
 
         quizStorage.saveSessionState(sessionState);
         console.log(`💾 Initialized new session ${storageSessionId} in client storage`);
+
+        if (isNarrowViewport() && state.sidebarOpen) {
+          dispatch({ type: 'TOGGLE_SIDEBAR' });
+        }
       }
     }
   }, [storageSessionId, state.clientStorageEnabled, initialSession, apiSessionId]);

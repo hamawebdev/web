@@ -558,6 +558,7 @@ export function QuizLayout() {
                 variant="ghost"
                 size="sm"
                 onClick={toggleSidebar}
+                aria-label="Close question list"
                 className="lg:hidden p-1 h-6 w-6"
               >
                 <X className="h-4 w-4" />
