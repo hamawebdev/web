@@ -11,7 +11,16 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { LoadingSpinner } from '@/components/loading-states'
 import { useStudentAuth } from '@/hooks/use-auth'
 import { useContentFilters } from '@/hooks/use-content-filters'
+import { useUserSubscriptions } from '@/hooks/use-subscription'
 import { NewApiService } from '@/lib/api/new-api-services'
+import { StudentService } from '@/lib/api-services'
+import {
+  FALLBACK_RESOURCE_YEARS,
+  YearLevel,
+  defaultResourceYear,
+  isResidencyStudent,
+  yearsWithYearPack
+} from '@/lib/resource-years'
 import { UnitModuleGrid } from '@/components/student/shared/unit-module-grid'
 import { UnitModuleItem } from '@/components/student/shared/unit-module-compact-card'
 import { UnitModuleImageCard } from '@/components/student/shared/unit-module-image-card'
@@ -21,7 +30,6 @@ import { LoadingState } from '@/components/student/course-resources/loading-stat
 import { ErrorState } from '@/components/student/course-resources/error-state'
 import { ModuleBooksSection } from '@/components/student/course-resources/module-books-section'
 import { toast } from 'sonner'
-import { useYearLevel } from '@/hooks/use-year-level'
 import { YearLevelSelector } from '@/components/student/shared/year-level-selector'
 
 // Navigation types
@@ -55,23 +63,99 @@ interface Course {
 export default function CourseResourcesPage() {
   const router = useRouter()
   const { isAuthenticated, loading: authLoading } = useStudentAuth()
-
-  // Detect year level from subscription
-  // Only apply filtering for SEVEN (Résidanat) students
   const {
-    effectiveYearLevel,
-    shouldApplyFilter,
-    loading: yearLevelLoading
-  } = useYearLevel()
+    subscriptions,
+    loading: subscriptionsLoading,
+    error: subscriptionsError,
+    refresh: refreshSubscriptions
+  } = useUserSubscriptions()
 
-  const [selectedYearLevel, setSelectedYearLevel] = useState<string | null>(null)
+  // Residency students (active Résidanat pack) pick any year that has a year pack and
+  // open on 1st year. Everyone else sees their own packs, with no year to pick.
+  const isResidency = isResidencyStudent(subscriptions)
+  const [years, setYears] = useState<YearLevel[] | null>(null)
+  const [selectedYear, setSelectedYear] = useState<YearLevel | null>(null)
 
-  // Use selected year level if set, otherwise use effective year level (only SEVEN)
-  const activeYearLevel = selectedYearLevel || effectiveYearLevel
+  useEffect(() => {
+    if (!isResidency) return
+    let cancelled = false
+    StudentService.getStudyPacks({ page: 1, limit: 100 })
+      .then(response => {
+        const data: any = response.data
+        const offered = yearsWithYearPack(Array.isArray(data) ? data : data?.items)
+        if (!cancelled) setYears(offered.length > 0 ? offered : FALLBACK_RESOURCE_YEARS)
+      })
+      .catch(() => {
+        if (!cancelled) setYears(FALLBACK_RESOURCE_YEARS)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [isResidency])
 
-  const { filters, loading: filtersLoading, error: filtersError, refetch } = useContentFilters({
-    yearLevel: activeYearLevel
-  })
+  const yearLevel = isResidency && years ? (selectedYear ?? defaultResourceYear(years) ?? undefined) : undefined
+  // Content is loaded once the year is known, so a residency student never gets the
+  // unfiltered tree of every pack
+  const ready = !subscriptionsLoading && (!isResidency || years !== null)
+
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <LoadingSpinner size="lg" />
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    router.push('/login')
+    return null
+  }
+
+  return (
+    <div className="flex-1 space-y-4 sm:space-y-6 p-2 sm:p-4 lg:p-6 pt-4 sm:pt-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <FolderWithFiles className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 text-primary" />
+            </div>
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-heading-primary">
+              Course Resources
+            </h2>
+          </div>
+        </div>
+      </div>
+
+      {subscriptionsError ? (
+        <ErrorState message={subscriptionsError} onRetry={refreshSubscriptions} />
+      ) : !ready ? (
+        <LoadingState message="Loading content..." />
+      ) : (
+        // Keyed by year: a new year starts again from the units, and a late answer for
+        // the previous year can no longer replace the new one
+        <CourseResourcesBrowser
+          key={yearLevel ?? 'own-packs'}
+          yearLevel={yearLevel}
+          yearPicker={isResidency && years ? (
+            <YearLevelSelector
+              value={yearLevel ?? null}
+              onChange={(year) => {
+                if (year) setSelectedYear(year)
+              }}
+              years={years}
+              showAllOption={false}
+              placeholder="Select year"
+            />
+          ) : null}
+        />
+      )}
+    </div>
+  )
+}
+
+function CourseResourcesBrowser({ yearLevel, yearPicker }: { yearLevel?: YearLevel; yearPicker: React.ReactNode }) {
+  const { filters, loading: filtersLoading, error: filtersError, refetch } = useContentFilters({ yearLevel })
 
   // Navigation state
   const [navigation, setNavigation] = useState<NavigationState>({
@@ -152,9 +236,9 @@ export default function CourseResourcesPage() {
         // Try to read from already-fetched filters first
         let coursesFromFilters = filters?.independentModules?.find(m => m.id === moduleId)?.courses
 
-        // If not present, refetch content filters and extract
+        // If not present, refetch content filters (same year) and extract
         if (!coursesFromFilters) {
-          const cfResp = await NewApiService.getContentFilters()
+          const cfResp = await NewApiService.getContentFilters(yearLevel)
           if (cfResp.success && cfResp.data) {
             coursesFromFilters = cfResp.data.independentModules?.find(m => m.id === moduleId)?.courses
           }
@@ -196,7 +280,7 @@ export default function CourseResourcesPage() {
     } finally {
       setLoading(false)
     }
-  }, [filters, navigation.selectedUnit])
+  }, [filters, navigation.selectedUnit, yearLevel])
 
   const navigateToLevel = useCallback((level: NavigationLevel) => {
     if (level === 'units') {
@@ -277,37 +361,8 @@ export default function CourseResourcesPage() {
       .sort((a, b) => a.name.localeCompare(b.name))
   }, [courses, courseSearchQuery])
 
-
-  // Handle authentication redirect
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <LoadingSpinner size="lg" />
-      </div>
-    )
-  }
-
-  if (!isAuthenticated) {
-    router.push('/login')
-    return null
-  }
-
   return (
-    <div className="flex-1 space-y-4 sm:space-y-6 p-2 sm:p-4 lg:p-6 pt-4 sm:pt-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <FolderWithFiles className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 text-primary" />
-            </div>
-            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-heading-primary">
-              Course Resources
-            </h2>
-          </div>
-        </div>
-      </div>
-
+    <>
       {/* Breadcrumb Navigation */}
       <BreadcrumbNavigation
         items={breadcrumbs.map((item, index) => ({
@@ -349,20 +404,8 @@ export default function CourseResourcesPage() {
                 <h3 className="text-lg font-semibold">Select a Unit or Module</h3>
               </div>
 
-              {/* Year Level Selection - Only show for SEVEN (Résidanat) students */}
-              {shouldApplyFilter && (
-                <YearLevelSelector
-                  value={selectedYearLevel as any}
-                  onChange={(yearLevel) => setSelectedYearLevel(yearLevel)}
-                  loading={yearLevelLoading}
-                  showAllOption={false}
-                  placeholder={
-                    yearLevelLoading
-                      ? "Chargement..."
-                      : "Select year"
-                  }
-                />
-              )}
+              {/* Year selection: residency students only */}
+              {yearPicker}
 
               {/* Use UnitModuleGrid for consistent layout */}
               <UnitModuleGrid
@@ -487,7 +530,7 @@ export default function CourseResourcesPage() {
           )}
         </>
       )}
-    </div>
+    </>
   )
 }
 

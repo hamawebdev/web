@@ -24,6 +24,8 @@ interface YearLevelSelectorProps {
   required?: boolean;
   /** data-testid of the trigger */
   testId?: string;
+  // Years to offer, in study order (default: every year)
+  years?: readonly YearLevel[];
 }
 
 const YEAR_LEVELS: { value: YearLevel; label: string }[] = [
@@ -49,8 +51,11 @@ export function YearLevelSelector({
   labelClassName,
   showAllOption = true,
   required = false,
-  testId
+  testId,
+  years
 }: YearLevelSelectorProps) {
+  const options = years ? YEAR_LEVELS.filter((year) => years.includes(year.value)) : YEAR_LEVELS;
+
   const handleValueChange = (newValue: string) => {
     if (newValue === 'all') {
       onChange(null);
@@ -78,7 +83,7 @@ export function YearLevelSelector({
           {showAllOption && (
             <SelectItem value="all">Toutes les Années</SelectItem>
           )}
-          {YEAR_LEVELS.map((year) => (
+          {options.map((year) => (
             <SelectItem key={year.value} value={year.value}>
               {year.label}
             </SelectItem>
