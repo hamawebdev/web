@@ -44,7 +44,7 @@ export function CreateActivationCodeDialog({
   const [studyPacksLoading, setStudyPacksLoading] = useState(false);
   const [formData, setFormData] = useState<CreateActivationCodeRequest>({
     description: '',
-    durationMonths: 1,
+    durationMonths: 12,
     durationDays: undefined,
     durationType: 'MONTHS',
     maxUses: 1,
@@ -174,7 +174,7 @@ export function CreateActivationCodeDialog({
       // Reset form
       setFormData({
         description: '',
-        durationMonths: 1,
+        durationMonths: 12,
         durationDays: undefined,
         durationType: 'MONTHS',
         maxUses: 1,
@@ -202,7 +202,7 @@ export function CreateActivationCodeDialog({
     if (!loading) {
       setFormData({
         description: '',
-        durationMonths: 1,
+        durationMonths: 12,
         durationDays: undefined,
         durationType: 'MONTHS',
         maxUses: 1,
@@ -218,7 +218,7 @@ export function CreateActivationCodeDialog({
     setFormData(prev => ({
       ...prev,
       durationType: newType,
-      durationMonths: newType === 'MONTHS' ? (prev.durationMonths || 1) : undefined,
+      durationMonths: newType === 'MONTHS' ? (prev.durationMonths || 12) : undefined,
       durationDays: newType === 'DAYS' ? (prev.durationDays || 30) : undefined,
     }));
   };
