@@ -12,7 +12,6 @@ import { RedeemActivationCodeModal } from '@/components/student/subscription/red
 import { SubscriptionErrorBoundary, usePerformanceMonitoring, useErrorReporting } from '@/components/student/subscription/subscription-error-boundary';
 import { StudyPackPricingCard } from '@/components/student/subscription/study-pack-pricing-card';
 import { RefreshCw, AlertCircle, Instagram } from 'lucide-react';
-import { PaymentService } from '@/lib/api-services';
 import { Gift } from '@solar-icons/react';
 import type { StudyPack } from '@/types/api';
 
@@ -28,7 +27,6 @@ function BrowseSubscriptionsPageContent() {
   const [studyPacks, setStudyPacks] = useState<any[]>([]);
   const [pricingMode, setPricingMode] = useState<'YEAR' | 'MONTH'>('YEAR');
   const [selectedPackId, setSelectedPackId] = useState<number | null>(null);
-  const [processingPackId, setProcessingPackId] = useState<number | null>(null);
 
   // Memoize the loadPacks function to prevent unnecessary re-renders
   const loadPacks = useCallback(async () => {
@@ -147,69 +145,14 @@ function BrowseSubscriptionsPageContent() {
 
   const handleCtaClick = useCallback((pack: StudyPack) => {
     const isGrace = cancelledWithinGraceIds.has(pack.id);
-    if (isGrace) {
-      // Redirect to manage subscriptions for renewal flow (payment integration TBD)
-      router.push('/student/subscriptions');
-      return;
-    }
-    if (activeSub) {
+    if (activeSub && !isGrace) {
       // Do nothing; disabled
       return;
     }
 
-    // Non-subscriber subscribe flow - redirect to payment page
-    const durationType = pricingMode === 'YEAR' ? 'yearly' : 'monthly';
-    const durationValue = '1';
-
-    // Direct redirection to Chargily
-    // We default to 'edahabia' as it's the most common method
-    // and 'ar' locale as fallback
-    const browserLang = typeof window !== 'undefined' ? window.navigator.language.split('-')[0] : 'ar';
-    const locale = ['ar', 'en', 'fr'].includes(browserLang) ? browserLang : 'ar';
-
-    setProcessingPackId(pack.id);
-
-    const paymentRequest = {
-      studyPackId: pack.id,
-      paymentDuration: {
-        type: durationType,
-        ...(durationType === 'monthly' ? { months: parseInt(durationValue) } : { years: parseInt(durationValue) })
-      },
-      locale: locale as any,
-      paymentMethod: 'edahabia' as const
-    };
-
-    PaymentService.createCheckoutSession(paymentRequest)
-      .then((response: any) => {
-        if (response.success && response.data?.checkoutUrl) {
-          window.location.href = response.data.checkoutUrl;
-        } else {
-          console.error('Failed to create checkout session', response);
-          // Fallback to old behavior if direct checkout fails
-          alert("Failed to initiate payment. Please try again later.");
-          setProcessingPackId(null);
-        }
-      })
-      .catch((err) => {
-        console.error('Payment error:', err);
-        // Fallback to old behavior on error
-        alert("An error occurred while initiating payment. Please check your connection and try again.");
-        setProcessingPackId(null);
-      })
-      .finally(() => {
-        // Don't clear processing state if successful redirect is happening to prevent flash
-        // But if we're falling back to router.push, we might want to keep it or clear it. 
-        // Clearing it is safer in case the redirect is slow or fails silently.
-        // However, since we're doing window.location.href, we can leave it.
-        // If we fallback to router.push, we also leave it as page will change.
-        // If error and NO fallback (which isn't the case here), we would clear.
-
-        // Actually, if we error/fallback, we should probably clear it if we stay on page (which we don't, we push).
-        // If an error happens that PREVENTS redirect, we should clear.
-        // But here we ALWAYS try to redirect (either to chargily or payment page).
-        // So keeping it true is fine as the page will unload.
-      });
-
+    // Subscribe and Renew are paid by manual BaridiMob transfer: show the instructions for this pack
+    const cycle = pricingMode === 'YEAR' ? 'yearly' : 'monthly';
+    router.push(`/student/subscriptions/payment?packId=${pack.id}&cycle=${cycle}`);
   }, [cancelledWithinGraceIds, activeSub, pricingMode, router]);
 
   // Handle successful activation code redemption
@@ -305,7 +248,6 @@ function BrowseSubscriptionsPageContent() {
                   ctaVariant={cta.variant}
                   onSelect={() => handlePackSelect(pack.id)}
                   onCtaClick={() => handleCtaClick(pack)}
-                  isProcessing={processingPackId === pack.id}
                 />
               );
             })}

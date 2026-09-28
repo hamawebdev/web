@@ -88,7 +88,7 @@ export default function DesignerPricing() {
                 </span>
               </div>
               <span className="rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-sm font-semibold text-primary uppercase sm:px-5 sm:py-2 sm:text-base">
-                30% OFF
+                55% OFF
               </span>
             </div>
 
@@ -102,10 +102,10 @@ export default function DesignerPricing() {
             <div className="mb-8">
               <div className="mb-2 flex items-center gap-3">
                 <span className="text-2xl text-muted-foreground line-through font-medium">
-                  1,800 DA
+                  2,200 DA
                 </span>
                 <span className="text-4xl font-bold tracking-tight lg:text-5xl text-primary">
-                  1,200 DA<span className="text-lg font-medium text-muted-foreground ml-1">/ year</span>
+                  1,000 DA<span className="text-lg font-medium text-muted-foreground ml-1">/ year</span>
                 </span>
               </div>
 
@@ -161,7 +161,7 @@ export default function DesignerPricing() {
                 </span>
               </div>
               <span className="rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-sm font-semibold text-primary uppercase sm:px-5 sm:py-2 sm:text-base">
-                40% OFF
+                33% OFF
               </span>
             </div>
 
@@ -175,10 +175,10 @@ export default function DesignerPricing() {
             <div className="mb-8">
               <div className="mb-2 flex items-center gap-3">
                 <span className="text-2xl text-muted-foreground line-through font-medium">
-                  12,500 DA
+                  7,500 DA
                 </span>
                 <span className="text-4xl font-bold tracking-tight lg:text-5xl text-foreground">
-                  7,500 DA<span className="text-lg font-medium text-muted-foreground ml-1">/ year</span>
+                  5,000 DA<span className="text-lg font-medium text-muted-foreground ml-1">/ year</span>
                 </span>
               </div>
 
