@@ -18,8 +18,6 @@ const BARIDIMOB_NUMBER = '00799999004137509016';
 const INSTAGRAM_URL = 'https://www.instagram.com/med.adn.dz/';
 const FACEBOOK_URL = 'https://www.facebook.com/medadn';
 
-type BillingCycle = 'yearly' | 'monthly';
-
 // Same currency format as the price on the plan cards
 const formatDzd = (amount: number) =>
   new Intl.NumberFormat(undefined, { style: 'currency', currency: 'DZD' }).format(amount);
@@ -30,9 +28,7 @@ function BaridiMobPaymentContent() {
   const { user } = useStudentAuth();
 
   const packId = Number(searchParams.get('packId'));
-  const cycleParam = searchParams.get('cycle');
-  const cycle: BillingCycle | null = cycleParam === 'yearly' || cycleParam === 'monthly' ? cycleParam : null;
-  const isValidLink = Number.isInteger(packId) && packId > 0 && cycle !== null;
+  const isValidLink = Number.isInteger(packId) && packId > 0;
 
   const [pack, setPack] = useState<StudyPack | null>(null);
   const [loading, setLoading] = useState(true);
@@ -71,8 +67,8 @@ function BaridiMobPaymentContent() {
 
   const backToPlans = () => router.push('/student/subscriptions/browse');
 
-  // Prices come from the API as strings; a missing price means the pack cannot be bought on this cycle
-  const amount = pack && cycle ? Number(cycle === 'yearly' ? pack.pricePerYear : pack.pricePerMonth) : NaN;
+  // Packs are sold yearly only; prices come from the API as strings and a missing price means the pack cannot be bought
+  const amount = pack ? Number(pack.pricePerYear) : NaN;
   const isAvailable = isValidLink && !!pack && Number.isFinite(amount) && amount > 0;
 
   return (
@@ -106,7 +102,7 @@ function BaridiMobPaymentContent() {
               </Button>
             </CardContent>
           </Card>
-        ) : !isAvailable || !pack || !cycle ? (
+        ) : !isAvailable || !pack ? (
           <Card>
             <CardContent className="py-8 text-center">
               <AlertCircle className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
@@ -118,7 +114,6 @@ function BaridiMobPaymentContent() {
         ) : (
           <PaymentInstructions
             pack={pack}
-            cycle={cycle}
             amount={amount}
             email={user?.email}
             onRedeemClick={() => setRedeemOpen(true)}
@@ -137,19 +132,16 @@ function BaridiMobPaymentContent() {
 
 function PaymentInstructions({
   pack,
-  cycle,
   amount,
   email,
   onRedeemClick,
 }: {
   pack: StudyPack;
-  cycle: BillingCycle;
   amount: number;
   email?: string;
   onRedeemClick: () => void;
 }) {
   const [copied, setCopied] = useState(false);
-  const cycleLabel = cycle === 'yearly' ? 'Yearly' : 'Monthly';
 
   const handleCopy = async () => {
     try {
@@ -170,7 +162,7 @@ function PaymentInstructions({
     <>Take a screenshot of the transfer confirmation.</>,
     <>
       Send the screenshot to us on Instagram or Facebook, with the pack you paid for (
-      <strong>{pack.name}</strong>, {cycleLabel.toLowerCase()}) and the email of your MedADN account
+      <strong>{pack.name}</strong>, yearly) and the email of your MedADN account
       {email ? (
         <>
           {' '}
@@ -192,7 +184,7 @@ function PaymentInstructions({
         <div className="min-w-0">
           <p className="text-sm text-muted-foreground">Pack</p>
           <p className="text-lg font-medium text-foreground leading-tight">{pack.name}</p>
-          <p className="text-xs text-muted-foreground mt-1">{cycleLabel} plan</p>
+          <p className="text-xs text-muted-foreground mt-1">Yearly plan</p>
         </div>
         <div className="text-right">
           <p className="text-sm text-muted-foreground">Amount to send</p>

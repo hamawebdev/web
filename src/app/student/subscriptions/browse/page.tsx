@@ -25,7 +25,6 @@ function BrowseSubscriptionsPageContent() {
   const [packsLoading, setPacksLoading] = useState(true);
   const [packsError, setPacksError] = useState<string | null>(null);
   const [studyPacks, setStudyPacks] = useState<any[]>([]);
-  const [pricingMode, setPricingMode] = useState<'YEAR' | 'MONTH'>('YEAR');
   const [selectedPackId, setSelectedPackId] = useState<number | null>(null);
 
   // Memoize the loadPacks function to prevent unnecessary re-renders
@@ -150,10 +149,9 @@ function BrowseSubscriptionsPageContent() {
       return;
     }
 
-    // Subscribe and Renew are paid by manual BaridiMob transfer: show the instructions for this pack
-    const cycle = pricingMode === 'YEAR' ? 'yearly' : 'monthly';
-    router.push(`/student/subscriptions/payment?packId=${pack.id}&cycle=${cycle}`);
-  }, [cancelledWithinGraceIds, activeSub, pricingMode, router]);
+    // Subscribe and Renew are paid yearly by manual BaridiMob transfer: show the instructions for this pack
+    router.push(`/student/subscriptions/payment?packId=${pack.id}`);
+  }, [cancelledWithinGraceIds, activeSub, router]);
 
   // Handle successful activation code redemption
   const handleRedeemSuccess = useCallback(() => {
@@ -184,22 +182,6 @@ function BrowseSubscriptionsPageContent() {
                 <Gift className="h-4 w-4 mr-2" />
                 Activation Code
               </Button>
-              <div className="flex bg-muted p-1 rounded-lg">
-                <Button
-                  className={`flex-1 rounded-md transition-all ${pricingMode === 'YEAR' ? 'bg-background hover:bg-background' : 'hover:bg-transparent'}`}
-                  variant={pricingMode === 'YEAR' ? 'secondary' : 'ghost'}
-                  onClick={() => setPricingMode('YEAR')}
-                >
-                  Yearly
-                </Button>
-                <Button
-                  className={`flex-1 rounded-md transition-all ${pricingMode === 'MONTH' ? 'bg-background shadow-sm hover:bg-background' : 'hover:bg-transparent'}`}
-                  variant={pricingMode === 'MONTH' ? 'secondary' : 'ghost'}
-                  onClick={() => setPricingMode('MONTH')}
-                >
-                  Monthly
-                </Button>
-              </div>
             </div>
           </div>
         </div>
@@ -240,7 +222,7 @@ function BrowseSubscriptionsPageContent() {
                 <StudyPackPricingCard
                   key={pack.id}
                   pack={pack}
-                  billingCycle={pricingMode === 'YEAR' ? 'yearly' : 'monthly'}
+                  billingCycle="yearly"
                   isSelected={selectedPackId === pack.id}
                   isDisabled={disabled}
                   isGrace={isGrace}
