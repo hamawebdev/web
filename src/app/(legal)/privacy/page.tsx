@@ -78,7 +78,7 @@ export default function PrivacyPage() {
                 <div>
                     <h2>6. Contact Us</h2>
                     <p>
-                        If you have questions or comments about this policy, you may email us at <a href="mailto:support@med-adn.com" className="text-primary hover:underline">support@med-adn.com</a>.
+                        If you have questions or comments about this policy, you may email us at <a href="mailto:contact@med-adn.com" className="text-primary hover:underline">contact@med-adn.com</a>.
                     </p>
                 </div>
             </section>

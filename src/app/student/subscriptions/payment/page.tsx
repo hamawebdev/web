@@ -14,7 +14,7 @@ import { useStudentAuth } from '@/hooks/use-auth';
 import type { StudyPack } from '@/types/api';
 
 // Students pay by BaridiMob transfer to this number, send us the receipt, and get an activation code back
-const BARIDIMOB_NUMBER = '00799999004137509016';
+const BARIDIMOB_NUMBER = '00799999004301142293';
 const INSTAGRAM_URL = 'https://www.instagram.com/med.adn.dz/';
 const FACEBOOK_URL = 'https://www.facebook.com/medadn';
 

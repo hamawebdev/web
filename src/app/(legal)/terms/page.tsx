@@ -87,7 +87,7 @@ export default function TermsPage() {
                 <div>
                     <h2>7. Contact Us</h2>
                     <p>
-                        If you have any questions about these Terms, please contact us at <a href="mailto:support@med-adn.com" className="text-primary hover:underline">support@med-adn.com</a>.
+                        If you have any questions about these Terms, please contact us at <a href="mailto:contact@med-adn.com" className="text-primary hover:underline">contact@med-adn.com</a>.
                     </p>
                 </div>
             </section>

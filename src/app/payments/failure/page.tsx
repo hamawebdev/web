@@ -81,7 +81,7 @@ export default function PaymentFailurePage() {
 
                         {/* Help Text */}
                         <p className="text-xs sm:text-sm text-muted-foreground text-center max-w-sm">
-                            Si le problème persiste, veuillez contacter notre support à support@med-adn.com
+                            Si le problème persiste, veuillez contacter notre support à contact@med-adn.com
                         </p>
                     </CardContent>
                 </Card>
