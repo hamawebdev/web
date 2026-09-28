@@ -13,7 +13,9 @@ import {
   Search,
   Filter,
   Download,
-  UserPlus
+  UserPlus,
+  UserCheck,
+  UserMinus
 } from 'lucide-react';
 import { useUserManagement } from '@/hooks/admin/use-user-management';
 import { UserTable } from '@/components/admin/users/user-table';
@@ -33,9 +35,7 @@ export default function AdminUsersPage() {
   const {
     users,
     totalUsers,
-    totalEmployees,
-    totalAdmins,
-    totalStudents,
+    stats,
     currentPage,
     totalPages,
     loading,
@@ -48,6 +48,7 @@ export default function AdminUsersPage() {
     deactivateUser,
     deleteUser,
     resetUserPassword,
+    reactivateSubscription,
     goToPage,
     hasUsers,
     hasError,
@@ -117,90 +118,55 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
-      {/* Stats Section - responsive grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        {/* Total Users */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {loading ? (
-                <div className="flex items-center gap-2">
-                  <RefreshCw className="h-5 w-5 animate-spin" />
-                  <span>Loading...</span>
-                </div>
-              ) : (
-                totalUsers.toLocaleString()
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {loading ? 'Fetching user data...' : hasFilters ? 'Filtered results' : 'All users in system'}
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Students */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Students</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {loading ? (
-                <div className="flex items-center gap-2">
-                  <RefreshCw className="h-5 w-5 animate-spin" />
-                  <span>Loading...</span>
-                </div>
-              ) : (
-                (totalStudents || 0).toLocaleString()
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">Students in system</p>
-          </CardContent>
-        </Card>
-
-        {/* Employees */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Employees</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {loading ? (
-                <div className="flex items-center gap-2">
-                  <RefreshCw className="h-5 w-5 animate-spin" />
-                  <span>Loading...</span>
-                </div>
-              ) : (
-                (totalEmployees || 0).toLocaleString()
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">Employees in system</p>
-          </CardContent>
-        </Card>
-
-        {/* Admins */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Admins</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {loading ? (
-                <div className="flex items-center gap-2">
-                  <RefreshCw className="h-5 w-5 animate-spin" />
-                  <span>Loading...</span>
-                </div>
-              ) : (
-                (totalAdmins || 0).toLocaleString()
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">Admins in system</p>
-          </CardContent>
-        </Card>
+      {/* Stats over every user, whatever the search and filters: Active + Non-active = Total */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {[
+          {
+            title: 'Total Users',
+            icon: Users,
+            value: stats?.totalUsers,
+            caption: 'All accounts, whatever the filters',
+          },
+          {
+            title: 'Active',
+            icon: UserCheck,
+            value: stats?.activeUsers,
+            caption: 'Subscription active and not past its end date',
+          },
+          {
+            title: 'Non-active',
+            icon: UserMinus,
+            value: stats?.nonActiveUsers,
+            caption: stats
+              ? `Everyone else, incl. ${stats.deactivatedUsers.toLocaleString()} deactivated`
+              : 'Everyone else, incl. deactivated accounts',
+          },
+          { title: 'Students', value: stats?.students, caption: 'Students in system' },
+          { title: 'Employees', value: stats?.employees, caption: 'Employees in system' },
+          { title: 'Admins', value: stats?.admins, caption: 'Admins in system' },
+        ].map(({ title, icon: Icon, value, caption }) => (
+          <Card key={title}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">{title}</CardTitle>
+              {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {value !== undefined ? (
+                  value.toLocaleString()
+                ) : hasError ? (
+                  '—'
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <RefreshCw className="h-5 w-5 animate-spin" />
+                    <span>Loading...</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">{caption}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Filters */}
@@ -268,6 +234,7 @@ export default function AdminUsersPage() {
             onDeactivateUser={deactivateUser}
             onDeleteUser={deleteUser}
             onResetPassword={resetUserPassword}
+            onReactivateSubscription={reactivateSubscription}
           />
         </CardContent>
       </Card>

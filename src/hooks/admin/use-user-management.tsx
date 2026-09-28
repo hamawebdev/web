@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { AdminService } from '@/lib/api-services';
-import { ApiUser, PaginationParams } from '@/types/api';
+import { ApiUser, AdminUserListItem, AdminUserStats, AdminUserStatusFilter, PaginationParams } from '@/types/api';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/api-error';
 
@@ -11,16 +11,16 @@ export interface UserFilters {
   search?: string;
   role?: 'STUDENT' | 'ADMIN' | 'EMPLOYEE' | '';
   university?: number;
-  isActive?: boolean;
+  status?: AdminUserStatusFilter | '';
 }
 
 // User management state interface
 interface UserManagementState {
-  users: ApiUser[];
+  users: AdminUserListItem[];
+  /** Users matching the filters */
   totalUsers: number;
-  totalEmployees?: number;
-  totalAdmins?: number;
-  totalStudents?: number;
+  /** Counts over every user, whatever the filters; null until the first load */
+  stats: AdminUserStats | null;
   currentPage: number;
   totalPages: number;
   loading: boolean;
@@ -33,9 +33,7 @@ export function useUserManagement() {
   const [state, setState] = useState<UserManagementState>({
     users: [],
     totalUsers: 0,
-    totalEmployees: 0,
-    totalAdmins: 0,
-    totalStudents: 0,
+    stats: null,
     currentPage: 1,
     totalPages: 0,
     loading: true,
@@ -44,19 +42,22 @@ export function useUserManagement() {
       search: '',
       role: '',
       university: undefined,
-      isActive: undefined,
+      status: '',
     },
   });
 
-  // Fetch users with current filters and pagination
-  const fetchUsers = useCallback(async (page: number = 1, limit: number = 20, filters?: UserFilters) => {
+  // Fetch users with current filters and pagination. A silent fetch keeps the
+  // table (and any dialog opened from it) on screen while it reloads.
+  const fetchUsers = useCallback(async (page: number = 1, limit: number = 20, filters?: UserFilters, { silent = false }: { silent?: boolean } = {}) => {
     try {
-      setState(prev => ({
-        ...prev,
-        loading: true,
-        error: null,
-        currentPage: page
-      }));
+      if (!silent) {
+        setState(prev => ({
+          ...prev,
+          loading: true,
+          error: null,
+          currentPage: page
+        }));
+      }
 
       // Use provided filters or get from current state
       const currentFilters = filters || state.filters;
@@ -80,10 +81,7 @@ export function useUserManagement() {
       if (response.success && response.data) {
         // Handle the documented API response structure: { users: [...], total, page, limit, totalPages }
         // Also handle the canonical format: { items: [...], ... }
-        const { users, items, total, page, totalPages } = response.data as any;
-
-        // Some API responses may include counts for employees, admins and students
-        const { totalEmployees, totalAdmins, totalStudents } = response.data as any;
+        const { users, items, total, page, totalPages, stats } = response.data as any;
 
         // Add safety checks for undefined values
         // Canonical backend returns 'items', legacy might return 'users'
@@ -91,17 +89,12 @@ export function useUserManagement() {
         const safeTotal = total || 0;
         const safePage = page || 1;
         const safeTotalPages = totalPages || 0;
-        const safeTotalEmployees = (totalEmployees as number) || 0;
-        const safeTotalAdmins = (totalAdmins as number) || 0;
-        const safeTotalStudents = (totalStudents as number) || 0;
 
         setState(prev => ({
           ...prev,
           users: safeUsers,
           totalUsers: safeTotal,
-          totalEmployees: safeTotalEmployees,
-          totalAdmins: safeTotalAdmins,
-          totalStudents: safeTotalStudents,
+          stats: stats ?? prev.stats,
           currentPage: safePage,
           totalPages: safeTotalPages,
           loading: false,
@@ -153,7 +146,7 @@ export function useUserManagement() {
       search: '',
       role: '',
       university: undefined,
-      isActive: undefined,
+      status: '',
     };
     setState(prev => ({
       ...prev,
@@ -333,6 +326,35 @@ export function useUserManagement() {
     }
   }, []);
 
+  // Re-activate an expired, cancelled or lapsed subscription with new dates, then
+  // reload the list so the user's status and the stats follow
+  const reactivateSubscription = useCallback(async (subscriptionId: number, dates: { startDate: string; endDate: string }) => {
+    try {
+      const response = await AdminService.activateSubscription(subscriptionId, dates);
+
+      if (!response.success) {
+        throw new Error(typeof response.error === 'string' ? response.error : 'Failed to re-activate subscription');
+      }
+
+      toast.success('Subscription re-activated', {
+        description: `Access runs until ${new Date(dates.endDate).toLocaleDateString()}`,
+      });
+
+      await fetchUsers(state.currentPage, 20, undefined, { silent: true });
+
+      return response.data;
+    } catch (error) {
+      const errorMessage = getApiErrorMessage(error, 'Failed to re-activate subscription');
+      console.error('❌ Error re-activating subscription:', error);
+
+      toast.error('Error', {
+        description: errorMessage,
+      });
+
+      throw error;
+    }
+  }, [fetchUsers, state.currentPage]);
+
   // Load users on mount
   useEffect(() => {
     fetchUsers(1);
@@ -349,9 +371,7 @@ export function useUserManagement() {
     // State
     users: state.users,
     totalUsers: state.totalUsers,
-    totalStudents: state.totalStudents,
-    totalEmployees: state.totalEmployees,
-    totalAdmins: state.totalAdmins,
+    stats: state.stats,
     currentPage: state.currentPage,
     totalPages: state.totalPages,
     loading: state.loading,
@@ -367,6 +387,7 @@ export function useUserManagement() {
     deactivateUser,
     deleteUser,
     resetUserPassword,
+    reactivateSubscription,
     goToPage,
 
     // Helper flags

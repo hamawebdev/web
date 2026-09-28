@@ -73,6 +73,10 @@ import {
   UpdateSubscriptionRequest,
   CancelSubscriptionRequest,
   AddMonthsToSubscriptionRequest,
+  ActivateSubscriptionRequest,
+  AdminUserListItem,
+  AdminUserStats,
+  AdminUserStatusFilter,
   AdminQuiz,
   AdminQuizFilters,
   CreateQuizRequest,
@@ -2333,14 +2337,17 @@ export class AdminService {
     role?: string;
     universityId?: number;
     university?: number;   // alias of universityId (the UI filter state uses this name)
-    isActive?: boolean;
+    isActive?: boolean;    // account flag only; the Status filter uses `status`
+    status?: AdminUserStatusFilter | '';
   } = {}): Promise<ApiResponse<{
-    users?: ApiUser[];
-    items?: ApiUser[];
+    users?: AdminUserListItem[];
+    items?: AdminUserListItem[];
     total: number;
     page: number;
     limit: number;
     totalPages: number;
+    /** Over every user, whatever the filters */
+    stats?: AdminUserStats;
   }>> {
     const queryParams = new URLSearchParams();
 
@@ -2354,15 +2361,17 @@ export class AdminService {
       queryParams.append('universityId', universityId.toString());
     }
     if (params.isActive !== undefined) queryParams.append('isActive', params.isActive.toString());
+    if (params.status) queryParams.append('status', params.status);
 
     const url = queryParams.toString() ? `/admin/users?${queryParams.toString()}` : '/admin/users';
     return apiClient.get<{
-      users?: ApiUser[];
-      items?: ApiUser[];
+      users?: AdminUserListItem[];
+      items?: AdminUserListItem[];
       total: number;
       page: number;
       limit: number;
       totalPages: number;
+      stats?: AdminUserStats;
     }>(url);
   }
 
@@ -2462,6 +2471,14 @@ export class AdminService {
    */
   static async addMonthsToSubscription(subscriptionId: number, extensionData: AddMonthsToSubscriptionRequest): Promise<ApiResponse<AdminSubscription>> {
     return apiClient.post<AdminSubscription>(`/admin/subscriptions/${subscriptionId}/add-months`, extensionData);
+  }
+
+  /**
+   * Activate a pending subscription, or re-activate an expired, cancelled or lapsed
+   * one (ACTIVE past its end date) with new dates. Refused while it still gives access.
+   */
+  static async activateSubscription(subscriptionId: number, data: ActivateSubscriptionRequest): Promise<ApiResponse<{ message: string; subscription: AdminSubscription }>> {
+    return apiClient.post<{ message: string; subscription: AdminSubscription }>(`/admin/subscriptions/${subscriptionId}/activate`, data);
   }
 
   // ==================== QUIZ MANAGEMENT ====================

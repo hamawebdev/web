@@ -15,6 +15,14 @@ import { Badge } from '@/components/ui/badge';
 import { X, Search, Filter } from 'lucide-react';
 import { UserFilters as UserFiltersType } from '@/hooks/admin/use-user-management';
 import { AuthService } from '@/lib/api-services';
+import { AdminUserStatusFilter } from '@/types/api';
+
+// Same groups as the Active / Non-active stats; Non-active includes deactivated accounts
+const STATUS_FILTER_LABELS: Record<AdminUserStatusFilter, string> = {
+  active: 'Active',
+  non_active: 'Non-active',
+  deactivated: 'Deactivated',
+};
 
 interface UserFiltersProps {
   filters: UserFiltersType;
@@ -76,8 +84,8 @@ export function UserFilters({
   };
 
   const handleStatusChange = (value: string) => {
-    onFiltersChange({ 
-      isActive: value === 'all' ? undefined : value === 'active' 
+    onFiltersChange({
+      status: value === 'all' ? '' : value as AdminUserStatusFilter
     });
   };
 
@@ -86,7 +94,7 @@ export function UserFilters({
     if (filters.search) count++;
     if (filters.role) count++;
     if (filters.university) count++;
-    if (filters.isActive !== undefined) count++;
+    if (filters.status) count++;
     return count;
   };
 
@@ -156,13 +164,7 @@ export function UserFilters({
         <div className="space-y-2">
           <Label>Status</Label>
           <Select
-            value={
-              filters.isActive === undefined 
-                ? 'all' 
-                : filters.isActive 
-                  ? 'active' 
-                  : 'inactive'
-            }
+            value={filters.status || 'all'}
             onValueChange={handleStatusChange}
           >
             <SelectTrigger>
@@ -171,7 +173,8 @@ export function UserFilters({
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
+              <SelectItem value="non_active">Non-active</SelectItem>
+              <SelectItem value="deactivated">Deactivated (part of non-active)</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -212,12 +215,12 @@ export function UserFilters({
             </Badge>
           )}
           
-          {filters.isActive !== undefined && (
+          {filters.status && (
             <Badge variant="secondary" className="gap-1">
-              Status: {filters.isActive ? 'Active' : 'Inactive'}
-              <X 
-                className="h-3 w-3 cursor-pointer" 
-                onClick={() => onFiltersChange({ isActive: undefined })}
+              Status: {STATUS_FILTER_LABELS[filters.status]}
+              <X
+                className="h-3 w-3 cursor-pointer"
+                onClick={() => onFiltersChange({ status: '' })}
               />
             </Badge>
           )}

@@ -57,6 +57,43 @@ export interface RefreshTokenRequest {
 // API User type (same as User from auth.ts)
 export type ApiUser = User;
 
+/**
+ * Status of a user on the admin users page (GET /admin/users):
+ * ACTIVE: account enabled and a subscription that is ACTIVE and not past its end date;
+ * DEACTIVATED: account deactivated by an admin, whatever its subscriptions;
+ * NON_ACTIVE: everyone else. Deactivated users count as non-active.
+ */
+export type AdminUserStatus = 'ACTIVE' | 'NON_ACTIVE' | 'DEACTIVATED';
+
+/** `status` filter of GET /admin/users; non_active includes deactivated accounts */
+export type AdminUserStatusFilter = 'active' | 'non_active' | 'deactivated';
+
+/** GET /admin/users `stats`: counts over every user, whatever the filters (activeUsers + nonActiveUsers = totalUsers) */
+export interface AdminUserStats {
+  totalUsers: number;
+  activeUsers: number;
+  nonActiveUsers: number;
+  deactivatedUsers: number;
+  students: number;
+  employees: number;
+  admins: number;
+}
+
+/** A row of GET /admin/users */
+export interface AdminUserListItem extends ApiUser {
+  status: AdminUserStatus;
+  hasActiveSubscription: boolean;
+  /** The access-granting subscription that ends last */
+  activeSubscription: {
+    id: number;
+    studyPackId: number;
+    studyPackName: string;
+    status: string;
+    startDate: string;
+    endDate: string;
+  } | null;
+}
+
 // Settings-specific types based on actual API responses
 export interface University {
   id: number;
@@ -1564,6 +1601,8 @@ export interface AdminSubscription {
   };
   createdAt: string;
   updatedAt: string;
+  /** ACTIVE and not past its end date: the subscription opens the pack's content */
+  grantsAccess?: boolean;
 }
 
 export interface AdminSubscriptionFilters {
@@ -1585,6 +1624,13 @@ export interface CancelSubscriptionRequest {
 export interface AddMonthsToSubscriptionRequest {
   months: number;
   reason: string;
+}
+
+/** POST /admin/subscriptions/:id/activate. ISO date-times; the end date must be in the future. */
+export interface ActivateSubscriptionRequest {
+  startDate?: string;
+  endDate?: string;
+  reason?: string;
 }
 
 // Admin Quiz Management Types

@@ -39,15 +39,25 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
-  Users
+  Users,
+  CreditCard
 } from 'lucide-react';
-import { ApiUser } from '@/types/api';
+import { AdminUserListItem, AdminUserStatus, ApiUser } from '@/types/api';
 import { AdminService } from '@/lib/api-services';
 import { EditUserDialog } from './edit-user-dialog';
 import { ResetPasswordDialog } from './reset-password-dialog';
+import { UserSubscriptionsDialog } from './user-subscriptions-dialog';
+
+// Active: a subscription that is ACTIVE and not past its end date. Deactivated
+// accounts show as such whatever their subscriptions (and count as non-active).
+const STATUS_BADGES: Record<AdminUserStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' }> = {
+  ACTIVE: { label: 'Active', variant: 'default' },
+  NON_ACTIVE: { label: 'Non-active', variant: 'secondary' },
+  DEACTIVATED: { label: 'Deactivated', variant: 'destructive' },
+};
 
 interface UserTableProps {
-  users: ApiUser[];
+  users: AdminUserListItem[];
   loading: boolean;
   currentPage: number;
   totalPages: number;
@@ -56,6 +66,7 @@ interface UserTableProps {
   onDeactivateUser: (userId: number) => Promise<ApiUser>;
   onDeleteUser?: (userId: number) => Promise<any>;
   onResetPassword: (userId: number, newPassword: string) => Promise<any>;
+  onReactivateSubscription: (subscriptionId: number, dates: { startDate: string; endDate: string }) => Promise<unknown>;
 }
 
 export function UserTable({
@@ -68,11 +79,13 @@ export function UserTable({
   onDeactivateUser,
   onDeleteUser,
   onResetPassword,
+  onReactivateSubscription,
 }: UserTableProps) {
   const [editingUser, setEditingUser] = useState<ApiUser | null>(null);
   const [resetPasswordUser, setResetPasswordUser] = useState<ApiUser | null>(null);
   const [deactivateUser, setDeactivateUser] = useState<ApiUser | null>(null);
   const [deleteUser, setDeleteUser] = useState<ApiUser | null>(null);
+  const [subscriptionsUser, setSubscriptionsUser] = useState<AdminUserListItem | null>(null);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
 
   const getRoleBadgeVariant = (role: string) => {
@@ -86,10 +99,6 @@ export function UserTable({
       default:
         return 'outline';
     }
-  };
-
-  const getStatusBadgeVariant = (isActive: boolean) => {
-    return isActive ? 'default' : 'secondary';
   };
 
   const handleDeactivateUser = async () => {
@@ -227,9 +236,16 @@ export function UserTable({
                   )}
                 </TableCell>
                 <TableCell>
-                  <Badge variant={getStatusBadgeVariant(user.isActive)}>
-                    {user.isActive ? 'Active' : 'Inactive'}
-                  </Badge>
+                  {STATUS_BADGES[user.status] && (
+                    <Badge variant={STATUS_BADGES[user.status].variant}>
+                      {STATUS_BADGES[user.status].label}
+                    </Badge>
+                  )}
+                  {user.status === 'ACTIVE' && user.activeSubscription && (
+                    <div className="mt-1 text-xs text-muted-foreground" title={user.activeSubscription.studyPackName}>
+                      until {new Date(user.activeSubscription.endDate).toLocaleDateString()}
+                    </div>
+                  )}
                 </TableCell>
                 <TableCell>
                   <div className="text-sm">
@@ -260,6 +276,10 @@ export function UserTable({
                       <DropdownMenuItem onClick={() => setResetPasswordUser(user)}>
                         <Key className="mr-2 h-4 w-4" />
                         Reset Password
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setSubscriptionsUser(user)}>
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        Subscriptions
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
@@ -427,6 +447,16 @@ export function UserTable({
           onOpenChange={(open) => !open && setResetPasswordUser(null)}
           onResetPassword={handleResetPassword}
           loading={actionLoading === resetPasswordUser.id}
+        />
+      )}
+
+      {/* Subscriptions: re-activate an expired or cancelled one */}
+      {subscriptionsUser && (
+        <UserSubscriptionsDialog
+          user={subscriptionsUser}
+          open={!!subscriptionsUser}
+          onOpenChange={(open) => !open && setSubscriptionsUser(null)}
+          onReactivate={onReactivateSubscription}
         />
       )}
 
