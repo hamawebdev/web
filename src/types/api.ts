@@ -1540,6 +1540,15 @@ export interface CourseResourcesResponse {
   totalPages: number;
 }
 
+// Every resource of a course, unpaginated (GET /courses/:id/resources/all)
+export interface AllCourseResourcesResponse {
+  course: { id: number; name: string };
+  // For a résidanat course: its twin in the year pack, whose resources are included
+  yearCourse: { id: number; name: string; studyPack: { id: number; name: string } } | null;
+  total: number;
+  items: CourseResource[];
+}
+
 // Extended Quiz Course with additional metadata for course selection
 export interface ExtendedQuizCourse extends QuizCourse {
   moduleId?: number;

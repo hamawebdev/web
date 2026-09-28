@@ -13,19 +13,12 @@ import {
   Clock,
   Target,
   Info,
-  Bot,
-  Loader2,
-  FileText,
-  Video,
-  Headphones,
-  ExternalLink,
-  Link as LinkIcon
+  Bot
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useQuiz } from './quiz-api-context';
 import { UnifiedQuestion } from './unified-question';
@@ -35,8 +28,8 @@ import { useApiQuiz } from './quiz-api-context';
 import { AIChatPanel } from './ai-chat-panel';
 import type { QuestionContext } from '@/types/ai-chat-types';
 import { InlineNoteEditor } from './inline-note-editor';
-import { resolveImagePath, resolveMediaUrl } from '@/lib/image-loader';
-import { ContentService } from '@/lib/api-services';
+import { CourseResourcesSheet } from './course-resources-sheet';
+import { resolveImagePath } from '@/lib/image-loader';
 import { localizeQuestion } from '@/lib/question-localization';
 import { useQuestionLanguage } from './question-language-provider';
 
@@ -55,9 +48,6 @@ export function QuestionDisplay() {
 
   // Course resources sheet state
   const [courseSheetOpen, setCourseSheetOpen] = useState(false);
-  const [courseResources, setCourseResources] = useState<any[]>([]);
-  const [resourcesLoading, setResourcesLoading] = useState(false);
-  const [resourcesError, setResourcesError] = useState<string | null>(null);
 
   // Reset editing state and close sheet when question changes
   useEffect(() => {
@@ -330,28 +320,11 @@ export function QuestionDisplay() {
                     <Button
                       variant="outline"
                       size="sm"
-                      disabled={resourcesLoading || !currentQuestion?.course?.id}
-                      onClick={async () => {
-                        const courseId = currentQuestion?.course?.id;
-                        if (!courseId) return;
-                        try {
-                          setResourcesLoading(true);
-                          setResourcesError(null);
-                          setCourseSheetOpen(true);
-                          const res = await ContentService.getCourseResources(courseId, { limit: 50 });
-                          const data = res.data as any;
-                          const items = data?.items || data?.resources || [];
-                          setCourseResources(items);
-                        } catch (err: any) {
-                          console.error('Failed to fetch course resources:', err);
-                          setResourcesError(err?.message || 'Failed to load resources');
-                        } finally {
-                          setResourcesLoading(false);
-                        }
-                      }}
+                      disabled={!currentQuestion?.course?.id}
+                      onClick={() => setCourseSheetOpen(true)}
                       className="gap-2 text-xs bg-gradient-to-r from-success/10 to-info/10 border-success/30 hover:border-success/50 hover:bg-success/20 transition-all"
                     >
-                      {resourcesLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <BookOpen className="h-3 w-3" />}
+                      <BookOpen className="h-3 w-3" />
                       <span>open course</span>
                     </Button>
                   </div>
@@ -374,95 +347,11 @@ export function QuestionDisplay() {
       />
 
       {/* Course Resources Sheet */}
-      <Sheet open={courseSheetOpen} onOpenChange={setCourseSheetOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-primary" />
-              {currentQuestion?.course?.name || 'Course Resources'}
-            </SheetTitle>
-            <SheetDescription>
-              Resources for this course
-            </SheetDescription>
-          </SheetHeader>
-
-          <div className="mt-4 space-y-3 px-1">
-            {resourcesLoading && (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                <span className="ml-2 text-sm text-muted-foreground">Loading resources...</span>
-              </div>
-            )}
-
-            {resourcesError && (
-              <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
-                {resourcesError}
-              </div>
-            )}
-
-            {!resourcesLoading && !resourcesError && courseResources.length === 0 && (
-              <div className="text-center py-12 text-muted-foreground">
-                <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No resources available for this course.</p>
-              </div>
-            )}
-
-            {!resourcesLoading && courseResources.map((resource: any) => {
-              const typeIcon = (() => {
-                switch (resource.type) {
-                  case 'VIDEO': return <Video className="h-4 w-4 text-blue-500" />;
-                  case 'AUDIO': return <Headphones className="h-4 w-4 text-purple-500" />;
-                  case 'OFFICIAL_SUPPORT': return <FileText className="h-4 w-4 text-green-500" />;
-                  case 'CHOICE_OF_TEAM': return <FileText className="h-4 w-4 text-orange-500" />;
-                  default: return <LinkIcon className="h-4 w-4 text-muted-foreground" />;
-                }
-              })();
-
-              const url = resource.externalUrl
-                || (resource.youtubeVideoId ? `https://www.youtube.com/watch?v=${resource.youtubeVideoId}` : null)
-                || (resource.filePath ? resolveMediaUrl(resource.filePath) : null)
-                || null;
-
-              return (
-                <div
-                  key={resource.id}
-                  className="group flex items-start gap-3 rounded-lg border border-border/60 bg-card p-3 hover:border-primary/30 hover:bg-accent/30 transition-all"
-                >
-                  <div className="mt-0.5 flex-shrink-0 rounded-md bg-muted/50 p-1.5">
-                    {typeIcon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium leading-tight truncate">{resource.title}</p>
-                    {resource.description && (
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{resource.description}</p>
-                    )}
-                    <div className="flex items-center gap-2 mt-1.5">
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                        {resource.type?.replace(/_/g, ' ') || 'OTHER'}
-                      </Badge>
-                      {resource.tag && (
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                          {resource.tag}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                  {url && (
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-shrink-0 mt-0.5 text-muted-foreground hover:text-primary transition-colors"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                    </a>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </SheetContent>
-      </Sheet>
+      <CourseResourcesSheet
+        open={courseSheetOpen}
+        onOpenChange={setCourseSheetOpen}
+        course={currentQuestion?.course}
+      />
     </div>
   );
 }

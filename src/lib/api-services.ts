@@ -43,6 +43,7 @@ import {
   University,
   Specialty,
   CourseResourcesResponse,
+  AllCourseResourcesResponse,
   UniversitiesResponse,
   SpecialtiesResponse,
   // Todos
@@ -1568,6 +1569,14 @@ export class ContentService {
     if (params.type) queryParams.append('type', params.type);
 
     return apiClient.get<CourseResourcesResponse>(`/courses/${courseId}/resources?${queryParams.toString()}`);
+  }
+
+  /**
+   * Every resource of a course in one list, for the session "open course" panel.
+   * A résidanat course also gets the resources of its year-pack twin.
+   */
+  static async getAllCourseResources(courseId: number): Promise<ApiResponse<AllCourseResourcesResponse>> {
+    return apiClient.get<AllCourseResourcesResponse>(`/courses/${courseId}/resources/all`);
   }
 
   /**
