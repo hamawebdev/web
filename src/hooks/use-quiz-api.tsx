@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { QuizService } from '@/lib/api-services';
+import { invalidateCache, readCache, writeCache } from '@/lib/cached-resource';
 
 // Enhanced types for quiz session data
 export interface QuizSession {
@@ -100,14 +101,23 @@ export function useQuizSessions(params: UseQuizSessionsParams = {}): UseQuizSess
   };
 }
 
+/** Session payloads above this size are cached in memory only, not in localStorage */
+const MAX_STORED_SESSION_CHARS = 400_000;
+
 /**
  * Hook to fetch and manage a single quiz session
- * Uses GET /api/v1/quiz-sessions/{sessionId} endpoint
+ * Uses GET /api/v1/quiz-sessions/{sessionId} endpoint.
+ *
+ * On a later visit the last payload of this session shows at once (from memory or
+ * localStorage) and the fresh one replaces it only when it differs, so an
+ * unchanged session renders once. `acceptCached` can refuse a cached payload
+ * (the results page only takes one of a finished session).
  */
-export function useQuizSession(sessionId: number): UseQuizSessionResult {
+export function useQuizSession(sessionId: number, options?: { acceptCached?: (session: any) => boolean }): UseQuizSessionResult {
   const [session, setSession] = useState<QuizSession | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const acceptCached = options?.acceptCached;
 
   const fetchSession = useCallback(async () => {
     if (!sessionId || isNaN(sessionId)) {
@@ -115,23 +125,20 @@ export function useQuizSession(sessionId: number): UseQuizSessionResult {
       return;
     }
 
+    const cacheKey = `quiz-session:${sessionId}`;
+    const cached = readCache<any>(cacheKey)?.value;
+    const usableCache = cached && (!acceptCached || acceptCached(cached)) ? cached : null;
+    const cachedText = usableCache ? JSON.stringify(usableCache) : null;
+    if (usableCache) {
+      setSession(usableCache);
+      setError(null);
+    }
+
     try {
-      setLoading(true);
+      if (!usableCache) setLoading(true);
       setError(null);
 
-      console.log('🔄 [useQuizSession] Fetching session:', {
-        sessionId,
-        endpoint: `GET /quiz-sessions/${sessionId}`
-      });
-
       const response = await QuizService.getQuizSession(sessionId);
-
-      console.log('📋 [useQuizSession] API response:', {
-        success: response.success,
-        hasData: !!response.data,
-        questionsCount: response.data?.questions?.length || 0,
-        statusCode: response.statusCode || 'unknown'
-      });
 
       if (response.success) {
         // Handle nested response structure from unified API
@@ -141,58 +148,49 @@ export function useQuizSession(sessionId: number): UseQuizSessionResult {
           console.error('❌ [useQuizSession] Invalid session data structure:', {
             sessionId,
             hasData: !!response.data,
-            dataKeys: response.data ? Object.keys(response.data) : [],
-            sessionData
+            dataKeys: response.data ? Object.keys(response.data) : []
           });
           setError('Invalid session data received from server');
           return;
         }
 
         if (!sessionData.questions || sessionData.questions.length === 0) {
-          console.error('❌ [useQuizSession] Session has no questions:', {
-            sessionId,
-            hasQuestions: !!sessionData.questions,
-            questionsLength: sessionData.questions?.length || 0
-          });
+          console.error('❌ [useQuizSession] Session has no questions:', { sessionId });
           setError('Session has no questions available');
           return;
         }
 
-        console.log('✅ [useQuizSession] Session loaded successfully:', {
-          sessionId: sessionData.id,
-          title: sessionData.title,
-          questionsCount: sessionData.questions.length,
-          status: sessionData.status
-        });
-
-        setSession(sessionData);
+        // Unchanged since the cached copy: keep it (no second render)
+        const freshText = JSON.stringify(sessionData);
+        if (freshText !== cachedText) {
+          setSession(sessionData);
+        }
+        if (freshText.length <= MAX_STORED_SESSION_CHARS) {
+          writeCache(cacheKey, sessionData);
+        } else {
+          invalidateCache(cacheKey);
+        }
       } else {
         console.error('❌ [useQuizSession] API request failed:', {
           sessionId,
           endpoint: `GET /quiz-sessions/${sessionId}`,
           statusCode: response.statusCode || 'unknown',
-          error: response.error,
-          responseBody: response
+          error: response.error
         });
-
-        const errorMsg = response.error || 'Failed to fetch session';
-        setError(errorMsg);
+        // A cached copy keeps showing when a refresh fails
+        if (!usableCache) setError(response.error || 'Failed to fetch session');
       }
     } catch (err: any) {
       console.error('❌ [useQuizSession] Unexpected error:', {
         sessionId,
-        endpoint: `GET /quiz-sessions/${sessionId}`,
         message: err?.message,
-        statusCode: err?.statusCode || err?.response?.status,
-        error: err
+        statusCode: err?.statusCode || err?.response?.status
       });
-
-      const errorMsg = err.message || 'Failed to fetch session';
-      setError(errorMsg);
+      if (!usableCache) setError(err.message || 'Failed to fetch session');
     } finally {
       setLoading(false);
     }
-  }, [sessionId]);
+  }, [sessionId, acceptCached]);
 
   useEffect(() => {
     fetchSession();

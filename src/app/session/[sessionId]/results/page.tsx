@@ -33,6 +33,11 @@ import {
 import { cn } from '@/lib/utils';
 import { toPlainText } from '@/lib/question-localization';
 import { NewSessionResults } from '@/components/student/quiz/new-session-results';
+import { readCache, writeCache } from '@/lib/cached-resource';
+
+// Results of a finished session do not change: a cached copy shows at once on later
+// visits. Copies of a session still in progress are not used here.
+const isFinishedSession = (session: any) => session?.status === 'COMPLETED';
 
 // Utility function to format time in mm:ss format
 const formatTimeMMSS = (seconds: number): string => {
@@ -76,7 +81,7 @@ function QuizCompletionContent() {
     }
   }, [sessionId, router, params.sessionId]);
 
-  const { session: apiSession, loading, error, refresh } = useQuizSession(sessionId);
+  const { session: apiSession, loading, error, refresh } = useQuizSession(sessionId, { acceptCached: isFinishedSession });
   const [completionData, setCompletionData] = useState<CompletionData | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
   const [retakeDialogOpen, setRetakeDialogOpen] = useState(false);
@@ -86,14 +91,21 @@ function QuizCompletionContent() {
   // Fetch session results from dedicated endpoint
   useEffect(() => {
     if (sessionId && !isNaN(sessionId)) {
+      const cacheKey = `session-results:${sessionId}`;
+      const cached = readCache<any>(cacheKey)?.value;
+      const cachedText = cached && isFinishedSession(cached) ? JSON.stringify(cached) : null;
+      if (cachedText) {
+        setSessionResults(cached);
+        setResultsLoading(false);
+      }
       const fetchSessionResults = async () => {
         try {
-          setResultsLoading(true);
-          console.log('📊 Fetching session results from dedicated endpoint...');
+          if (!cachedText) setResultsLoading(true);
           const res = await QuizService.getSessionResults(sessionId);
           if (res.success && res.data) {
-            console.log('📊 Session results fetched successfully:', res.data);
-            setSessionResults(res.data);
+            // Unchanged since the cached copy: keep it (no second render)
+            if (JSON.stringify(res.data) !== cachedText) setSessionResults(res.data);
+            if (isFinishedSession(res.data)) writeCache(cacheKey, res.data);
           } else {
             console.error('Failed to fetch session results:', res.error);
           }
