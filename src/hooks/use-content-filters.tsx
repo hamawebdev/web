@@ -3,6 +3,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useCachedResource } from '@/lib/cached-resource';
 import { NewApiService, ContentFilters, ApiError } from '@/lib/api/new-api-services';
 import { toast } from 'sonner';
 
@@ -25,70 +26,40 @@ export interface UseContentFiltersResult {
 
 export interface UseContentFiltersOptions {
   yearLevel?: string;
+  /** false: load nothing yet (for example while the student's year is not known) */
+  enabled?: boolean;
 }
 
+/** GET /students/content/filters[?yearLevel=], unwrapped (throws on failure) */
+async function fetchContentFilters(yearLevel?: string): Promise<ContentFilters> {
+  const response = await NewApiService.getContentFilters(yearLevel);
+  if (!response.success || !response.data) {
+    throw new ApiError(response.error || 'Failed to fetch content filters');
+  }
+  return response.data;
+}
+
+/**
+ * Content tree (unites, modules, courses) the student can pick from, per year
+ * level. The last tree shows at once on later visits and is refreshed in the
+ * background.
+ */
 export function useContentFilters(options?: UseContentFiltersOptions): UseContentFiltersResult {
-  const [filters, setFilters] = useState<ContentFilters | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const yearLevel = options?.yearLevel;
+  const enabled = options?.enabled !== false;
+  const { data: filters, loading, error, refresh } = useCachedResource<ContentFilters>(
+    enabled ? `content-filters:${yearLevel || 'all'}` : null,
+    () => fetchContentFilters(yearLevel)
+  );
 
-  const fetchContentFilters = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      console.log('🌐 [useContentFilters] Fetching content filters...', {
-        yearLevel: yearLevel || 'none'
-      });
-
-      let response;
-      try {
-        // Use the content filters endpoint with optional yearLevel
-        response = await NewApiService.getContentFilters(yearLevel);
-        console.log('🌐 [useContentFilters] Content filters endpoint success');
-      } catch (primaryError) {
-        console.error('🌐 [useContentFilters] Content filters endpoint failed:', primaryError);
-        throw primaryError;
-      }
-
-      if (response.success && response.data) {
-        console.log('🌐 [useContentFilters] Content filters loaded successfully:', {
-          unites: response.data.unites?.length || 0,
-          independentModules: response.data.independentModules?.length || 0,
-          yearLevelApplied: yearLevel || 'none'
-        });
-        setFilters(response.data);
-      } else {
-        console.error('🌐 [useContentFilters] API Error:', response.error);
-        throw new ApiError(response.error || 'Failed to fetch content filters');
-      }
-    } catch (err: any) {
-      let errorMessage = 'Failed to fetch content filters';
-
-      if (err instanceof ApiError) {
-        errorMessage = err.message;
-        if (err.statusCode === 401) {
-          errorMessage = 'Authentication required. Please log in again.';
-        } else if (err.statusCode === 403) {
-          errorMessage = 'You do not have permission to access content filters.';
-        }
-      } else if (err?.message) {
-        errorMessage = err.message;
-      }
-
-      setError(errorMessage);
-      toast.error(errorMessage);
-      console.error('Content filters fetch error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Errors are shown once per failed load
   useEffect(() => {
-    fetchContentFilters();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [yearLevel]); // Re-fetch when yearLevel changes
+    if (!error) return;
+    let message = error;
+    if (/401/.test(error)) message = 'Authentication required. Please log in again.';
+    else if (/403/.test(error)) message = 'You do not have permission to access content filters.';
+    toast.error(message);
+  }, [error]);
 
   // Convert the new API structure to navigation items for compatibility
   const navigationItems: ContentFilterItem[] = React.useMemo(() => {
@@ -131,11 +102,11 @@ export function useContentFilters(options?: UseContentFiltersOptions): UseConten
   }, [filters]);
 
   return {
-    filters,
+    filters: filters ?? null,
     navigationItems,
-    loading,
+    loading: enabled ? loading : true,
     error,
-    refetch: fetchContentFilters
+    refetch: refresh
   };
 }
 
@@ -167,57 +138,33 @@ export interface UseQuizSessionFiltersOptions {
   moduleId?: number;
 }
 
-export function useQuizSessionFilters(options?: UseQuizSessionFiltersOptions): UseQuizSessionFiltersResult {
-  const [filters, setFilters] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+/** GET /quizzes/session-filters[?uniteId=&moduleId=], unwrapped (throws on failure) */
+async function fetchQuizSessionFilters(uniteId?: number, moduleId?: number): Promise<any> {
+  const response = await NewApiService.getQuizSessionFilters({ uniteId, moduleId });
+  if (!response.success || !response.data) {
+    throw new ApiError(response.error || 'Failed to fetch quiz session filters');
+  }
+  return response.data;
+}
 
-  const fetchSessionFilters = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      console.log('🌐 [useQuizSessionFilters] Fetching quiz session filters...', {
-        uniteId: options?.uniteId,
-        moduleId: options?.moduleId
-      });
-
-      const response = await NewApiService.getQuizSessionFilters({
-        uniteId: options?.uniteId,
-        moduleId: options?.moduleId
-      });
-
-      if (response.success && response.data) {
-        console.log('🌐 [useQuizSessionFilters] Session filters loaded successfully:', {
-          universities: response.data.universities?.length || 0,
-          questionSources: response.data.questionSources?.length || 0,
-          rotations: response.data.rotations?.length || 0,
-          examYears: response.data.examYears?.length || 0
-        });
-        setFilters(response.data);
-      } else {
-        console.error('🌐 [useQuizSessionFilters] API Error:', response.error);
-        throw new ApiError(response.error || 'Failed to fetch quiz session filters');
-      }
-    } catch (err: any) {
-      const errorMessage = err?.message || 'Failed to fetch quiz session filters';
-      setError(errorMessage);
-      console.error('Quiz session filters fetch error:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [options?.uniteId, options?.moduleId]);
-
-  // Re-fetch when filter options change
-  useEffect(() => {
-    fetchSessionFilters();
-  }, [fetchSessionFilters]);
-
+/**
+ * Sources, exam years and counts for session setup (optionally within one unite or
+ * module). The last answer shows at once on later visits and is refreshed in the
+ * background. `enabled: false` loads nothing.
+ */
+export function useQuizSessionFilters(options?: UseQuizSessionFiltersOptions & { enabled?: boolean }): UseQuizSessionFiltersResult {
+  const uniteId = options?.uniteId;
+  const moduleId = options?.moduleId;
+  const enabled = options?.enabled !== false;
+  const { data, loading, error, refresh } = useCachedResource<any>(
+    enabled ? `session-filters:${uniteId || ''}:${moduleId || ''}` : null,
+    () => fetchQuizSessionFilters(uniteId, moduleId)
+  );
   return {
-    filters,
+    filters: data ?? null,
     loading,
     error,
-    refetch: fetchSessionFilters
+    refetch: refresh
   };
 }
 

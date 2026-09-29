@@ -249,7 +249,11 @@ export function QuestionDisplay() {
   const questionTypeInfo = getQuestionTypeInfo(questionType);
 
   const renderQuestionComponent = () => {
+    // One instance per question: a submission still in flight for the previous
+    // question (isSubmitting, then hasSubmitted and reveal when it resolves) must
+    // not block or mark the next one, which silently lost its answer
     return <UnifiedQuestion
+      key={transformedQuestion.id}
       question={transformedQuestion}
       type={questionType}
       onOpenAIChat={() => setIsAIChatOpen(true)}

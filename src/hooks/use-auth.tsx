@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { User, LoginData, AuthState, convertApiUserToLegacy } from '@/types/auth';
 import AuthAPI from '@/lib/auth-api';
 import { AUTH_LOGOUT_EVENT } from '@/lib/api-client';
+import { clearCachedResources, fetchFresh, readCache, writeCache } from '@/lib/cached-resource';
 import { toast } from 'sonner';
 
 // Module-level cache to prevent duplicate /auth/profile calls across components
@@ -75,9 +76,28 @@ export function useAuth() {
       initializePromise = (async () => {
         // Check if user is authenticated via API
         if (AuthAPI.isAuthenticated()) {
+          // Later visits: show the signed-in page with the last profile at once and
+          // confirm it in the background. A session that ended is still caught: the
+          // API client clears the tokens and fires AUTH_LOGOUT_EVENT.
+          const cached = readCache<User>('profile');
+          if (cached?.value) {
+            cachedAuthResult = { isAuthenticated: true, user: cached.value };
+            setAuthState({ isAuthenticated: true, user: cached.value, loading: false, error: null });
+            fetchFresh('profile', async () => {
+              const fresh = await AuthAPI.getCurrentUser();
+              if (!fresh) throw new Error('Profile unavailable');
+              return fresh;
+            }).then(fresh => {
+              if (cachedAuthResult?.isAuthenticated) cachedAuthResult = { isAuthenticated: true, user: fresh };
+              setAuthState(prev => prev.isAuthenticated ? { ...prev, user: fresh } : prev);
+            }).catch(() => undefined);
+            return cached.value;
+          }
+
           console.log('🔐 useAuth.initializeAuth: User appears authenticated, fetching profile...');
           const user = await AuthAPI.getCurrentUser();
           if (user) {
+            writeCache('profile', user);
             console.log('🔐 useAuth.initializeAuth: User profile fetched successfully', { role: user.role });
             cachedAuthResult = { isAuthenticated: true, user };
             setAuthState({
@@ -133,6 +153,7 @@ export function useAuth() {
       if (response.user) {
         // Update cache immediately to prevent unnecessary refetch and auth states race conditions
         cachedAuthResult = { isAuthenticated: true, user: response.user };
+        writeCache('profile', response.user);
 
         setAuthState({
           isAuthenticated: true,
@@ -172,8 +193,10 @@ export function useAuth() {
       setAuthState(prev => ({ ...prev, loading: true }));
 
       resetAuthCache();
+      clearCachedResources();
       await AuthAPI.logout();
       resetAuthCache();
+      clearCachedResources();
 
       setAuthState({
         isAuthenticated: false,

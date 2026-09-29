@@ -59,7 +59,10 @@ function SheetSelector({
   options,
   onSelect,
   disabled,
-  renderOption
+  renderOption,
+  headerSlot,
+  loading = false,
+  testId
 }: {
   title: string;
   triggerLabel: string;
@@ -68,6 +71,11 @@ function SheetSelector({
   onSelect: (id: string) => void;
   disabled?: boolean;
   renderOption?: (option: SelectionOption) => React.ReactNode;
+  /** Shown under the title, above the search (e.g. the year choice) */
+  headerSlot?: React.ReactNode;
+  /** The options are being loaded */
+  loading?: boolean;
+  testId?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -111,6 +119,7 @@ function SheetSelector({
           variant="outline"
           role="combobox"
           disabled={disabled}
+          data-testid={testId}
           className={cn(
             "w-full justify-between min-h-[40px] h-auto px-4 hover:bg-slate-50 transition-colors",
             !selectedOption && "text-muted-foreground"
@@ -150,6 +159,7 @@ function SheetSelector({
       <SheetContent side="right" className="w-[400px] sm:w-[450px] flex flex-col px-0">
         <SheetHeader className="px-6 pb-2 pt-6 flex-shrink-0">
           <SheetTitle>{title}</SheetTitle>
+          {headerSlot && <div className="mt-2">{headerSlot}</div>}
           <div className="relative mt-2">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -173,7 +183,12 @@ function SheetSelector({
         <div className="relative flex-1 min-h-0 my-2">
           <ScrollArea className="h-full pr-3 ml-3">
             <div className="space-y-1 py-2 pr-1">
-              {filteredOptions.length === 0 ? (
+              {loading ? (
+                <div className="flex items-center gap-2 px-3 py-6 text-sm text-muted-foreground">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  Loading...
+                </div>
+              ) : filteredOptions.length === 0 ? (
                 <EmptyState
                   icon={Search}
                   title={search ? "No results found" : "No options available"}
@@ -271,7 +286,7 @@ export function ExamSessionWizard({
 
   // Exam session filters state
   const [examFilters, setExamFilters] = useState<any>(null);
-  const [questionSources, setQuestionSources] = useState<Array<{ id: number; name: string; questionCount: number }>>([]);
+  const [questionSources, setQuestionSources] = useState<Array<{ id: number; name: string; questionCount: number; examYears?: Array<{ year: number; questionCount: number }> }>>([]);
   const [examYears, setExamYears] = useState<Array<{ year: number; questionCount: number }>>([]);
 
 
@@ -314,10 +329,23 @@ export function ExamSessionWizard({
 
   const [selectedYearLevel, setSelectedYearLevel] = React.useState<string | null>(null);
   const activeYearLevel = selectedYearLevel || effectiveYearLevel;
-  const { filters: contentFilters } = useContentFilters({ yearLevel: activeYearLevel });
+  // Wait for the student's year before loading modules, so only one tree is fetched
+  const { filters: contentFilters, loading: contentLoading } = useContentFilters({
+    yearLevel: activeYearLevel,
+    enabled: !yearLevelLoading
+  });
 
+  // The page's year dropdown and the one in the module sheet share this state
+  const handleYearLevelChange = (yearLevel: string | null) => {
+    if (!yearLevel || yearLevel === activeYearLevel) return;
+    setSelectedYearLevel(yearLevel);
+    handleModuleDeselection();
+  };
+
+  // Sources and years of the chosen module (nothing to load before one is chosen)
   const { filters: sessionFilters, loading: sessionFiltersLoading } = useQuizSessionFilters({
-    moduleId: selectedModule?.id
+    moduleId: selectedModule?.id,
+    enabled: !!selectedModule
   });
   const { subscriptions } = useUserSubscriptions();
 
@@ -325,12 +353,24 @@ export function ExamSessionWizard({
   React.useEffect(() => {
     if (!contentFilters) return;
 
-    const modules: Array<{ id: number; name: string }> = [];
+    const modules: Array<{ id: number; name: string; description?: string }> = [];
+
+    // Several unites (the Résidanat pack has one per study year): list them in year
+    // order and show each module's unite, since names repeat across years
+    const unites = [...(contentFilters.unites || [])];
+    const severalUnites = unites.length > 1;
+    if (severalUnites) {
+      const rank = (name: string) => {
+        const match = /^(\d+)/.exec(String(name || '').trim());
+        return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER;
+      };
+      unites.sort((a: any, b: any) => rank(a.name) - rank(b.name));
+    }
 
     // Add modules from unites
-    (contentFilters.unites || []).forEach((u: any) => {
+    unites.forEach((u: any) => {
       (u.modules || []).forEach((m: any) => {
-        modules.push({ id: m.id, name: m.name });
+        modules.push({ id: m.id, name: m.name, ...(severalUnites ? { description: u.name } : {}) });
       });
     });
 
@@ -362,6 +402,26 @@ export function ExamSessionWizard({
       setExamYears([]);
     }
   }, [sessionFilters]);
+
+  // Years of the chosen source (each with its question count); before a source is
+  // chosen, or from an API without per-source years, the module's years
+  const selectedSourceFilters = questionSources.find(s => String(s.id) === selectedSource);
+  const sourceYears: Array<{ year: number; questionCount: number }> = selectedSourceFilters?.examYears ?? examYears;
+
+  // A year the newly chosen source does not have is cleared
+  useEffect(() => {
+    if (selectedYear && selectedYear !== 'ALL' && selectedSourceFilters?.examYears &&
+      !selectedSourceFilters.examYears.some(y => String(y.year) === selectedYear)) {
+      setSelectedYear(undefined);
+    }
+  }, [selectedSource, selectedSourceFilters, selectedYear]);
+
+  // Questions in the exam: every question of the module, source and year
+  const examQuestionCount: number | null = selectedSourceFilters
+    ? (selectedYear && selectedYear !== 'ALL'
+      ? (sourceYears.find(y => String(y.year) === selectedYear)?.questionCount ?? null)
+      : selectedSourceFilters.questionCount)
+    : null;
 
   // Auto-generate title
   const autoGenerateTitle = useCallback(() => {
@@ -524,14 +584,12 @@ export function ExamSessionWizard({
                               <div className="space-y-2">
                                 <Label>Year Level</Label>
                                 <YearLevelSelector
-                                  value={selectedYearLevel as any}
-                                  onChange={(yearLevel) => {
-                                    setSelectedYearLevel(yearLevel);
-                                    handleModuleDeselection();
-                                  }}
+                                  value={(activeYearLevel ?? null) as any}
+                                  onChange={handleYearLevelChange}
                                   loading={yearLevelLoading}
                                   showAllOption={false}
                                   placeholder={yearLevelLoading ? "Loading..." : "Select year"}
+                                  testId="year-select-page"
                                 />
                               </div>
                             )}
@@ -540,10 +598,22 @@ export function ExamSessionWizard({
                               <Label>Module</Label>
                               <SheetSelector
                                 title="Select Module"
-                                triggerLabel="Select Module"
+                                triggerLabel={contentLoading ? "Loading modules..." : "Select Module"}
                                 value={selectedModule?.id}
                                 options={moduleOptions}
                                 onSelect={handleModuleSelection}
+                                disabled={yearLevelLoading}
+                                loading={contentLoading}
+                                testId="module-select"
+                                headerSlot={shouldApplyFilter ? (
+                                  <YearLevelSelector
+                                    value={(activeYearLevel ?? null) as any}
+                                    onChange={handleYearLevelChange}
+                                    showAllOption={false}
+                                    placeholder="Select year"
+                                    testId="year-select-sheet"
+                                  />
+                                ) : undefined}
                               />
                             </div>
 
@@ -567,7 +637,8 @@ export function ExamSessionWizard({
                                         value={selectedSource || ""}
                                         options={questionSources.map(s => ({ ...s, id: String(s.id) }))}
                                         onSelect={setSelectedSource}
-                                        renderOption={() => "Question source"}
+                                        renderOption={(option: any) => `${option.questionCount} question${option.questionCount === 1 ? '' : 's'}`}
+                                        testId="source-select"
                                       />
                                     </div>
 
@@ -575,11 +646,16 @@ export function ExamSessionWizard({
                                       <Label>Exam Year <span className="text-muted-foreground font-normal text-xs ml-1">(Optional)</span></Label>
                                       <SheetSelector
                                         title="Select Exam Year"
-                                        triggerLabel="Select Year"
+                                        triggerLabel={selectedSource ? "All years" : "Select a source first"}
                                         value={selectedYear || ""}
-                                        options={examYears.map(y => ({ id: String(y.year), name: String(y.year) }))}
+                                        options={[
+                                          ...(selectedSourceFilters ? [{ id: 'ALL', name: 'All years', questionCount: selectedSourceFilters.questionCount }] : []),
+                                          ...sourceYears.map(y => ({ id: String(y.year), name: String(y.year), questionCount: y.questionCount }))
+                                        ]}
                                         onSelect={setSelectedYear}
-                                        renderOption={() => "Exam year"}
+                                        disabled={!selectedSource}
+                                        renderOption={(option: any) => `${option.questionCount} question${option.questionCount === 1 ? '' : 's'}`}
+                                        testId="year-exam-select"
                                       />
                                     </div>
 
@@ -591,6 +667,11 @@ export function ExamSessionWizard({
                           </div>
                         </motion.div>
                       </AnimatePresence>
+                    {examQuestionCount !== null && (
+                      <p className="pb-2 text-sm text-muted-foreground" data-testid="exam-question-count">
+                        This exam has {examQuestionCount} question{examQuestionCount === 1 ? '' : 's'}.
+                      </p>
+                    )}
                     </CardContent>
                   </div>
                 </motion.div>
@@ -604,7 +685,7 @@ export function ExamSessionWizard({
                     Cancel
                   </Button>
 
-                  <Button type="button" onClick={handleCreate} disabled={loading || !hasSelection}>
+                  <Button type="button" onClick={handleCreate} disabled={loading || !hasSelection || !selectedSource || examQuestionCount === 0}>
                     Create Session <Check className="h-4 w-4 ml-2" />
                   </Button>
                 </CardFooter>

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { StudentService } from '@/lib/api-services';
+import { useMemo } from 'react';
+import { useUserSubscriptions } from '@/hooks/use-subscription';
 
 export type YearLevel = 'ONE' | 'TWO' | 'THREE' | 'FOUR' | 'FIVE' | 'SIX' | 'SEVEN';
 
@@ -9,98 +9,46 @@ export interface UseYearLevelResult {
   yearLevel: YearLevel | null;
   effectiveYearLevel: YearLevel | undefined;
   shouldApplyFilter: boolean;
+  /** An active Résidanat pack subscription: every study year is open */
+  isResidency: boolean;
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
 }
 
 /**
- * Hook to detect the user's year level from their active subscription
- * Fetches subscription data and extracts the yearNumber from the active study pack
+ * The student's year level, from their active subscriptions (shared with the
+ * layout, so no extra request).
+ *
+ * A résidanat student (an active subscription to a RESIDENCY study pack, and
+ * nobody else) can open every study year and picks one at a time
+ * (shouldApplyFilter), starting on SEVEN, the Résidanat pack's own modules. A
+ * year-pack student keeps their pack's year and no year choice (content filters
+ * then return their own packs).
  */
 export function useYearLevel(): UseYearLevelResult {
-  const [yearLevel, setYearLevel] = useState<YearLevel | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { subscriptions, loading, error, refresh } = useUserSubscriptions();
 
-  const fetchYearLevel = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      console.log('🎓 [useYearLevel] Fetching user subscriptions...');
-
-      const response = await StudentService.getSubscriptions();
-
-      if (response.success) {
-        // Extract the actual subscriptions array from the nested response structure
-        // API returns: { success: true, data: { success: true, data: [...] } }
-        const responseData = response.data as any;
-        const subscriptionsData = responseData?.data?.data || responseData?.data || responseData || [];
-        const subscriptions = Array.isArray(subscriptionsData) ? subscriptionsData : [];
-
-        console.log('🎓 [useYearLevel] Subscriptions loaded:', {
-          count: subscriptions.length,
-          subscriptions
-        });
-
-        // Find the active subscription
-        const now = new Date().getTime();
-        const activeSubscription = subscriptions.find((sub: any) => {
-          const isActive = String(sub?.status || '').toUpperCase() === 'ACTIVE';
-          const notExpired = !sub?.endDate || new Date(sub.endDate).getTime() >= now;
-          return isActive && notExpired;
-        });
-
-        if (activeSubscription) {
-          const yearNumber = activeSubscription.studyPack?.yearNumber;
-          
-          console.log('🎓 [useYearLevel] Active subscription found:', {
-            subscriptionId: activeSubscription.id,
-            studyPackName: activeSubscription.studyPack?.name,
-            yearNumber,
-            type: activeSubscription.studyPack?.type
-          });
-
-          if (yearNumber) {
-            setYearLevel(yearNumber as YearLevel);
-          } else {
-            console.warn('🎓 [useYearLevel] Active subscription has no yearNumber');
-            setYearLevel(null);
-          }
-        } else {
-          console.warn('🎓 [useYearLevel] No active subscription found');
-          setYearLevel(null);
-        }
-      } else {
-        const errorMessage = typeof response.error === 'string' ? response.error : 'Failed to fetch subscriptions';
-        throw new Error(errorMessage);
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch year level';
-      console.error('🎓 [useYearLevel] Error:', err);
-      setError(errorMessage);
-      setYearLevel(null);
-    } finally {
-      setLoading(false);
+  const { yearLevel, isResidency } = useMemo(() => {
+    const now = Date.now();
+    const active = (subscriptions || []).filter((sub: any) =>
+      String(sub?.status || '').toUpperCase() === 'ACTIVE' &&
+      (!sub?.endDate || new Date(sub.endDate).getTime() >= now)
+    );
+    if (active.some((sub: any) => String(sub?.studyPack?.type || '').toUpperCase() === 'RESIDENCY')) {
+      return { yearLevel: 'SEVEN' as YearLevel, isResidency: true };
     }
-  }, []);
-
-  useEffect(() => {
-    fetchYearLevel();
-  }, [fetchYearLevel]);
-
-  // Only apply year-level filtering for SEVEN (Résidanat) students
-  const shouldApplyFilter = yearLevel === 'SEVEN';
-  const effectiveYearLevel = shouldApplyFilter ? yearLevel : undefined;
+    const yearNumber = active[0]?.studyPack?.yearNumber;
+    return { yearLevel: (yearNumber || null) as YearLevel | null, isResidency: false };
+  }, [subscriptions]);
 
   return {
     yearLevel,
-    effectiveYearLevel, // Only SEVEN, otherwise undefined
-    shouldApplyFilter, // true only for SEVEN
+    effectiveYearLevel: isResidency ? 'SEVEN' : undefined,
+    shouldApplyFilter: isResidency,
+    isResidency,
     loading,
     error,
-    refetch: fetchYearLevel
+    refetch: refresh,
   };
 }
-

@@ -11,13 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useQuizFilters } from '@/hooks/use-quiz-api';
 import { useUserSubscriptions, selectEffectiveActiveSubscription } from '@/hooks/use-subscription';
 import { QuizService } from '@/lib/api-services';
 import { NewApiService } from '@/lib/api/new-api-services';
 import { toast } from 'sonner';
 import { Stethoscope, Loader2 } from 'lucide-react';
 import { residencyPartLabel } from '@/lib/residency-parts';
+import { useCachedResource } from '@/lib/cached-resource';
 
 interface University {
   id: number;
@@ -27,10 +27,20 @@ interface University {
 
 export default function ResidencyCreatePage() {
 
-  // Universities loaded from the filters endpoint
-  const [universities, setUniversities] = React.useState<University[]>([]);
-  const [filtersLoading, setFiltersLoading] = React.useState(false);
-  const [filtersError, setFiltersError] = React.useState<string | null>(null);
+  // Universities and their exam years (shown at once on later visits, refreshed in the background)
+  const { data: universitiesData, loading: filtersLoading, error: filtersFetchError } = useCachedResource<University[]>(
+    'residency-filters',
+    async () => {
+      const res = await NewApiService.getResidencyFilters();
+      const data = (res?.data?.data) ?? res?.data;
+      if (!res?.success || !data) {
+        throw new Error(res?.error || 'Failed to load filters');
+      }
+      return data.universities || [];
+    }
+  );
+  const universities = React.useMemo(() => universitiesData ?? [], [universitiesData]);
+  const filtersError = filtersFetchError ? 'Impossible de charger les filtres de résidanat.' : null;
 
   // Form state
   const [selectedUniversityId, setSelectedUniversityId] = React.useState<string>('');
@@ -50,26 +60,6 @@ export default function ResidencyCreatePage() {
     return (uni?.examYears || []).sort((a, b) => b - a);
   }, [selectedUniversityId, universities]);
 
-  // Load universities on mount
-  const loadFilters = React.useCallback(async () => {
-    try {
-      setFiltersLoading(true);
-      setFiltersError(null);
-      const res = await NewApiService.getResidencyFilters();
-      const data = (res?.data?.data) ?? res?.data;
-      if (res?.success && data) {
-        setUniversities(data.universities || []);
-      } else {
-        throw new Error(res?.error || 'Failed to load filters');
-      }
-    } catch (e) {
-      setFiltersError('Impossible de charger les filtres de résidanat.');
-    } finally {
-      setFiltersLoading(false);
-    }
-  }, []);
-
-  React.useEffect(() => { loadFilters(); }, [loadFilters]);
 
   // When university changes, reset year & parts
   const handleUniversityChange = React.useCallback((universityId: string) => {
@@ -109,7 +99,6 @@ export default function ResidencyCreatePage() {
   }, [selectedUniversityId]);
 
   const router = useRouter();
-  const { filters: quizFilters } = useQuizFilters();
   const { subscriptions } = useUserSubscriptions();
   const { isResidency } = selectEffectiveActiveSubscription(subscriptions);
 

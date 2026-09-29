@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { SubscriptionService, ContentService } from '@/lib/api-services';
 import { UserSubscription } from '@/types/api';
+import { useCachedResource } from '@/lib/cached-resource';
 
 // Interface for subscription access check
 export interface SubscriptionAccess {
@@ -28,51 +29,29 @@ interface AccessCheckState {
   error: string | null;
 }
 
-// Hook for managing user subscriptions
+/** GET /students/subscriptions, unwrapped (throws on failure) */
+export async function fetchUserSubscriptions(): Promise<UserSubscription[]> {
+  const response = await SubscriptionService.getUserSubscriptions();
+  if (!response.success) {
+    throw new Error(response.error || 'Failed to fetch subscriptions');
+  }
+  // API returns: { success: true, data: [...] } (older shapes nested it once more)
+  const subscriptionsData = response.data?.data?.data || response.data?.data || response.data || [];
+  return Array.isArray(subscriptionsData) ? subscriptionsData : [];
+}
+
+// Hook for managing user subscriptions. Every hook on the page shares one request
+// and the last known list shows at once on later visits (refreshed in the background).
+// `refreshing` is true until the list is confirmed by the server: do not send a
+// student away (no subscription) on a cached list.
 export function useUserSubscriptions() {
-  const [state, setState] = useState<SubscriptionState>({
-    subscriptions: null,
-    loading: true,
-    error: null,
-  });
-
-  const fetchSubscriptions = useCallback(async () => {
-    setState(prev => ({ ...prev, loading: true, error: null }));
-
-    try {
-      const response = await SubscriptionService.getUserSubscriptions();
-
-      if (response.success) {
-        // Extract the actual subscriptions array from the nested response structure
-        // API returns: { success: true, data: { success: true, data: [...] } }
-        const subscriptionsData = response.data?.data?.data || response.data?.data || response.data || [];
-
-        setState({
-          subscriptions: Array.isArray(subscriptionsData) ? subscriptionsData : [],
-          loading: false,
-          error: null,
-        });
-      } else {
-        throw new Error(response.error || 'Failed to fetch subscriptions');
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch subscriptions';
-      setState({
-        subscriptions: null,
-        loading: false,
-        error: errorMessage,
-      });
-      console.error('Subscriptions fetch error:', error);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchSubscriptions();
-  }, [fetchSubscriptions]);
-
+  const { data, loading, refreshing, error, refresh } = useCachedResource('subscriptions', fetchUserSubscriptions);
   return {
-    ...state,
-    refresh: fetchSubscriptions,
+    subscriptions: data ?? null,
+    loading,
+    refreshing,
+    error,
+    refresh,
   };
 }
 

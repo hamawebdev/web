@@ -22,6 +22,8 @@ interface YearLevelSelectorProps {
   labelClassName?: string;
   showAllOption?: boolean;
   required?: boolean;
+  /** data-testid of the trigger */
+  testId?: string;
 }
 
 const YEAR_LEVELS: { value: YearLevel; label: string }[] = [
@@ -31,7 +33,8 @@ const YEAR_LEVELS: { value: YearLevel; label: string }[] = [
   { value: 'FOUR', label: 'Quatrième Année' },
   { value: 'FIVE', label: 'Cinquième Année' },
   { value: 'SIX', label: 'Sixième Année' },
-  { value: 'SEVEN', label: 'Septième Année (Résidanat)' }
+  // The Résidanat pack's own modules (there is no 7th study year)
+  { value: 'SEVEN', label: 'Résidanat' }
 ];
 
 export function YearLevelSelector({
@@ -45,7 +48,8 @@ export function YearLevelSelector({
   triggerClassName,
   labelClassName,
   showAllOption = true,
-  required = false
+  required = false,
+  testId
 }: YearLevelSelectorProps) {
   const handleValueChange = (newValue: string) => {
     if (newValue === 'all') {
@@ -67,7 +71,7 @@ export function YearLevelSelector({
         onValueChange={handleValueChange}
         disabled={disabled || loading}
       >
-        <SelectTrigger className={triggerClassName}>
+        <SelectTrigger className={triggerClassName} data-testid={testId}>
           <SelectValue placeholder={loading ? 'Chargement...' : placeholder} />
         </SelectTrigger>
         <SelectContent>

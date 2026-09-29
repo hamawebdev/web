@@ -16,7 +16,7 @@ export default function SessionLayout({ children }: SessionLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { isAuthenticated, loading: authLoading, checkAndRedirect } = useStudentAuth();
-  const { subscriptions, loading, error, refresh } = useUserSubscriptions();
+  const { subscriptions, loading, refreshing, error, refresh } = useUserSubscriptions();
   const { effective } = selectEffectiveActiveSubscription(subscriptions);
   const hasActiveSubscription = !!effective;
 
@@ -35,12 +35,14 @@ export default function SessionLayout({ children }: SessionLayoutProps) {
 
   // Redirect non-subscribers away from protected student pages. A failed
   // subscriptions request is not "no subscription": show a retry state instead.
+  // A list shown from the cache is confirmed first (refreshing), so a student who
+  // just subscribed is never sent away on an old list.
   useEffect(() => {
-    if (loading || error || authLoading || !isAuthenticated) return;
+    if (loading || refreshing || error || authLoading || !isAuthenticated) return;
     if (!hasActiveSubscription && !subscriptionAllowed) {
       router.replace('/student/subscriptions/browse');
     }
-  }, [loading, error, authLoading, isAuthenticated, hasActiveSubscription, subscriptionAllowed, router]);
+  }, [loading, refreshing, error, authLoading, isAuthenticated, hasActiveSubscription, subscriptionAllowed, router]);
 
   const subscriptionCheckFailed = !!error && !subscriptionAllowed;
 

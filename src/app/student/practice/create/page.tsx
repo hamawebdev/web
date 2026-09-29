@@ -93,25 +93,10 @@ export default function PracticeCreatePage() {
 
         console.log('✅ [Practice/Create] Session created successfully, sessionId:', sessionId);
 
-        // MANDATORY: Immediately fetch session questions using documented endpoint
-        console.log('🔄 [Practice/Create] Fetching session questions...');
-        const sessionResponse = await QuizService.getQuizSession(sessionId);
-
-        console.log('📋 [Practice/Create] Session fetch response:', {
-          success: sessionResponse.success,
-          hasData: !!sessionResponse.data,
-          questionsCount: sessionResponse.data?.questions?.length || 0
-        });
-
-        if (sessionResponse.success && sessionResponse.data?.questions) {
-          console.log('✅ [Practice/Create] Session questions validated, redirecting...');
-          toast.success('Practice session created successfully');
-          router.push(`/session/${sessionId}`);
-        } else {
-          console.error('❌ [Practice/Create] Session created but questions fetch failed:', sessionResponse);
-          toast.error('Session created but failed to load questions. Please try again.');
-          return;
-        }
+        // The session page loads the questions; fetching them here first only
+        // delayed the start by one more request
+        toast.success('Practice session created successfully');
+        router.push(`/session/${sessionId}`);
       } else {
         console.error('❌ [Practice/Create] Session creation failed:', {
           success: created.success,

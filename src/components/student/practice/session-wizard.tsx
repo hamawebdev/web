@@ -23,7 +23,6 @@ import { ChevronLeft, ChevronRight, CheckCircle2, X, CheckSquare, Square, Refres
 import { cn } from "@/lib/utils";
 import { useUserSubscriptions, selectEffectiveActiveSubscription } from "@/hooks/use-subscription";
 
-import { useQuizFilters } from "@/hooks/use-quiz-api";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useContentFilters, useQuizSessionFilters, useQuestionCount } from "@/hooks/use-content-filters";
 import { useYearLevel } from "@/hooks/use-year-level";
@@ -61,12 +60,10 @@ export function SessionWizard({
 
   // Load user's active subscription and fetch content filters
   const { subscriptions, loading: subsLoading } = useUserSubscriptions();
-  const { filters: quizFilters } = useQuizFilters();
 
-  // Detect year level from subscription
-  // Only apply filtering for SEVEN (Résidanat) students
+  // Résidanat students pick one study year at a time (starting on the Résidanat
+  // pack); year-pack students get their own pack and no year choice
   const {
-    yearLevel: detectedYearLevel,
     effectiveYearLevel,
     shouldApplyFilter,
     loading: yearLevelLoading
@@ -74,12 +71,23 @@ export function SessionWizard({
 
   const [selectedYearLevel, setSelectedYearLevel] = useState<string | null>(null);
 
-  // Use selected year level if set, otherwise use effective year level (only SEVEN)
+  // Use selected year level if set, otherwise the default one (SEVEN for résidanat)
   const activeYearLevel = selectedYearLevel || effectiveYearLevel;
 
+  // Wait for the student's year before loading modules, so only one tree is fetched
   const { filters: contentFilters, loading: contentLoading, error: contentError } = useContentFilters({
-    yearLevel: activeYearLevel
+    yearLevel: activeYearLevel,
+    enabled: !yearLevelLoading
   });
+
+  // The page's year dropdown and the one in the module sheet share this state
+  const handleYearLevelChange = (yearLevel: string | null) => {
+    if (!yearLevel || yearLevel === activeYearLevel) return;
+    setSelectedYearLevel(yearLevel);
+    // Modules and courses belong to one year
+    setModuleIds([]);
+    setCourseIds([]);
+  };
   const { filters: sessionFilters, loading: sessionFiltersLoading, error: sessionFiltersError, refetch: refetchSessionFilters } = useQuizSessionFilters();
   const { questionCount: availableQuestionCount, totalQuestionCount, loading: questionCountLoading, error: questionCountError, refetch: refetchQuestionCount } = useQuestionCount();
 
@@ -139,13 +147,25 @@ export function SessionWizard({
   const moduleOptions = useMemo(() => {
     const modules: any[] = [];
 
+    // Several unites (the Résidanat pack has one per study year): list them in year
+    // order and show each module's unite, since names repeat across years
+    const unites = [...(contentFilters?.unites || [])];
+    const severalUnites = unites.length > 1;
+    if (severalUnites) {
+      const rank = (name: string) => {
+        const match = /^(\d+)/.exec(String(name || '').trim());
+        return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER;
+      };
+      unites.sort((a: any, b: any) => rank(a.name) - rank(b.name));
+    }
+
     // Add modules from unites
-    (contentFilters?.unites || []).forEach((u: any) => {
+    unites.forEach((u: any) => {
       (u.modules || []).forEach((m: any) => {
         modules.push({
           value: String(m.id),
           label: m.name,
-          description: m.description
+          description: severalUnites ? u.name : m.description
         });
       });
     });
@@ -562,16 +582,11 @@ export function SessionWizard({
         return (
           <div className="space-y-5">
             <div className="space-y-5">
-              {/* Year Level Selection - Only show for SEVEN (Résidanat) students */}
+              {/* Year Level Selection - résidanat students, one year at a time */}
               {shouldApplyFilter && (
                 <YearLevelSelector
-                  value={selectedYearLevel as any}
-                  onChange={(yearLevel) => {
-                    setSelectedYearLevel(yearLevel);
-                    // Reset selections when year level changes
-                    setModuleIds([]);
-                    setCourseIds([]);
-                  }}
+                  value={(activeYearLevel ?? null) as any}
+                  onChange={handleYearLevelChange}
                   loading={yearLevelLoading}
                   showAllOption={false}
                   placeholder={
@@ -580,6 +595,7 @@ export function SessionWizard({
                       : "Select year"
                   }
                   triggerClassName="shadow-none"
+                  testId="year-select-page"
                 />
               )}
 
@@ -604,10 +620,20 @@ export function SessionWizard({
                   description="Choose modules to include in your practice session"
                   searchPlaceholder="Search modules..."
                   emptySearchMessage="No modules found"
-                  disabled={contentLoading}
+                  disabled={yearLevelLoading}
                   loading={contentLoading}
                   showSelectAll={availableModules.length > 0}
                   className="shadow-none"
+                  headerSlot={shouldApplyFilter ? (
+                    <YearLevelSelector
+                      value={(activeYearLevel ?? null) as any}
+                      onChange={handleYearLevelChange}
+                      showAllOption={false}
+                      placeholder="Select year"
+                      triggerClassName="shadow-none"
+                      testId="year-select-sheet"
+                    />
+                  ) : undefined}
                 />
               </div>
 

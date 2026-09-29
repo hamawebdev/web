@@ -395,6 +395,8 @@ export type ModuleSelectSheetProps = BaseDialogSelectorProps & {
   searchPlaceholder?: string;
   emptySearchMessage?: string;
   showSelectAll?: boolean;
+  /** Shown under the sheet's title, above the search (e.g. the year choice) */
+  headerSlot?: React.ReactNode;
 };
 
 export function ModuleSelectSheet({
@@ -411,6 +413,7 @@ export function ModuleSelectSheet({
   className,
   error,
   showSelectAll = true,
+  headerSlot,
 }: ModuleSelectSheetProps) {
   const [open, setOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -528,6 +531,8 @@ export function ModuleSelectSheet({
           <SheetDescription>{description}</SheetDescription>
         </SheetHeader>
 
+        {headerSlot && <div className="flex-shrink-0 px-1">{headerSlot}</div>}
+
         {/* Search Input */}
         <div className="relative flex-shrink-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -580,7 +585,12 @@ export function ModuleSelectSheet({
         <div className="relative flex-1 min-h-0 my-2">
           <ScrollArea className="h-full pr-3">
             <div className="space-y-1 py-2 pr-1">
-              {filteredOptions.length === 0 ? (
+              {loading ? (
+                <div className="flex items-center gap-2 px-3 py-6 text-sm text-muted-foreground">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  Loading modules...
+                </div>
+              ) : filteredOptions.length === 0 ? (
                 <EmptyState
                   icon={Search}
                   title={searchQuery ? emptySearchMessage : "No modules available"}
