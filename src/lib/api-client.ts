@@ -583,8 +583,11 @@ class ApiClient {
 
     if (!isAxiosError) {
       console.error('⚠️ Not an Axios error, treating as generic error');
+      const message = error?.message || errorMessage;
       return {
-        message: error?.message || errorMessage,
+        success: false,
+        error: message,
+        message,
         statusCode: 500,
         details: { originalError: error }
       };
@@ -686,9 +689,11 @@ class ApiClient {
     }
 
 
+    // `message` repeats `error` so callers doing `error.message || fallback` show the API's message
     return {
       success: false,
       error: errorMessage,
+      message: errorMessage,
       statusCode,
       ...(details !== undefined ? { details } : {}),
       ...(code !== undefined ? { code } : {}),

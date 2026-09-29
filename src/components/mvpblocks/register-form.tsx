@@ -53,9 +53,8 @@ export default function RegisterForm() {
             const redirectPath = AuthAPI.getRedirectPath(result.user.role);
             router.push(redirectPath);
         } catch (err: any) {
-            const errorMessage = err.message || 'Échec de l\'inscription';
-            setError(errorMessage);
-            toast.error(errorMessage);
+            // Shown once, in the banner above the form
+            setError(err.message || 'Échec de l\'inscription');
         } finally {
             setIsLoading(false);
         }

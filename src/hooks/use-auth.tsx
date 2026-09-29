@@ -182,7 +182,7 @@ export function useAuth() {
         error: errorMessage,
       }));
 
-      toast.error(errorMessage);
+      // No toast: the login form shows the error in its banner (once)
       throw error;
     }
   }, [router]);

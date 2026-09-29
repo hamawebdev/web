@@ -5,8 +5,40 @@ import { User, LoginData, AuthResponse } from '@/types/auth';
 import { LoginRequest } from '@/types/api';
 import { getOrCreateDeviceFingerprint } from './device-fingerprint';
 import { API_BASE_URL } from './config';
+import { getApiErrorMessage } from './api-error';
 
 const GOOGLE_SIGN_IN_PENDING_KEY = 'google_sign_in_pending';
+
+/**
+ * Message for a failed auth call: the API's own message (validation details
+ * included), `fallback` when there is none, and French text for rate limiting.
+ * `error` is the apiClient rejection ({ success: false, error, message, statusCode })
+ * or an Error thrown below.
+ */
+function authErrorMessage(error: any, fallback: string): string {
+  if (error?.statusCode === 429) {
+    return 'Trop de tentatives. Veuillez réessayer dans quelques minutes.';
+  }
+  return getApiErrorMessage(error, fallback);
+}
+
+/**
+ * Login refusals (401) in French. The API sends 401 for wrong credentials, a
+ * deactivated account and a Google-only account; only its English message tells them apart.
+ */
+function loginErrorMessage(error: any): string {
+  if (error?.statusCode === 401) {
+    const apiMessage = getApiErrorMessage(error, '').toLowerCase();
+    if (apiMessage.includes('deactivated')) {
+      return 'Votre compte a été désactivé. Contactez le support MedADN.';
+    }
+    if (apiMessage.includes('google')) {
+      return 'Ce compte utilise la connexion Google : utilisez le bouton « Continue with Google ».';
+    }
+    return 'Adresse e-mail ou mot de passe incorrect.';
+  }
+  return authErrorMessage(error, 'Échec de la connexion. Veuillez réessayer.');
+}
 
 // Authentication class that integrates with the Medical Education Platform API
 export class AuthAPI {
@@ -70,7 +102,7 @@ export class AuthAPI {
       return result;
     } catch (error: any) {
       console.error('🔐 AuthAPI.register: Registration error', error);
-      throw new Error(error.message || 'Registration failed');
+      throw new Error(authErrorMessage(error, 'Échec de l\'inscription. Veuillez réessayer.'));
     }
   }
 
@@ -177,7 +209,7 @@ export class AuthAPI {
       return result;
     } catch (error: any) {
       console.error('🔐 AuthAPI.login: Login error', error);
-      throw new Error(error.message || 'Login failed');
+      throw new Error(loginErrorMessage(error));
     }
   }
 
@@ -311,7 +343,7 @@ export class AuthAPI {
 
       return response.data as User;
     } catch (error: any) {
-      throw new Error(error.message || 'Profile update failed');
+      throw new Error(authErrorMessage(error, 'Échec de la mise à jour du profil.'));
     }
   }
 
@@ -333,7 +365,7 @@ export class AuthAPI {
         throw new Error(errorMessage);
       }
     } catch (error: any) {
-      throw new Error(error.message || 'Password change failed');
+      throw new Error(authErrorMessage(error, 'Échec du changement de mot de passe.'));
     }
   }
 
@@ -359,7 +391,7 @@ export class AuthAPI {
       return response.data || { message: 'Verification code sent to email' };
     } catch (error: any) {
       console.error('🔐 AuthAPI.forgotPassword: Exception', error);
-      throw new Error(error.message || 'Password reset request failed');
+      throw new Error(authErrorMessage(error, 'Échec de la demande de réinitialisation du mot de passe.'));
     }
   }
 
@@ -391,7 +423,7 @@ export class AuthAPI {
       return response.data || { message: 'Password reset successfully' };
     } catch (error: any) {
       console.error('🔐 AuthAPI.resetPassword: Exception', error);
-      throw new Error(error.message || 'Password reset failed');
+      throw new Error(authErrorMessage(error, 'Échec de la réinitialisation du mot de passe.'));
     }
   }
 

@@ -11,6 +11,26 @@ import { AuthAPI } from '@/lib/auth-api';
 import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
 
+// ?reason= sent by the API with ?error=oauth_failed when it refuses a Google sign-in
+const GOOGLE_FAILURE_MESSAGES: Record<string, string> = {
+  account_exists:
+    'Un compte avec cette adresse e-mail existe déjà. Connectez-vous avec votre e-mail et votre mot de passe.',
+  account_deactivated: 'Votre compte a été désactivé. Contactez le support MedADN.',
+  email_unverified:
+    "L'adresse e-mail de votre compte Google n'est pas vérifiée. Vérifiez-la auprès de Google, puis réessayez.",
+  email_missing:
+    "Google n'a pas fourni d'adresse e-mail. Autorisez l'accès à votre adresse e-mail, puis réessayez.",
+  unavailable:
+    "La connexion avec Google n'est pas disponible pour le moment. Connectez-vous avec votre e-mail et votre mot de passe.",
+};
+
+function googleFailureMessage(reason: string | null): string {
+  if (reason && Object.prototype.hasOwnProperty.call(GOOGLE_FAILURE_MESSAGES, reason)) {
+    return GOOGLE_FAILURE_MESSAGES[reason];
+  }
+  return 'La connexion avec Google a échoué. Veuillez réessayer.';
+}
+
 export default function LoginForm1() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -40,7 +60,7 @@ export default function LoginForm1() {
       }
     }
     if (searchParams.get('error') === 'oauth_failed') {
-      setError('La connexion avec Google a échoué. Veuillez réessayer.');
+      setError(googleFailureMessage(searchParams.get('reason')));
     }
   }, [searchParams]);
 

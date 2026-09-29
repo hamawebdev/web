@@ -78,7 +78,9 @@ export async function sendAIChatMessage(
 
         // For development/demo purposes - provide a mock response
         // Remove this in production when the actual endpoint is available
-        if (error.message?.includes('unavailable') || error.statusCode === 404) {
+        // Only our own Error above: apiClient rejections now carry `message` too, and a
+        // 503 "Service temporarily unavailable" must stay an error, not a mock answer
+        if ((error instanceof Error && error.message.includes('unavailable')) || error.statusCode === 404) {
             return {
                 success: true,
                 message: getMockResponse(message, context),
