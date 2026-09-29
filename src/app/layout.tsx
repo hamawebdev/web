@@ -97,28 +97,17 @@ export default function RootLayout({
         <Script id="theme-init" strategy="beforeInteractive">
           {`(function() {
               try {
-                var storageKey = 'theme';
-                var stored = localStorage.getItem(storageKey);
-                // Support system theme detection - use system preference if no stored theme or 'system' is selected
-                var theme;
-                if (stored === 'system' || !stored) {
-                  var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                  theme = prefersDark ? 'dark' : 'light';
-                } else {
-                  theme = stored;
-                }
+                // The light/dark class on <html> belongs to next-themes: ThemeProvider's inline
+                // script sets it before first paint and setTheme updates it. Writing it here as
+                // well made the two disagree, so this script only reads it.
                 var root = document.documentElement;
-                
-                // Ensure we always have a theme class applied
-                root.classList.remove('light','dark');
-                root.classList.add(theme);
-                root.setAttribute('data-theme', theme);
-                
+                var isDark = root.classList.contains('dark');
+
                 // Force a style recalculation to ensure CSS variables are available
                 root.style.setProperty('--theme-initialized', '1');
 
                 // Set immediate sidebar color for all platforms based on theme
-                if (theme === 'dark') {
+                if (isDark) {
                   root.style.setProperty('--sidebar-immediate', 'hsl(0 0% 7.0588%)');
                 } else {
                   root.style.setProperty('--sidebar-immediate', 'hsl(0 0% 98.8235%)');
@@ -158,8 +147,6 @@ export default function RootLayout({
                 // Enhanced fallback with mobile safety
                 console.error('Theme initialization failed:', e);
                 var root = document.documentElement;
-                root.classList.add('light');
-                root.setAttribute('data-theme', 'light');
                 root.style.setProperty('--sidebar-immediate', 'hsl(0 0% 98.8235%)');
                 root.classList.add('theme-ready');
                 
@@ -171,19 +158,20 @@ export default function RootLayout({
               }
             })();`}
         </Script>
-        <Providers>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem={true}
-            disableTransitionOnChange={true}
-            storageKey="theme"
-          >
+        {/* ThemeProvider wraps Providers so the toast container there gets the app theme too */}
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem={true}
+          disableTransitionOnChange={true}
+          storageKey="theme"
+        >
+          <Providers>
             {children}
 
             <MobileSafetyGuard />
-          </ThemeProvider>
-        </Providers>
+          </Providers>
+        </ThemeProvider>
       </body>
     </html>
   );

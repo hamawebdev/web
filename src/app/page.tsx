@@ -33,32 +33,7 @@ export default function Home() {
     }
   }, [hasInitialized, loading, isAuthenticated, user, router]);
 
-  // Force light mode for homepage
-  useEffect(() => {
-    // Force light mode by setting data-theme and class
-    document.documentElement.setAttribute('data-theme', 'light');
-    document.documentElement.classList.remove('dark');
-    document.documentElement.classList.add('light');
-
-    // Also set the theme in localStorage to override next-themes
-    localStorage.setItem('theme', 'light');
-
-    return () => {
-      // Cleanup: restore system theme preference when leaving homepage
-      localStorage.removeItem('theme');
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      if (prefersDark) {
-        document.documentElement.setAttribute('data-theme', 'dark');
-        document.documentElement.classList.add('dark');
-        document.documentElement.classList.remove('light');
-      } else {
-        document.documentElement.setAttribute('data-theme', 'light');
-        document.documentElement.classList.remove('dark');
-        document.documentElement.classList.add('light');
-      }
-    };
-  }, []);
-
+  // This page is always light: ThemeProvider forces it for "/" (see theme-provider.tsx)
 
   return (
     <div className="min-h-screen relative overflow-hidden force-light-mode">

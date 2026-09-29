@@ -2,6 +2,9 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* dark: utilities follow the theme picked in the app (the .dark class next-themes sets on <html>), not the OS setting */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Prevent FOUC by hiding content until theme is ready - Mobile Safe */
 html:not(.theme-ready) {
   visibility: hidden;
