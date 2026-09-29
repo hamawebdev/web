@@ -239,8 +239,8 @@ export function SessionWizard({
       .map(courseId => {
         const course = courseOptions.find((c: any) => c.value === courseId);
         const courseName = course?.label?.split(' (')[0]; // Remove any parenthetical info
-        // Sanitize course name to contain only alphanumeric characters and spaces
-        return courseName?.replace(/[^A-Za-z0-9\s]/g, '').trim();
+        // Keep letters (accented ones too: "Hypertension artérielle"), digits and spaces
+        return courseName?.replace(/[^\p{L}\p{N}\s]/gu, '').trim();
       })
       .filter(Boolean)
       .slice(0, 2); // Limit to first 2 courses for readability

@@ -5,7 +5,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { QuizService } from '@/lib/api-services';
-import { readCache, writeCache } from '@/lib/cached-resource';
+import { readCache, userScopedKey, writeCache } from '@/lib/cached-resource';
+import { idbDelete, idbGet, idbSet } from '@/lib/idb-cache';
 
 // Enhanced types for quiz session data
 export interface QuizSession {
@@ -101,8 +102,18 @@ export function useQuizSessions(params: UseQuizSessionsParams = {}): UseQuizSess
   };
 }
 
-/** Session payloads above this size are cached in memory only, not in localStorage */
+/** Session payloads above this size go to IndexedDB instead of localStorage */
 const MAX_STORED_SESSION_CHARS = 400_000;
+
+/** Keep a session payload for later visits: memory, plus localStorage or (large ones) IndexedDB */
+function storeQuizSession(cacheKey: string, session: any, size: number): void {
+  const small = size <= MAX_STORED_SESSION_CHARS;
+  writeCache(cacheKey, session, { persist: small });
+  const scoped = userScopedKey(cacheKey);
+  if (!scoped) return;
+  if (small) idbDelete(scoped).catch(() => undefined);
+  else idbSet(scoped, session).catch(() => undefined);
+}
 
 /**
  * Store a session payload the API just returned (session creation with
@@ -110,8 +121,7 @@ const MAX_STORED_SESSION_CHARS = 400_000;
  */
 export function primeQuizSession(sessionId: number, session: any): void {
   if (!sessionId || !session?.questions?.length) return;
-  const size = JSON.stringify(session).length;
-  writeCache(`quiz-session:${sessionId}`, session, { persist: size <= MAX_STORED_SESSION_CHARS });
+  storeQuizSession(`quiz-session:${sessionId}`, session, JSON.stringify(session).length);
 }
 
 /**
@@ -136,8 +146,17 @@ export function useQuizSession(sessionId: number, options?: { acceptCached?: (se
     }
 
     const cacheKey = `quiz-session:${sessionId}`;
-    const cached = readCache<any>(cacheKey)?.value;
-    const usableCache = cached && (!acceptCached || acceptCached(cached)) ? cached : null;
+    // The request starts first; a cached copy (memory, localStorage, or IndexedDB for
+    // long sessions) shows meanwhile if it is found before the answer
+    const request = QuizService.getQuizSession(sessionId);
+    let answered = false;
+    request.finally(() => { answered = true; }).catch(() => undefined);
+    let cached = readCache<any>(cacheKey)?.value;
+    if (!cached) {
+      const scoped = userScopedKey(cacheKey);
+      if (scoped) cached = await idbGet<any>(scoped).catch(() => undefined);
+    }
+    const usableCache = cached && !answered && (!acceptCached || acceptCached(cached)) ? cached : null;
     const cachedText = usableCache ? JSON.stringify(usableCache) : null;
     if (usableCache) {
       setSession(usableCache);
@@ -148,7 +167,7 @@ export function useQuizSession(sessionId: number, options?: { acceptCached?: (se
       if (!usableCache) setLoading(true);
       setError(null);
 
-      const response = await QuizService.getQuizSession(sessionId);
+      const response = await request;
 
       if (response.success) {
         // Handle nested response structure from unified API
@@ -175,7 +194,7 @@ export function useQuizSession(sessionId: number, options?: { acceptCached?: (se
         if (freshText !== cachedText) {
           setSession(sessionData);
         }
-        writeCache(cacheKey, sessionData, { persist: freshText.length <= MAX_STORED_SESSION_CHARS });
+        storeQuizSession(cacheKey, sessionData, freshText.length);
       } else {
         console.error('❌ [useQuizSession] API request failed:', {
           sessionId,

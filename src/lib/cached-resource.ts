@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AUTH_LOGOUT_EVENT, AUTH_TOKEN_STORAGE_KEY } from '@/lib/api-client';
+import { idbClear } from '@/lib/idb-cache';
 
 /**
  * Stale-while-revalidate cache for API reads the student pages need on every
@@ -41,6 +42,11 @@ export function cacheUserId(): string | null {
 function fullKey(key: string): string | null {
   const userId = cacheUserId();
   return userId ? `${PREFIX}${userId}:${key}` : null;
+}
+
+/** The key under which a value of the signed-in user is stored (null when signed out) */
+export function userScopedKey(key: string): string | null {
+  return fullKey(key);
 }
 
 export function readCache<T>(key: string): Entry<T> | null {
@@ -111,6 +117,7 @@ export function invalidateCache(key: string): void {
 export function clearCachedResources(): void {
   memory.clear();
   inflight.clear();
+  idbClear().catch(() => undefined);
   try {
     const keys: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
