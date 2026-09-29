@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SessionWizard, PracticeSessionPayload } from '@/components/student/practice/session-wizard';
 import { QuizService } from '@/lib/api-services';
+import { primeQuizSession } from '@/hooks/use-quiz-api';
 import { toast } from 'sonner';
 
 export default function PracticeCreatePage() {
@@ -93,8 +94,9 @@ export default function PracticeCreatePage() {
 
         console.log('✅ [Practice/Create] Session created successfully, sessionId:', sessionId);
 
-        // The session page loads the questions; fetching them here first only
-        // delayed the start by one more request
+        // The new session came back with the creation: the session page opens it
+        // without another request
+        primeQuizSession(sessionId, created.data?.session);
         toast.success('Practice session created successfully');
         router.push(`/session/${sessionId}`);
       } else {

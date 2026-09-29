@@ -19,6 +19,7 @@ import { useContentFilters, useQuizSessionFilters } from '@/hooks/use-content-fi
 import { useUserSubscriptions, selectEffectiveActiveSubscription } from '@/hooks/use-subscription';
 import { analyzeSessionCreationError, getUserErrorMessage } from '@/utils/session-error-handler';
 import { NewApiService } from '@/lib/api/new-api-services';
+import { primeQuizSession } from '@/hooks/use-quiz-api';
 import { useYearLevel } from '@/hooks/use-year-level';
 import { YearLevelSelector } from '@/components/student/shared/year-level-selector';
 import { LoadingOverlay } from '@/components/loading-states/api-loading-states';
@@ -507,6 +508,8 @@ export function ExamSessionWizard({
 
       const sessionId = created?.data?.sessionId;
       if (sessionId) {
+        // The new exam came back with the creation: the session page opens it at once
+        primeQuizSession(sessionId, created?.data?.session);
         toast.success('Exam session created successfully');
         router.push(`/session/${sessionId}`);
       } else {

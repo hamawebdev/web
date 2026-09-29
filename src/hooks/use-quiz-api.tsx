@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { QuizService } from '@/lib/api-services';
-import { invalidateCache, readCache, writeCache } from '@/lib/cached-resource';
+import { readCache, writeCache } from '@/lib/cached-resource';
 
 // Enhanced types for quiz session data
 export interface QuizSession {
@@ -105,6 +105,16 @@ export function useQuizSessions(params: UseQuizSessionsParams = {}): UseQuizSess
 const MAX_STORED_SESSION_CHARS = 400_000;
 
 /**
+ * Store a session payload the API just returned (session creation with
+ * ?include=session), so the session page opens it without another request
+ */
+export function primeQuizSession(sessionId: number, session: any): void {
+  if (!sessionId || !session?.questions?.length) return;
+  const size = JSON.stringify(session).length;
+  writeCache(`quiz-session:${sessionId}`, session, { persist: size <= MAX_STORED_SESSION_CHARS });
+}
+
+/**
  * Hook to fetch and manage a single quiz session
  * Uses GET /api/v1/quiz-sessions/{sessionId} endpoint.
  *
@@ -165,11 +175,7 @@ export function useQuizSession(sessionId: number, options?: { acceptCached?: (se
         if (freshText !== cachedText) {
           setSession(sessionData);
         }
-        if (freshText.length <= MAX_STORED_SESSION_CHARS) {
-          writeCache(cacheKey, sessionData);
-        } else {
-          invalidateCache(cacheKey);
-        }
+        writeCache(cacheKey, sessionData, { persist: freshText.length <= MAX_STORED_SESSION_CHARS });
       } else {
         console.error('❌ [useQuizSession] API request failed:', {
           sessionId,

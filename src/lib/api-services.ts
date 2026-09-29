@@ -1801,7 +1801,8 @@ export class QuizService {
     universityIds?: number[];
     questionSourceIds?: number[];
   }): Promise<ApiResponse<any>> {
-    return apiClient.post<any>('/quizzes/sessions', sessionData);
+    // include=session: the new session comes back with it, ready to open
+    return apiClient.post<any>('/quizzes/sessions?include=session', sessionData);
   }
 
   /**

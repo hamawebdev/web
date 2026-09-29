@@ -865,7 +865,8 @@ export class NewApiService {
     try {
       console.log('🌐 [NewApiService] Creating quiz session:', payload);
 
-      const response = await apiClient.post<any>('/quizzes/sessions', payload);
+      // include=session: the new session comes back with it, ready to open
+      const response = await apiClient.post<any>('/quizzes/sessions?include=session', payload);
 
       // Handle potential nested response structure
       if (response && response.success && response.data) {

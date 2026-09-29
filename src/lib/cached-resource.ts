@@ -77,11 +77,17 @@ function pruneStorage() {
   }
 }
 
-export function writeCache<T>(key: string, value: T): void {
+export function writeCache<T>(key: string, value: T, options?: { persist?: boolean }): void {
   const k = fullKey(key);
   if (!k) return;
   const entry: Entry<T> = { value, savedAt: Date.now() };
   memory.set(k, entry);
+  // Memory only (large values): drop an older stored copy so it is not read later
+  if (options?.persist === false) {
+    try { localStorage.removeItem(k); } catch { /* ignore */ }
+    listeners.get(k)?.forEach(listener => listener(entry));
+    return;
+  }
   try {
     localStorage.setItem(k, JSON.stringify(entry));
   } catch {
