@@ -6,7 +6,9 @@ import { ForgotPasswordForm } from '@/components/auth/forgot-password-form';
 /**
  * Forgot Password Page
  *
- * Complete password reset workflow on a single page:
+ * Until the API can send e-mail, ForgotPasswordForm only explains how to get the
+ * password reset by MedADN (Instagram / Facebook). With e-mail enabled it runs the
+ * complete password reset workflow on a single page:
  *
  * Step 1: User enters email address
  *   - System sends verification code to email

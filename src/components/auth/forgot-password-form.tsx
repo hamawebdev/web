@@ -21,6 +21,8 @@ import {
 } from '@/components/ui/card';
 
 import AuthAPI from '@/lib/auth-api';
+import { PASSWORD_RESET_BY_EMAIL_ENABLED } from '@/lib/support-contacts';
+import { PasswordResetSupportCard } from '@/components/auth/password-reset-support-card';
 import { toast } from 'sonner';
 
 // Validation schema for step 1: email submission
@@ -90,12 +92,23 @@ function extractErrorMessage(error: any): string {
 /**
  * ForgotPasswordForm Component
  *
+ * No e-mail provider yet: shows how to get the password reset by an admin
+ * instead of promising a code that never arrives (see PASSWORD_RESET_BY_EMAIL_ENABLED).
+ */
+export function ForgotPasswordForm(props: ForgotPasswordFormProps) {
+  if (!PASSWORD_RESET_BY_EMAIL_ENABLED) {
+    return <PasswordResetSupportCard />;
+  }
+  return <EmailCodeForgotPasswordForm {...props} />;
+}
+
+/**
  * Complete password reset workflow on a single page:
  * Step 1: User enters email and receives verification code
  * Step 2: User enters code and new password to reset password
  * Step 3: Success message and redirect to login
  */
-export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
+function EmailCodeForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
   const router = useRouter();
   const [step, setStep] = useState<'email' | 'reset' | 'success'>('email');
   const [email, setEmail] = useState('');

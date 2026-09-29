@@ -9,7 +9,9 @@ import { ResetPasswordForm } from '@/components/auth/reset-password-form';
 /**
  * Reset Password Page
  *
- * Second step of the password reset workflow:
+ * Until the API can send e-mail, ResetPasswordForm only explains how to get the
+ * password reset by MedADN (Instagram / Facebook). With e-mail enabled it is the
+ * second step of the password reset workflow:
  * - User enters their email address
  * - User enters the 6-character verification code from their email
  * - User enters and confirms their new password (minimum 8 characters)

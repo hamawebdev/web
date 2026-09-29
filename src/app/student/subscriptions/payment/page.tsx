@@ -11,12 +11,11 @@ import { LoadingSpinner } from '@/components/loading-states/api-loading-states';
 import { RedeemActivationCodeModal } from '@/components/student/subscription/redeem-activation-code-modal';
 import { StudentService } from '@/lib/api-services';
 import { useStudentAuth } from '@/hooks/use-auth';
+import { FACEBOOK_URL, INSTAGRAM_URL } from '@/lib/support-contacts';
 import type { StudyPack } from '@/types/api';
 
 // Students pay by BaridiMob transfer to this number, send us the receipt, and get an activation code back
 const BARIDIMOB_NUMBER = '00799999004301142293';
-const INSTAGRAM_URL = 'https://www.instagram.com/med.adn.dz/';
-const FACEBOOK_URL = 'https://www.facebook.com/medadn';
 
 // Same currency format as the price on the plan cards
 const formatDzd = (amount: number) =>

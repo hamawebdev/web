@@ -5,6 +5,7 @@ import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserSubscriptions } from '@/hooks/use-subscription';
 import { StudentService } from '@/lib/api-services';
+import { INSTAGRAM_URL } from '@/lib/support-contacts';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/loading-states/api-loading-states';
@@ -241,7 +242,7 @@ function BrowseSubscriptionsPageContent() {
             Or contact us to get activation code
           </p>
           <Button
-            onClick={() => window.open('https://www.instagram.com/med.adn.dz/', '_blank')}
+            onClick={() => window.open(INSTAGRAM_URL, '_blank')}
             className="w-full sm:w-auto min-w-[200px] bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#FCB045] hover:opacity-90 text-white transition-all duration-300"
           >
             <Instagram className="h-4 w-4 mr-2" />

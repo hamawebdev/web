@@ -21,6 +21,8 @@ import {
 } from '@/components/ui/card';
 
 import AuthAPI from '@/lib/auth-api';
+import { PASSWORD_RESET_BY_EMAIL_ENABLED } from '@/lib/support-contacts';
+import { PasswordResetSupportCard } from '@/components/auth/password-reset-support-card';
 import { toast } from 'sonner';
 
 // Validation schema for reset password form
@@ -52,14 +54,25 @@ interface ResetPasswordFormProps {
 
 /**
  * ResetPasswordForm Component
- * 
+ *
+ * No e-mail provider yet, so no code can arrive: shows how to get the password
+ * reset by an admin instead (see PASSWORD_RESET_BY_EMAIL_ENABLED).
+ */
+export function ResetPasswordForm(props: ResetPasswordFormProps) {
+  if (!PASSWORD_RESET_BY_EMAIL_ENABLED) {
+    return <PasswordResetSupportCard />;
+  }
+  return <EmailCodeResetPasswordForm {...props} />;
+}
+
+/**
  * Handles the second step of the password reset workflow:
  * - User enters their email address
  * - User enters the 6-character verification code from their email
  * - User enters and confirms their new password (minimum 8 characters)
  * - System validates the code and updates the password
  */
-export function ResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
+function EmailCodeResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
