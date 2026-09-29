@@ -1,8 +1,6 @@
 // @ts-nocheck
 'use client';
 
-export const dynamic = 'force-dynamic';
-
 import { useState, useEffect, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useQuizSession } from '@/hooks/use-quiz-api';
