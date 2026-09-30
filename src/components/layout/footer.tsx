@@ -1,28 +1,32 @@
 // @ts-nocheck
-import Link from 'next/link';
 import { Facebook, Instagram, Youtube, Mail } from 'lucide-react';
+import { FACEBOOK_URL, INSTAGRAM_URL, YOUTUBE_URL } from '@/lib/support-contacts';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
 
+  // Social accounts open in a new tab so the visitor keeps their place on the page
   const socialLinks = [
     {
       name: 'Facebook',
       icon: Facebook,
-      href: '#',
-      label: 'Facebook'
+      href: FACEBOOK_URL,
+      label: 'Facebook',
+      newTab: true
     },
     {
       name: 'Instagram',
       icon: Instagram,
-      href: '#',
-      label: 'Instagram'
+      href: INSTAGRAM_URL,
+      label: 'Instagram',
+      newTab: true
     },
     {
       name: 'Youtube',
       icon: Youtube,
-      href: '#',
-      label: 'Youtube'
+      href: YOUTUBE_URL,
+      label: 'Youtube',
+      newTab: true
     },
     {
       name: 'Email',
@@ -41,8 +45,9 @@ export function Footer() {
             const IconComponent = social.icon;
             return (
               <div key={social.name} className="flex flex-col items-center space-y-3 group">
-                <Link
+                <a
                   href={social.href}
+                  {...(social.newTab && { target: '_blank', rel: 'noopener noreferrer' })}
                   className="w-16 h-16 bg-primary/10 border border-primary/20 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 hover:shadow-lg hover:shadow-primary/20 hover:bg-primary/20"
                   aria-label={social.label}
                 >
@@ -53,7 +58,7 @@ export function Footer() {
                     fill="currentColor"
                     fillOpacity={0.15}
                   />
-                </Link>
+                </a>
                 <span className="text-sm font-medium text-white/90 group-hover:text-white transition-colors duration-300">
                   {social.label}
                 </span>
