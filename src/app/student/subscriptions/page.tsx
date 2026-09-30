@@ -11,6 +11,7 @@ import { DollarMinimalistic } from '@solar-icons/react';
 import { StudentService } from '@/lib/api-services';
 import { useRouter } from 'next/navigation';
 import type { UserSubscription } from '@/types/api';
+import { subscriptionGrantsAccess } from '@/lib/subscription-access';
 import { useStudentAuth } from '@/hooks/use-auth';
 import { DataLoadingState } from '@/components/loading-states';
 
@@ -116,7 +117,7 @@ export default function SubscriptionsPage() {
               </div>
             </CardContent>
           </Card>
-        ) : subscriptions.length === 0 ? (
+        ) : !subscriptions.some(sub => subscriptionGrantsAccess(sub)) ? (
           <EmptySubscriptionsState />
         ) : (
           <SubscriptionsDisplay subscriptions={subscriptions} />
@@ -152,8 +153,8 @@ function EmptySubscriptionsState() {
 
 // Component to display subscriptions
 function SubscriptionsDisplay({ subscriptions }: { subscriptions: UserSubscription[] }) {
-  const activeSubscriptions = subscriptions.filter(sub => sub.status === 'ACTIVE');
-  const inactiveSubscriptions = subscriptions.filter(sub => sub.status !== 'ACTIVE');
+  // A lapsed subscription is still stored ACTIVE: only list those that give access now
+  const activeSubscriptions = subscriptions.filter(sub => subscriptionGrantsAccess(sub));
 
   return (
     <div className="space-y-8">
