@@ -5,7 +5,7 @@
  * Used by both Admin (full CRUD) and Student (read-only) interfaces.
  */
 
-import { apiClient, ApiResponse } from '../api-client';
+import { apiClient, ApiResponse, normalizeApiResponse } from '../api-client';
 
 // Type definitions
 export interface ModuleBook {
@@ -45,8 +45,9 @@ export class ModuleBooksService {
         try {
             console.log('📚 [ModuleBooksService] Fetching books for module:', moduleId);
 
-            const response = await apiClient.get<ModuleBooksResponse>(
-                `/admin/modules/${moduleId}/books`
+            // The admin endpoint answers a bare { books }, without the { success, data } envelope
+            const response = normalizeApiResponse<ModuleBooksResponse>(
+                await apiClient.get<ModuleBooksResponse>(`/admin/modules/${moduleId}/books`)
             );
 
             console.log('📚 [ModuleBooksService] Books response:', {
@@ -101,9 +102,9 @@ export class ModuleBooksService {
         try {
             console.log('📚 [ModuleBooksService] Creating books for module:', moduleId, books);
 
-            const response = await apiClient.post<CreateModuleBooksResponse>(
-                `/admin/modules/${moduleId}/books`,
-                { books }
+            // Bare { books, totalCreated, message } too: without the envelope a saved book was reported as a failure
+            const response = normalizeApiResponse<CreateModuleBooksResponse>(
+                await apiClient.post<CreateModuleBooksResponse>(`/admin/modules/${moduleId}/books`, { books })
             );
 
             console.log('📚 [ModuleBooksService] Create response:', {

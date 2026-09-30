@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { apiClient, normalizeApiResponse } from './api-client';
+import { ADMIN_COURSE_RESOURCES_LIMIT, courseResourceItems } from './admin-content-responses';
 import { logServiceCall } from './logger';
 import { API_BASE_URL, API_ORIGIN } from './config';
 import {
@@ -4163,7 +4164,7 @@ export class AdminCourseResourcesService {
     const queryParams = new URLSearchParams();
 
     queryParams.append('page', (params.page || 1).toString());
-    queryParams.append('limit', (params.limit || 50).toString());
+    queryParams.append('limit', (params.limit || ADMIN_COURSE_RESOURCES_LIMIT).toString());
 
     if (params.type) queryParams.append('type', params.type);
 
@@ -4196,18 +4197,17 @@ export class AdminCourseResourcesService {
         dataKeys: response.data ? Object.keys(response.data) : []
       });
 
-      // Handle nested response structure: { success, data: { success, data: [...] } }
-      const actualData = response.data?.data || response.data;
+      // The API answers { success, data: { items, total, page, limit, totalPages } }:
+      // reading `data` as the array always gave an empty list
+      const resources = courseResourceItems<any>(response);
 
       console.log('🔍 [AdminCourseResourcesService] Extracted data:', {
-        actualDataType: typeof actualData,
-        isArray: Array.isArray(actualData),
-        resourcesCount: Array.isArray(actualData) ? actualData.length : 0
+        resourcesCount: resources.length
       });
 
       return {
         success: true,
-        data: Array.isArray(actualData) ? actualData : []
+        data: resources
       };
     } catch (error) {
       console.error('Error fetching course resources:', error);
