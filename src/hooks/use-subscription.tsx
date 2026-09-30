@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { SubscriptionService, ContentService } from '@/lib/api-services';
 import { UserSubscription } from '@/types/api';
 import { useCachedResource } from '@/lib/cached-resource';
+import { isResidencyPackSubscription } from '@/lib/resource-years';
 
 // Interface for subscription access check
 export interface SubscriptionAccess {
@@ -408,14 +409,8 @@ export function selectEffectiveActiveSubscription(subscriptions: any[] | null | 
   const active = list.filter((s: any) => String(s?.status || '').toUpperCase() === 'ACTIVE' && (!s?.endDate || new Date(s.endDate).getTime() >= now));
   if (active.length === 0) return { effective: null, allowedYearLevels: [], isResidency: false };
 
-  // Helper function to check if a subscription is a residency pack
-  const isResidencyPack = (s: any): boolean => {
-    const packType = String(s?.studyPack?.type || s?.type || '').toUpperCase();
-    const yearNumber = String(s?.studyPack?.yearNumber || s?.yearNumber || '').toUpperCase();
-
-    // Check if type is explicitly RESIDENCY or if yearNumber is SEVEN (residency year)
-    return packType === 'RESIDENCY' || yearNumber === 'SEVEN';
-  };
+  // Only a Résidanat pack (type RESIDENCY) makes a résidanat student; a year-7 pack is an ordinary year pack
+  const isResidencyPack = (s: any): boolean => isResidencyPackSubscription(s);
 
   // Residency takes precedence (unlocks all years). If multiple residencies, pick the one with latest endDate.
   const residencies = active.filter(isResidencyPack);

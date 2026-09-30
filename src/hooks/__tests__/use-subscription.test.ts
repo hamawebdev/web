@@ -5,7 +5,7 @@ describe('selectEffectiveActiveSubscription', () => {
   const futureDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
 
   describe('Residency detection for yearNumber = SEVEN', () => {
-    it('should recognize YEAR type subscription with yearNumber=SEVEN as residency', () => {
+    it('treats a YEAR pack with yearNumber=SEVEN as an ordinary year pack, not résidanat', () => {
       const subscriptions = [
         {
           id: 553,
@@ -36,8 +36,8 @@ describe('selectEffectiveActiveSubscription', () => {
 
       const result = selectEffectiveActiveSubscription(subscriptions);
 
-      expect(result.isResidency).toBe(true);
-      expect(result.allowedYearLevels).toEqual(['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN']);
+      expect(result.isResidency).toBe(false);
+      expect(result.allowedYearLevels).toEqual(['SEVEN']);
       expect(result.effective).toBeDefined();
       expect(result.effective?.studyPack?.yearNumber).toBe('SEVEN');
     });

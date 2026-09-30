@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import {
   FALLBACK_RESOURCE_YEARS,
   defaultResourceYear,
+  isResidencyPackSubscription,
   isResidencyStudent,
   yearsWithYearPack,
 } from '../lib/resource-years.ts';
@@ -80,4 +81,13 @@ test('opens on 1st year, or on the first year offered', () => {
   assert.equal(defaultResourceYear(FALLBACK_RESOURCE_YEARS), 'ONE');
   assert.equal(defaultResourceYear(['THREE', 'FIVE']), 'THREE');
   assert.equal(defaultResourceYear([]), null);
+});
+
+test('only a Résidanat pack is a résidanat subscription, never a year-7 pack (sidebar and session wizards)', () => {
+  assert.equal(isResidencyPackSubscription(residency()), true);
+  assert.equal(isResidencyPackSubscription({ studyPack: { type: 'residency' } }), true);
+  assert.equal(isResidencyPackSubscription(year('SEVEN')), false);
+  assert.equal(isResidencyPackSubscription(year('THREE')), false);
+  assert.equal(isResidencyPackSubscription(null), false);
+  assert.equal(isResidencyPackSubscription({ status: 'ACTIVE' }), false);
 });

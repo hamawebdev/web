@@ -19,12 +19,17 @@ export const FALLBACK_RESOURCE_YEARS: YearLevel[] = ['ONE', 'TWO', 'THREE', 'FOU
 type SubscriptionLike = { status?: unknown; endDate?: unknown; studyPack?: { type?: unknown } | null } | null;
 type PackLike = { type?: unknown; yearNumber?: unknown; isActive?: unknown } | null;
 
+/** Whether a subscription is to a Résidanat pack (type RESIDENCY). A year pack never is, whatever its year. */
+export function isResidencyPackSubscription(sub: SubscriptionLike): boolean {
+  return String(sub?.studyPack?.type ?? '').toUpperCase() === 'RESIDENCY';
+}
+
 /** Whether GET /students/subscriptions holds an active Résidanat pack subscription */
 export function isResidencyStudent(subscriptions: unknown, now: number = Date.now()): boolean {
   if (!Array.isArray(subscriptions)) return false;
   return subscriptions.some((sub: SubscriptionLike) => {
     if (!sub || String(sub.status ?? '').toUpperCase() !== 'ACTIVE') return false;
-    if (String(sub.studyPack?.type ?? '').toUpperCase() !== 'RESIDENCY') return false;
+    if (!isResidencyPackSubscription(sub)) return false;
     const end = new Date(sub.endDate as string).getTime();
     return Number.isFinite(end) && end > now;
   });
