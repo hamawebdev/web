@@ -22,6 +22,7 @@ import {
 import { ChevronLeft, ChevronRight, CheckCircle2, X, CheckSquare, Square, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUserSubscriptions, selectEffectiveActiveSubscription } from "@/hooks/use-subscription";
+import { MAX_SESSION_QUESTIONS, selectableQuestionCount } from "@/lib/session-limits";
 
 import { useDebounce } from "@/hooks/use-debounce";
 import { useContentFilters, useQuizSessionFilters, useQuestionCount } from "@/hooks/use-content-filters";
@@ -469,6 +470,8 @@ export function SessionWizard({
 
   // Use the new question count from the API
   const totalAvailable = availableQuestionCount;
+  // The API takes at most MAX_SESSION_QUESTIONS per session, whatever the selection holds
+  const maxSelectable = selectableQuestionCount(totalAvailable);
 
   // Provide a simple breakdown for UI display (since the new API doesn't provide type breakdown)
   const counts = useMemo(() => {
@@ -490,7 +493,7 @@ export function SessionWizard({
       setQuestionCount((prev) => {
         if (prev && prev > 0) {
           // Keep existing value but ensure it's within bounds
-          return Math.min(prev, totalAvailable);
+          return Math.min(prev, selectableQuestionCount(totalAvailable));
         } else {
           // Set initial value to a reasonable percentage of available questions
           const initialCount = Math.min(Math.max(Math.floor(totalAvailable * 0.1), 1), 20);
@@ -504,7 +507,7 @@ export function SessionWizard({
 
   // Step 1 validation: requires title and unit/module selection
   const step1Valid = !!title && moduleIds.length > 0;
-  const step2Valid = totalAvailable > 0 && questionCount > 0 && questionCount <= totalAvailable && !questionCountError;
+  const step2Valid = totalAvailable > 0 && questionCount > 0 && questionCount <= maxSelectable && !questionCountError;
 
   const canNext = useMemo(() => {
     if (step === 1) return step1Valid && !contentLoading && !contentError && !sessionFiltersLoading && !sessionFiltersError;
@@ -817,8 +820,8 @@ export function SessionWizard({
                 <div className="flex-1">
                   <Slider
                     min={1}
-                    max={Math.max(1, totalAvailable)}
-                    value={[Math.min(Math.max(1, questionCount), Math.max(1, totalAvailable))]}
+                    max={Math.max(1, maxSelectable)}
+                    value={[Math.min(Math.max(1, questionCount), Math.max(1, maxSelectable))]}
                     onValueChange={([v]) => setQuestionCount(v)}
                     disabled={questionCountLoading || totalAvailable === 0 || !!questionCountError}
                     aria-valuetext={`${questionCount} questions`}
@@ -838,11 +841,11 @@ export function SessionWizard({
                   <input
                     type="number"
                     min={1}
-                    max={Math.max(1, totalAvailable)}
+                    max={Math.max(1, maxSelectable)}
                     value={questionCountLoading ? '' : questionCountError ? '' : questionCount}
                     onChange={(e) => {
                       const value = parseInt(e.target.value) || 1;
-                      const clampedValue = Math.min(Math.max(1, value), Math.max(1, totalAvailable));
+                      const clampedValue = Math.min(Math.max(1, value), Math.max(1, maxSelectable));
                       setQuestionCount(clampedValue);
                     }}
                     disabled={questionCountLoading || totalAvailable === 0 || !!questionCountError}
@@ -855,8 +858,8 @@ export function SessionWizard({
                     variant="outline"
                     size="sm"
                     className="rounded-l-none h-9"
-                    onClick={() => setQuestionCount(prev => Math.min(totalAvailable, prev + 1))}
-                    disabled={questionCountLoading || questionCount >= totalAvailable || totalAvailable === 0 || !!questionCountError}
+                    onClick={() => setQuestionCount(prev => Math.min(maxSelectable, prev + 1))}
+                    disabled={questionCountLoading || questionCount >= maxSelectable || totalAvailable === 0 || !!questionCountError}
                   >
                     +
                   </Button>
@@ -864,6 +867,7 @@ export function SessionWizard({
               </div>
               <p className="text-xs text-muted-foreground">
                 Max available: {questionCountLoading ? '...' : questionCountError ? 'Unavailable' : totalAvailable}
+                {!questionCountLoading && !questionCountError && totalAvailable > MAX_SESSION_QUESTIONS && ` · up to ${MAX_SESSION_QUESTIONS} per session`}
               </p>
             </div>
 
