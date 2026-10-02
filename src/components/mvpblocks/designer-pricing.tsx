@@ -161,7 +161,7 @@ export default function DesignerPricing() {
                 </span>
               </div>
               <span className="rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-sm font-semibold text-primary uppercase sm:px-5 sm:py-2 sm:text-base">
-                33% OFF
+                61% OFF
               </span>
             </div>
 
@@ -178,7 +178,7 @@ export default function DesignerPricing() {
                   7,500 DA
                 </span>
                 <span className="text-4xl font-bold tracking-tight lg:text-5xl text-foreground">
-                  5,000 DA<span className="text-lg font-medium text-muted-foreground ml-1">/ year</span>
+                  2,900 DA<span className="text-lg font-medium text-muted-foreground ml-1">/ year</span>
                 </span>
               </div>
 
